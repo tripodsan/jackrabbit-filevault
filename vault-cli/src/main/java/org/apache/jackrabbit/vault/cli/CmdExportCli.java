@@ -21,6 +21,8 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import javax.jcr.Session;
+
 import org.apache.commons.cli2.Argument;
 import org.apache.commons.cli2.CommandLine;
 import org.apache.commons.cli2.Option;
@@ -31,9 +33,11 @@ import org.apache.commons.cli2.builder.GroupBuilder;
 import org.apache.commons.cli2.option.Command;
 import org.apache.jackrabbit.vault.fs.api.RepositoryAddress;
 import org.apache.jackrabbit.vault.fs.api.VaultFile;
+import org.apache.jackrabbit.vault.fs.api.VaultFileSystem;
 import org.apache.jackrabbit.vault.fs.io.AbstractExporter;
 import org.apache.jackrabbit.vault.fs.io.JarExporter;
 import org.apache.jackrabbit.vault.fs.io.PlatformExporter;
+import org.apache.jackrabbit.vault.ng.SimpleExporter;
 import org.apache.jackrabbit.vault.util.DefaultProgressListener;
 import org.apache.jackrabbit.vault.util.Text;
 import org.apache.jackrabbit.vault.vlt.VltContext;
@@ -95,6 +99,19 @@ public class CmdExportCli extends AbstractVaultCommand {
         } else if (type.equals("jar")) {
             exporter = new JarExporter(localFile);
             vCtx = app.createVaultContext(localFile.getParentFile());
+        } else if (type.equals("experimental")) {
+            SimpleExporter exp = new SimpleExporter(localFile);
+            vCtx = app.createVaultContext(localFile.getParentFile());
+            vCtx.setVerbose(cl.hasOption(OPT_VERBOSE));
+            VaultFsApp.log.info("Exporting {} to {}", jcrPath, localFile.getCanonicalPath());
+            if (verbose) {
+                exp.setVerbose(new DefaultProgressListener());
+            }
+            VaultFileSystem fs = vCtx.getFileSystem(addr);
+            Session s = fs.getAggregateManager().getSession();
+            exp.export(s, jcrPath, fs.getWorkspaceFilter());
+            VaultFsApp.log.info("Exporting done.");
+            return;
         } else {
             throw new Exception("Type " + type + " not supported");
         }
