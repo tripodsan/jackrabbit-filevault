@@ -101,7 +101,7 @@ Would be serialized in:
             my-bundle.jar
 
 ### Orderable Child Nodes
-Todo: explain `:childNames`
+Todo: explain `:childOrder`
 
 ### File- and Directory names
 Todo: explain escaping
