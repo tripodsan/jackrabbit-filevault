@@ -21,9 +21,9 @@ Simplified Structure
 --------------------
 The mapping from repository content to platform files and directories (export) basically falls into 3 categories:
 
-1. the node structure is exported into a single binary file
-2. the node structure is exported into a single JSON file
-3. the node structure is exported into a combination of a directory and JSON file.
+1. either the node structure is exported into a single binary file
+2. or the node structure is exported into a single JSON file
+3. or the node structure is exported into a combination of a directory and JSON file.
 
 ### Nodes of type `nt:file`
 
