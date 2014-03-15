@@ -230,7 +230,7 @@ The various JCR property types are serialized as follows:
 | Boolean       | no           | as is  | `"hideInNav": false`                         |
 | Long          | no           | as is  | `"counter": 1234`                            |
 | Double        | no           | as is  | `"avg": -Infinity`                           |
-| Decimal       | yes          | getString()  | `"big": "1234242325234"`               |
+| Decimal       | yes          | getString()  | `"big{Decimal}": "1234242325234"`      |
 | Date          | yes          | ISO 8601 | `"lastModified{Date}": "Tue Feb 01 2011 23:40:30 GMT-0800"` |
 | Name          | yes          | getString() | `"jcr:property{Name}": "jcr:title"` |
 | Path          | yes          | getString() | `"origin{Path}": "/content/en/home"` |
