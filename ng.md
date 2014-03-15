@@ -158,6 +158,40 @@ And the `_content.json` would look like:
 
 This would also allow a more natural serialization of non-trivial `nt:file` nodes.
 
+## Brainstorm
+### What if I want to create a JSON nt:file ?
+
+use the non-trivial nt:file serialization, e.g.:
+
+    foo/
+      my_data.json/
+        _content.json
+        _content._jcr_data.bin
+
+or with the bin2 approach:
+
+    foo/
+      my_data.json/
+        _content.json
+        _content.binaries/
+          data.json
+    
+or we just invent a new mime-type:
+
+    foo/
+        my_data.json-the-real-one
+        
+or we invent a general mimetype-extension-mapping agnostic serialization, eg:
+
+    my_data.{application%2fjson}.json
+    my_data.{text%2fplain}.log
+    
+  
+### How do we deal with JCR namespaces
+
+We use the default mapping of the repository we import/export against. If this is not enough, we can also specify the namespace mappings globally in a `META-INF/vault/namespaces.json` or respect the ones defined in the `META-INF/vault/nodetypes.cnd`.
+
+
 
 work in progress...
 ===================
