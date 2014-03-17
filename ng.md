@@ -369,6 +369,47 @@ or we invent a general mimetype-extension-mapping agnostic serialization, eg:
 
 We use the default mapping of the repository we import/export against. If this is not enough, we can also specify the namespace mappings globally in a `META-INF/vault/namespaces.json` or respect the ones defined in the `META-INF/vault/nodetypes.cnd`.
 
+### Wouldn't it be simpler for a developer w/o those _content.json ?
+
+Assume you start defining content. so you start with a `foo.json` to define your `/foo` node. then you want to add a child nodes, so you add `/foo/bar.json`. so the steps are:
+
+1. `vi foo.json`
+1. _decide that we need another child node_
+1. `mkdir foo`
+1. `vi foo/bar.json`
+
+and the structure looks like:
+
+    foo/
+        bar.json    
+    foo.json
+
+with the `_content.json` we would do:
+
+1. `vi foo.json`
+1. _decide that we need another child node_
+1. `mkdir foo`
+1. `mv foo.json foo/_content.json`
+1. `vi foo/bar.json`
+
+and that structure looks like:
+
+    foo/
+        _content.json
+        bar.json
+        
+
+the advantages having the `_content.json` are:
+
+* renaming existing nodes is easier
+* we can define the root node, without a out-of-place `jcr-root.json`
+
+the disadvantages are:
+
+* adding a new child node may need more hierarchical restructuration
+
+**bottomline**: we should allow both, i.e. having a `node.json` and a `node` directory. the import order would be strictly hierarchical, i.e. first the `node.json` is imported, and then the `node` directory is traversed.
+    
 
 
 work in progress...
