@@ -23,7 +23,7 @@
         <groupId>org.apache.jackrabbit.vault</groupId>
         <artifactId>parent</artifactId>
         <relativePath>parent/pom.xml</relativePath>
-        <version>3.0.1-SNAPSHOT</version>
+        <version>3.1.1-SNAPSHOT</version>
     </parent>
 
     <!-- ====================================================================== -->
@@ -52,6 +52,7 @@
         <module>vault-diff</module>
         <module>vault-rcp</module>
         <module>vault-davex</module>
+        <module>vault-doc</module>
         <module>vault-vlt</module>
         <module>vault-cli</module>
         <module>vault-hook-example</module>
@@ -76,6 +77,8 @@
                     <excludePackageNames>
                         org.apache.jackrabbit.vault.cli*,org.apache.jackrabbit.vault.davex,*.impl*,org.apache.jackrabbit.vault.util.xml,org.apache.jackrabbit.vault.vlt.actions,org.apache.jackrabbit.vault.vlt.meta.*,org.apache.jackrabbit.vault.packaging.hotfix
                     </excludePackageNames>
+                    <reportOutputDirectory>${basedir}/vault-doc/target/site</reportOutputDirectory>
+                    <additionalparam>-notimestamp</additionalparam>
                 </configuration>
                 <executions>
                     <execution>
@@ -185,7 +188,7 @@ https://dist.apache.org/repos/dist/dev/jackrabbit/filevault/${project.version}/
 
 The release candidate is a zip archive of the sources in:
 
-https://svn.apache.org/repos/asf/jackrabbit/commons/filevault/tags/${project.version}/
+https://svn.apache.org/repos/asf/jackrabbit/commons/filevault/tags/jackrabbit-filevault-${project.version}/
 
 The SHA1 checksum of the archive is ${checksum}.
 

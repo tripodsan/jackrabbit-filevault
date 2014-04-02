@@ -618,9 +618,19 @@ public class DocViewSAXImporter extends RejectingEntityDefaultHandler implements
                                     log.info("Adding ACL element to non ACL parent - adding mixin: {}", node.getPath());
                                 }
                                 stack = stack.push();
-                                stack.adapter = new JackrabbitACLImporter(node, aclHandling);
-                                stack.adapter.startNode(ni);
-                                importInfo.onCreated(node.getPath() + "/" + ni.name);
+                                if ("rep:repoPolicy".equals(name)) {
+                                    if (node.getDepth() == 0) {
+                                        stack.adapter = new JackrabbitACLImporter(session, aclHandling);
+                                        stack.adapter.startNode(ni);
+                                        importInfo.onCreated(node.getPath() + "/" + ni.name);
+                                    } else {
+                                        log.info("ignoring invalid location for repository level ACL: {}", node.getPath());
+                                    }
+                                } else {
+                                    stack.adapter = new JackrabbitACLImporter(node, aclHandling);
+                                    stack.adapter.startNode(ni);
+                                    importInfo.onCreated(node.getPath() + "/" + ni.name);
+                                }
                             } else {
                                 stack = stack.push();
                             }
@@ -1057,6 +1067,7 @@ public class DocViewSAXImporter extends RejectingEntityDefaultHandler implements
             // need to be removed
             NodeNameList childNames = stack.getChildNames();
             Node node = stack.getNode();
+            int numChildren = 0;
             if (node == null) {
                 DocViewAdapter adapter = stack.getAdapter();
                 if (adapter != null) {
@@ -1071,6 +1082,7 @@ public class DocViewSAXImporter extends RejectingEntityDefaultHandler implements
             } else {
                 NodeIterator iter = node.getNodes();
                 while (iter.hasNext()) {
+                    numChildren++;
                     Node child = iter.nextNode();
                     String path = child.getPath();
                     String label = Text.getName(path);
@@ -1086,8 +1098,10 @@ public class DocViewSAXImporter extends RejectingEntityDefaultHandler implements
                                 aclManagement.clearACL(node);
                             }
                         } else {
-                            importInfo.onDeleted(path);
-                            child.remove();
+                            if (wspFilter.getImportMode(path) == ImportMode.REPLACE) {
+                                importInfo.onDeleted(path);
+                                child.remove();
+                            }
                         }
                     } else if (aclHandling == AccessControlHandling.CLEAR
                             && aclManagement.isACLNode(child)
@@ -1102,10 +1116,8 @@ public class DocViewSAXImporter extends RejectingEntityDefaultHandler implements
                 }
             }
             stack = stack.pop();
-            if (stack.isRoot()) {
-                // record child names of root node
-                importInfo.setNameList(childNames);
-                importInfo.setNode(node);
+            if (node != null && (numChildren == 0 && !childNames.isEmpty() || stack.isRoot())) {
+                importInfo.addNameList(node.getPath(), childNames);
             }
         } catch (RepositoryException e) {
             throw new SAXException(e);
