@@ -19,7 +19,7 @@ The `filevault` class is the entry bookmark to the filevault REST API, currently
   "links": [
     { "rel": [ "self" ], 
       "href": "/system/jackrabbit/filevault" },
-    { "rel": [ "http://jackabbit.apache.org/filevault/rels/packages" ], 
+    { "rel": [ "http://jackrabbit.apache.org/filevault/rels/packages" ], 
       "href": "/system/jackrabbit/filevault/packages"  }
   ]
 }
