@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
+import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 import org.apache.sling.commons.json.JSONException;
@@ -82,11 +84,37 @@ public class SirenJsonWriter {
     public void write(Properties props) throws JSONException {
         w.object();
         for (Map.Entry e: props.entrySet()) {
-            w.key(String.valueOf(e.getKey())).value(e.getValue());
+            String key = String.valueOf(e.getKey());
+            Object v = e.getValue();
+            if (v instanceof String[]) {
+                w.key(key).array();
+                for (String s : (String[]) v) {
+                    w.value(s);
+                }
+                w.endArray();
+            } else if (v instanceof WorkspaceFilter) {
+                write(key, (WorkspaceFilter) v);
+            } else {
+                w.key(key).value(v);
+            }
         }
         w.endObject();
     }
 
+    private void write(String key, WorkspaceFilter filter) throws JSONException {
+        if (filter != null) {
+            w.key(key);
+            w.object();
+            w.key("filters").array();
+            for (PathFilterSet set : filter.getFilterSets()) {
+                w.object();
+                w.key("root").value(set.getRoot());
+                w.endObject();
+            }
+            w.endArray();
+            w.endObject();
+        }
+    }
     private void write(String key, Set<String> strings) throws JSONException {
         if (!strings.isEmpty()) {
             w.key(key);

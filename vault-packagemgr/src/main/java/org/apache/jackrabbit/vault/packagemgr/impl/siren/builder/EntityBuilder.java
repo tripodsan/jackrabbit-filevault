@@ -16,12 +16,20 @@
  */
 package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 
+import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+
+import org.apache.jackrabbit.util.ISO8601;
+import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
@@ -46,11 +54,52 @@ public class EntityBuilder extends LinkBuilder implements Entity {
         return this;
     }
 
-    public EntityBuilder addProperty(String name, Object value) {
+    public EntityBuilder addProperty(String name, String value) {
+        if (value != null) {
+            props.put(name, value);
+        }
+        return this;
+    }
+
+    public EntityBuilder addProperty(String name, boolean value) {
         props.put(name, value);
         return this;
     }
 
+    public EntityBuilder addProperty(String name, long value) {
+        props.put(name, value);
+        return this;
+    }
+
+    public EntityBuilder addProperty(String name, Calendar value) {
+        if (value != null) {
+            props.put(name, ISO8601.format(value));
+        }
+        return this;
+    }
+
+    public EntityBuilder addProperty(String name, WorkspaceFilter value) {
+        if (value != null) {
+            props.put(name, value);
+        }
+        return this;
+    }
+
+    public EntityBuilder addProperty(String name, Node node, String jcrName) throws RepositoryException {
+        if (node.hasProperty(jcrName)) {
+            Property p = node.getProperty(jcrName);
+            if (p.isMultiple()) {
+                List<String> values = new LinkedList<String>();
+                for (Value v : p.getValues()) {
+                    values.add(v.getString());
+                }
+                props.put(name, values.toArray(new String[values.size()]));
+            } else {
+                props.put(name, p.getString());
+            }
+        }
+        return this;
+    }
     public EntityBuilder addLink(Link link) {
         links.add(link);
         return this;

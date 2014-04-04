@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.servlet.ServletException;
@@ -31,6 +33,7 @@ import javax.servlet.ServletException;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.sling.SlingServlet;
 import org.apache.jackrabbit.util.Text;
+import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
@@ -86,7 +89,8 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
         response.setCharacterEncoding("utf-8");
 
         try {
-            String selfRef = request.getRequestURI();
+            String ext = request.getRequestPathInfo().getExtension();
+            String baseRef = request.getRequestPathInfo().getResourcePath() + "." + ext;
             String suffix = request.getRequestPathInfo().getSuffix();
             Entity root = null;
             if (suffix == null || suffix.length() == 0) {
@@ -94,15 +98,16 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
                         .addClass("filevault")
                         .addProperty("version", "3.1.0")
                         .addProperty("api-version", "1.0")
-                        .addLink(Rels.SELF, selfRef)
-                        .addLink(Rels.VLT_PACKAGES, selfRef + "/packages")
+                        .addLink(Rels.SELF, baseRef)
+                        .addLink(Rels.VLT_PACKAGES, baseRef + "/packages")
                         .build();
             } else if ("/packages".equals(suffix)) {
                 Session session = request.getResourceResolver().adaptTo(Session.class);
                 JcrPackageManager mgr = packaging.getPackageManager(session);
-                root = getPackagesEntity(mgr, selfRef);
+                root = getPackagesEntity(mgr, baseRef + "/packages");
 
             } else if (suffix.startsWith("/packages/")) {
+                String format = request.getParameter("format");
                 String path = suffix.substring("/packages".length());
                 Route r = new Route(path);
                 Session session = request.getResourceResolver().adaptTo(Session.class);
@@ -112,7 +117,7 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
                     response.sendError(404);
                     return;
                 }
-                root = getPackageEntity(pkg, selfRef, false);
+                root = getPackageEntity(pkg, baseRef + "/packages", "brief".equals(format));
             }
             SirenJsonWriter out = new SirenJsonWriter(response.getWriter());
             out.write(root);
@@ -149,32 +154,86 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
             b.append("/").append(id.getVersionString());
         }
         String pkgRef = b.toString();
-        EntityBuilder builder = new EntityBuilder()
-                .addLink(Rels.VLT_PACKAGE_DOWNLOAD, pkgRef + "/" + id.getDownloadName())
-                .addProperty("pid", id.toString())
+        EntityBuilder builder = addPackageProperties(new EntityBuilder(), pkg, brief)
+                .addLink(Rels.VLT_PACKAGE_DOWNLOAD, pkgRef + "/" + id.getDownloadName());
+
+        if (brief) {
+            builder.addClass("package-brief")
+                    .addLink(Rels.SELF, pkgRef + "?format=brief")
+                    .addLink(Rels.VLT_PACKAGE, pkgRef);
+        } else {
+            builder.addClass("package")
+                    .addLink(Rels.SELF, pkgRef)
+                    .addLink(Rels.VLT_PACKAGE_BRIEF, pkgRef + "?format=brief");
+        }
+        return builder.build();
+    }
+
+    private EntityBuilder addPackageProperties(EntityBuilder b, JcrPackage pkg, boolean brief) throws RepositoryException {
+        JcrPackageDefinition  def = pkg.getDefinition();
+        PackageId id = def.getId();
+        b.addProperty("pid", id.toString())
                 .addProperty("name", id.getName())
                 .addProperty("group", id.getGroup())
                 .addProperty("version", id.getVersionString())
                 .addProperty("downloadName", id.getDownloadName())
                 .addProperty("downloadSize", pkg.getSize())
-//                    .addProperty("lastModified", def.getLastModified().getTimeInMillis())
-//                    .addProperty("lastModifiedBy", def.getLastModifiedBy())
-//                    .addProperty("lastUnpacked", def.getLastUnpacked().getTimeInMillis())
-//                    .addProperty("lastUnpackedBy", def.getLastUnpackedBy())
-//                    .addProperty("created", def.getCreated().getTimeInMillis())
-//                    .addProperty("createdBy", def.getCreatedBy())
-                ;
+                .addProperty("isInstalled", pkg.isInstalled());
+
         if (brief) {
-            builder.addClass("package-brief")
-                   .addLink(Rels.SELF, pkgRef + "?format=brief")
-                   .addLink(Rels.VLT_PACKAGE, pkgRef);
-        } else {
-            builder.addClass("package")
-                   .addLink(Rels.SELF, pkgRef)
-                   .addLink(Rels.VLT_PACKAGE_BRIEF, pkgRef + "?format=brief");
+            return b;
         }
-        return builder.build();
+        Node defNode = def.getNode();
+        b
+//                .addProperty("groupTitle", getGroupTitle(packRoot, group))
+                .addProperty("description", def.getDescription())
+                .addProperty("buildCount", def.getBuildCount())
+                .addProperty("lastModified", def.getLastModified())
+                .addProperty("lastModifiedBy", def.getLastModifiedBy())
+                .addProperty("lastUnpacked", def.getLastUnpacked())
+                .addProperty("lastUnpackedBy", def.getLastUnpackedBy())
+                .addProperty("created", def.getCreated())
+                .addProperty("createdBy", def.getCreatedBy())
+
+
+                .addProperty("hasSnapshot", pkg.getSnapshot() != null)
+//                .addProperty("needsRewrap", needsRewrap(pack, id, packRoot))
+
+                .addProperty("builtWith", def.get("builtWith"))
+                .addProperty("testedWith", def.get("testedWith"))
+                .addProperty("fixedBugs", def.get("fixedBugs"))
+                .addProperty("requiresRoot", def.requiresRoot())
+                .addProperty("requiresRestart", def.requiresRestart())
+                .addProperty("acHandling",
+                        def.getAccessControlHandling() == null
+                                ? ""
+                                : def.getAccessControlHandling().name().toLowerCase())
+                .addProperty("providerName", def.get("providerName"))
+                .addProperty("providerUrl", def.get("providerUrl"))
+                .addProperty("providerLink", def.get("providerLink"))
+                .addProperty("dependencies", defNode, "dependencies")
+                .addProperty("replaces", defNode, "replaces")
+                .addProperty("workspaceFilter", def.getMetaInf().getFilter());
+//        w.key("filter").array();
+//        if (defNode.hasNode("filter")) {
+//            NodeIterator filters = defNode.getNode("filter").getNodes();
+//            while (filters.hasNext()) {
+//                printFilter(filters.nextNode());
+//            }
+//        }
+//        w.endArray();
+//
+//        w.key("screenshots").array();
+//        if (defNode.hasNode("screenshots")) {
+//            NodeIterator it = defNode.getNode("screenshots").getNodes();
+//            while (it.hasNext()) {
+//                w.value(it.nextNode().getPath());
+//            }
+//        }
+//        w.endArray();
+        return b;
     }
+
 
     @Override
     protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response)
