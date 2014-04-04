@@ -18,7 +18,11 @@
 package org.apache.jackrabbit.vault.packagemgr.impl;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -26,6 +30,7 @@ import javax.servlet.ServletException;
 
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.sling.SlingServlet;
+import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
@@ -80,33 +85,39 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
         response.setContentType("application/json");
         response.setCharacterEncoding("utf-8");
 
-        String selfRef = request.getRequestURI();
-
-        String suffix = request.getRequestPathInfo().getSuffix();
-        Entity root = null;
-        if (suffix == null || suffix.length() == 0) {
-            root = new EntityBuilder()
-                    .addClass("filevault")
-                    .addProperty("version", "3.1.0")
-                    .addProperty("api-version", "1.0")
-                    .addLink(Rels.SELF, selfRef)
-                    .addLink(Rels.VLT_PACKAGES, selfRef + "/packages")
-                    .build();
-        } else if ("/packages".equals(suffix)) {
-            Session session = request.getResourceResolver().adaptTo(Session.class);
-            JcrPackageManager mgr = packaging.getPackageManager(session);
-            try {
-                root = getPackagesEntity(mgr, selfRef);
-            } catch (RepositoryException e) {
-                throw new IOException(e);
-            }
-        } else if (suffix.startsWith("/packages/")) {
-            
-        }
-
         try {
+            String selfRef = request.getRequestURI();
+            String suffix = request.getRequestPathInfo().getSuffix();
+            Entity root = null;
+            if (suffix == null || suffix.length() == 0) {
+                root = new EntityBuilder()
+                        .addClass("filevault")
+                        .addProperty("version", "3.1.0")
+                        .addProperty("api-version", "1.0")
+                        .addLink(Rels.SELF, selfRef)
+                        .addLink(Rels.VLT_PACKAGES, selfRef + "/packages")
+                        .build();
+            } else if ("/packages".equals(suffix)) {
+                Session session = request.getResourceResolver().adaptTo(Session.class);
+                JcrPackageManager mgr = packaging.getPackageManager(session);
+                root = getPackagesEntity(mgr, selfRef);
+
+            } else if (suffix.startsWith("/packages/")) {
+                String path = suffix.substring("/packages".length());
+                Route r = new Route(path);
+                Session session = request.getResourceResolver().adaptTo(Session.class);
+                JcrPackageManager mgr = packaging.getPackageManager(session);
+                JcrPackage pkg = mgr.open(r.getPackageId());
+                if (pkg == null) {
+                    response.sendError(404);
+                    return;
+                }
+                root = getPackageEntity(pkg, selfRef, false);
+            }
             SirenJsonWriter out = new SirenJsonWriter(response.getWriter());
             out.write(root);
+        } catch (RepositoryException e) {
+            throw new IOException(e);
         } catch (JSONException e) {
             throw new IOException(e);
         }
@@ -170,5 +181,77 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
             throws ServletException, IOException {
     }
 
+    protected static class Route {
+
+        private static final Set<String> commands = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
+                "install", "uninstall"
+        )));
+        private PackageId pkgId;
+
+        private String command;
+
+        private String file;
+
+        protected Route(String path) {
+            String[] segs = Text.explode(path, '/');
+            // empty
+            if (segs.length == 0) {
+                return;
+            }
+
+            // /name
+            if (segs.length == 1) {
+                pkgId = new PackageId("", segs[0], "");
+                return;
+            }
+
+            String last = segs[segs.length-1];
+            if ("thumbnail.png".equals(last)) {
+                pkgId = createPackageId(segs, 0, segs.length - 1);
+                command = "thumbnail";
+                file = last;
+            } else if (segs.length > 2 && "screenshot".equals(segs[segs.length - 2])) {
+                pkgId = createPackageId(segs, 0, segs.length - 2);
+                command = "screenshot";
+                file = last;
+            } else {
+                pkgId = createPackageId(segs, 0, segs.length - 1);
+                if (last.equals(pkgId.getDownloadName())) {
+                    file = last;
+                    command = "download";
+                } else if (commands.contains(last)) {
+                    command = last;
+                } else {
+                    pkgId = createPackageId(segs, 0, segs.length);
+                }
+            }
+        }
+
+        private static PackageId createPackageId(String[] segs, int from, int to) {
+            StringBuilder b = new StringBuilder();
+            while (from < to - 2) {
+                String seg = segs[from++];
+                if (!seg.equals("-")) {
+                    b.append("/").append(seg);
+                }
+            }
+            String group = b.toString();
+            String name = segs[to-2];
+            String version = segs[to-1].equals("-") ? "" : segs[to-1];
+            return new PackageId(group, name, version);
+        }
+
+        public PackageId getPackageId() {
+            return pkgId;
+        }
+
+        public String getCommand() {
+            return command;
+        }
+
+        public String getFile() {
+            return file;
+        }
+    }
 }
 
