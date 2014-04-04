@@ -206,7 +206,6 @@ The _package_ provides the following properties:
 | X | pid      | Package Id  | foo/group1:package1:1.0 |
 | X | name     | Package name | package1
 | X | group    | Group name  | foo/group1
-|   | groupTitle | Group Title | First Foo Group |
 | X | version  | Version | 1.0 |
 |   | build count | Value of build counter | 13 |
 |   | path     | JCR path where the package is stored | /etc/packages/foo/group1/package1-1.0
@@ -214,13 +213,13 @@ The _package_ provides the following properties:
 | X | downloadSize | Size in bytes | 8124 |
 |   | description | Package description | This package contains a hot fix.... |                
 |   | thumbnail | href of thumbnail | property or entity ? |
-|   | isInstalled | Simple flag indicating if package is installed | false |
-| X | lastModified | Last modified time (ms) | 123456 |
-| X | lastModifiedBy | Last modified user id | tripod |
-| X | created | Created time (ms) | 123456 |
-| X | createdBy | Creator user id | tripod |
-| X | lastUnpacked | Time when last unpackaged (ms) | 123456 |
-| X | lastUnpackedBy | User id that last unpackaged | joe |
+| x | isInstalled | Simple flag indicating if package is installed | false |
+|   | lastModified | Last modified time (ms) | 123456 |
+|   | lastModifiedBy | Last modified user id | tripod |
+|   | created | Created time (ms) | 123456 |
+|   | createdBy | Creator user id | tripod |
+|   | lastUnpacked | Time when last unpackaged (ms) | 123456 |
+|   | lastUnpackedBy | User id that last unpackaged | joe |
 |   | lastWrapped | Time when last wrapped (ms) | 123456 |
 |   | lastWrappedBy | User id that last wrapped | joe |
 |   | lastUnwrapped | Time when last unwrapped (ms) | 123456 |

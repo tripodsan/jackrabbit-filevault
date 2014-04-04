@@ -19,8 +19,9 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import javax.jcr.Node;
@@ -41,7 +42,7 @@ public class EntityBuilder extends LinkBuilder implements Entity {
 
     private TreeSet<String> classes = new TreeSet<String>();
 
-    private Properties props = new Properties();
+    private Map<String, Object> props = new TreeMap<String, Object>();
 
     private TreeSet<Link> links = new TreeSet<Link>();
 
@@ -128,7 +129,7 @@ public class EntityBuilder extends LinkBuilder implements Entity {
         return classes;
     }
 
-    public Properties getProperties() {
+    public Map<String, Object> getProperties() {
         return props;
     }
 

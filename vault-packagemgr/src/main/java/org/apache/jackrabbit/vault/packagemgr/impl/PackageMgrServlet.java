@@ -26,6 +26,7 @@ import java.util.Set;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.servlet.ServletException;
@@ -99,7 +100,7 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
                         .addProperty("version", "3.1.0")
                         .addProperty("api-version", "1.0")
                         .addLink(Rels.SELF, baseRef)
-                        .addLink(Rels.VLT_PACKAGES, baseRef + "/packages")
+                        .addLink(Rels.REL_VLT_PACKAGES, baseRef + "/packages")
                         .build();
             } else if ("/packages".equals(suffix)) {
                 Session session = request.getResourceResolver().adaptTo(Session.class);
@@ -155,16 +156,21 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
         }
         String pkgRef = b.toString();
         EntityBuilder builder = addPackageProperties(new EntityBuilder(), pkg, brief)
-                .addLink(Rels.VLT_PACKAGE_DOWNLOAD, pkgRef + "/" + id.getDownloadName());
+                .addLink(Rels.REL_VLT_PACKAGE_DOWNLOAD, pkgRef + "/" + id.getDownloadName());
 
         if (brief) {
             builder.addClass("package-brief")
                     .addLink(Rels.SELF, pkgRef + "?format=brief")
-                    .addLink(Rels.VLT_PACKAGE, pkgRef);
+                    .addLink(Rels.REL_VLT_PACKAGE, pkgRef);
         } else {
             builder.addClass("package")
                     .addLink(Rels.SELF, pkgRef)
-                    .addLink(Rels.VLT_PACKAGE_BRIEF, pkgRef + "?format=brief");
+                    .addLink(Rels.REL_VLT_PACKAGE_BRIEF, pkgRef + "?format=brief");
+
+            if (def.get("thumbnail.png/jcr:content/jcr:mimeType") != null) {
+                builder.addLink(Rels.REL_VLT_THUMBNAIL, pkgRef + "/thumbnail.png");
+            }
+
         }
         return builder.build();
     }
@@ -178,27 +184,24 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
                 .addProperty("version", id.getVersionString())
                 .addProperty("downloadName", id.getDownloadName())
                 .addProperty("downloadSize", pkg.getSize())
-                .addProperty("isInstalled", pkg.isInstalled());
+                .addProperty("isInstalled", pkg.isInstalled())
+                .addProperty("lastUnpacked", def.getLastUnpacked())
+                .addProperty("lastModified", def.getLastModified())
+                .addProperty("created", def.getCreated());
 
         if (brief) {
             return b;
         }
         Node defNode = def.getNode();
         b
-//                .addProperty("groupTitle", getGroupTitle(packRoot, group))
+                .addProperty("path", pkg.getNode().getPath())
                 .addProperty("description", def.getDescription())
                 .addProperty("buildCount", def.getBuildCount())
-                .addProperty("lastModified", def.getLastModified())
                 .addProperty("lastModifiedBy", def.getLastModifiedBy())
-                .addProperty("lastUnpacked", def.getLastUnpacked())
                 .addProperty("lastUnpackedBy", def.getLastUnpackedBy())
-                .addProperty("created", def.getCreated())
                 .addProperty("createdBy", def.getCreatedBy())
-
-
                 .addProperty("hasSnapshot", pkg.getSnapshot() != null)
-//                .addProperty("needsRewrap", needsRewrap(pack, id, packRoot))
-
+                .addProperty("needsRewrap", needsRewrap(pkg, id))
                 .addProperty("builtWith", def.get("builtWith"))
                 .addProperty("testedWith", def.get("testedWith"))
                 .addProperty("fixedBugs", def.get("fixedBugs"))
@@ -214,15 +217,9 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
                 .addProperty("dependencies", defNode, "dependencies")
                 .addProperty("replaces", defNode, "replaces")
                 .addProperty("workspaceFilter", def.getMetaInf().getFilter());
-//        w.key("filter").array();
-//        if (defNode.hasNode("filter")) {
-//            NodeIterator filters = defNode.getNode("filter").getNodes();
-//            while (filters.hasNext()) {
-//                printFilter(filters.nextNode());
-//            }
-//        }
-//        w.endArray();
-//
+
+
+        // thumbnails
 //        w.key("screenshots").array();
 //        if (defNode.hasNode("screenshots")) {
 //            NodeIterator it = defNode.getNode("screenshots").getNodes();
@@ -234,6 +231,21 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
         return b;
     }
 
+    private boolean needsRewrap(JcrPackage pack, PackageId id) throws RepositoryException {
+        String groupPath = id.getGroup().equals("") ? id.getGroup() : "/" + id.getGroup();
+        return !pack.getNode().getParent().getPath().equals(PackageId.ETC_PACKAGES + groupPath);
+    }
+
+//    private String getThumbnailUrl(Node defNode, String path) throws RepositoryException {
+//        long ck = System.currentTimeMillis();
+//        try {
+//            ck = defNode.getProperty("thumbnail.png/jcr:content/jcr:lastModified").getLong();
+//        } catch (PathNotFoundException e) {
+//            // ignore
+//        }
+//        return request.getContextPath() + request.getServletPath() + "/thumbnail.jsp?_charset_=utf-8&path=" + Text.escape(path) + "&ck=" + ck;
+//    }
+//
 
     @Override
     protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response)

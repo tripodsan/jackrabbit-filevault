@@ -18,11 +18,13 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren.json;
 
 import java.io.Writer;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
+import org.apache.jackrabbit.vault.fs.api.FilterSet;
+import org.apache.jackrabbit.vault.fs.api.PathFilter;
 import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
+import org.apache.jackrabbit.vault.fs.filter.DefaultPathFilter;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 import org.apache.sling.commons.json.JSONException;
@@ -81,21 +83,20 @@ public class SirenJsonWriter {
         w.endObject();
     }
 
-    public void write(Properties props) throws JSONException {
+    public void write(Map<String, Object> props) throws JSONException {
         w.object();
-        for (Map.Entry e: props.entrySet()) {
-            String key = String.valueOf(e.getKey());
+        for (Map.Entry<String, Object> e: props.entrySet()) {
             Object v = e.getValue();
             if (v instanceof String[]) {
-                w.key(key).array();
+                w.key(e.getKey()).array();
                 for (String s : (String[]) v) {
                     w.value(s);
                 }
                 w.endArray();
             } else if (v instanceof WorkspaceFilter) {
-                write(key, (WorkspaceFilter) v);
+                write(e.getKey(), (WorkspaceFilter) v);
             } else {
-                w.key(key).value(v);
+                w.key(e.getKey()).value(v);
             }
         }
         w.endObject();
@@ -109,6 +110,31 @@ public class SirenJsonWriter {
             for (PathFilterSet set : filter.getFilterSets()) {
                 w.object();
                 w.key("root").value(set.getRoot());
+                w.key("mode").value(set.getImportMode().name().toLowerCase());
+                Boolean defaultAllow = null;
+                for (FilterSet.Entry<PathFilter> e: set.getEntries()) {
+                    if (defaultAllow == null) {
+                        w.key("rules").array();
+                        defaultAllow = !e.isInclude();
+                    }
+                    w.object();
+                    w.key("type").value(e.isInclude() ? "include" : "exclude");
+                    PathFilter f = e.getFilter();
+                    String pattern;
+                    if (f instanceof DefaultPathFilter) {
+                        pattern = ((DefaultPathFilter) f).getPattern();
+                    } else {
+                        pattern = e.toString();
+                    }
+                    w.key("pattern").value(pattern);
+                    w.endObject();
+                }
+                if (defaultAllow == null) {
+                    defaultAllow = true;
+                } else {
+                    w.endArray();
+                }
+                w.key("default").value(defaultAllow ? "include" : "exclude");
                 w.endObject();
             }
             w.endArray();

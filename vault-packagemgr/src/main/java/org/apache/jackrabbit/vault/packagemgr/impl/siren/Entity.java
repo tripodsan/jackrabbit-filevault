@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ public interface Entity extends Link {
 
     Set<String> getClasses();
 
-    Properties getProperties();
+    Map<String, Object> getProperties();
 
     Iterable<Link> getLinks();
 

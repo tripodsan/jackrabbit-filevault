@@ -23,10 +23,17 @@ public interface Rels {
 
     static final String SELF = "self";
 
-    static final String BASE_URI = "http://jackrabbit.apache.org/filevault/rels";
+    static final String VLT_BASE_URI = "http://jackrabbit.apache.org/filevault/rels";
 
-    static final String VLT_PACKAGES = BASE_URI + "/packages";
-    static final String VLT_PACKAGE = BASE_URI + "/package";
-    static final String VLT_PACKAGE_BRIEF = BASE_URI + "/package-brief";
-    static final String VLT_PACKAGE_DOWNLOAD = BASE_URI + "/package-download";
+    static final String CLS_PACKAGES = "packages";
+    static final String CLS_PACKAGE = "package";
+    static final String CLS_THUMBNAIL = "thumbnail";
+    static final String CLS_SCREENSHOT ="screenshot";
+
+    static final String REL_VLT_PACKAGES = VLT_BASE_URI + "/packages";
+    static final String REL_VLT_PACKAGE = VLT_BASE_URI + "/package";
+    static final String REL_VLT_PACKAGE_BRIEF = VLT_BASE_URI + "/package-brief";
+    static final String REL_VLT_PACKAGE_DOWNLOAD = VLT_BASE_URI + "/package-download";
+    static final String REL_VLT_THUMBNAIL = VLT_BASE_URI + "/thumbnail";
+    static final String REL_VLT_SCREENSHOT = VLT_BASE_URI + "/screenshot";
 }
