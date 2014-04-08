@@ -24,21 +24,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.servlet.ServletException;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.sling.SlingServlet;
 import org.apache.jackrabbit.util.Text;
-import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.LinkBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
@@ -118,6 +117,34 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
                     response.sendError(404);
                     return;
                 }
+                if ("thumbnail".equals(r.getCommand())) {
+                    JcrPackageDefinition def = pkg.getDefinition();
+                    if (def.getNode().hasNode("thumbnail.png")) {
+                        Node node = def.getNode().getNode("thumbnail.png");
+                        sendFile(request, response, node);
+                    } else {
+                        response.sendError(404);
+                    }
+                    return;
+                } else if ("download".equals(r.getCommand())) {
+                    Node node = pkg.getNode();
+                    sendFile(request, response, node);
+                } else if ("screenshot".equals(r.getCommand())) {
+                    JcrPackageDefinition def = pkg.getDefinition();
+                    Node node = def.getNode();
+                    if (!node.hasNode("screenshots/" + r.getFile())) {
+                        response.sendError(404);
+                    } else {
+                        node = node.getNode("screenshots/" + r.getFile());
+                        if (node.hasProperty("jcr:content/jcr:data")) {
+                            sendFile(request, response, node);
+                        } else if (node.hasNode("file")) {
+                            sendFile(request, response, node.getNode("file"));
+                        } else {
+                            response.sendError(404);
+                        }
+                    }
+                }
                 root = getPackageEntity(pkg, baseRef + "/packages", "brief".equals(format));
             }
             SirenJsonWriter out = new SirenJsonWriter(response.getWriter());
@@ -127,6 +154,15 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
         } catch (JSONException e) {
             throw new IOException(e);
         }
+    }
+
+    private void sendFile(SlingHttpServletRequest request, SlingHttpServletResponse response, Node file)
+            throws IOException, RepositoryException {
+        Binary bin = file.getProperty("jcr:content/jcr:data").getBinary();
+        response.setContentType(file.getProperty("jcr:content/jcr:mimeType").getString());
+        response.setContentLength((int) bin.getSize());
+        IOUtils.copy(bin.getStream(), response.getOutputStream());
+        bin.dispose();
     }
 
     private Entity getPackagesEntity(JcrPackageManager mgr, String selfRef) throws RepositoryException {
@@ -171,6 +207,12 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
                 builder.addLink(Rels.REL_VLT_THUMBNAIL, pkgRef + "/thumbnail.png");
             }
 
+            if (def.getNode().hasNode("screenshots")) {
+                NodeIterator it = def.getNode().getNode("screenshots").getNodes();
+                while (it.hasNext()) {
+                    builder.addLink(Rels.REL_VLT_SCREENSHOT, pkgRef + "/screenshot/" + it.nextNode().getName());
+                }
+            }
         }
         return builder.build();
     }
@@ -184,7 +226,6 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
                 .addProperty("version", id.getVersionString())
                 .addProperty("downloadName", id.getDownloadName())
                 .addProperty("downloadSize", pkg.getSize())
-                .addProperty("isInstalled", pkg.isInstalled())
                 .addProperty("lastUnpacked", def.getLastUnpacked())
                 .addProperty("lastModified", def.getLastModified())
                 .addProperty("created", def.getCreated());
@@ -217,17 +258,6 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
                 .addProperty("dependencies", defNode, "dependencies")
                 .addProperty("replaces", defNode, "replaces")
                 .addProperty("workspaceFilter", def.getMetaInf().getFilter());
-
-
-        // thumbnails
-//        w.key("screenshots").array();
-//        if (defNode.hasNode("screenshots")) {
-//            NodeIterator it = defNode.getNode("screenshots").getNodes();
-//            while (it.hasNext()) {
-//                w.value(it.nextNode().getPath());
-//            }
-//        }
-//        w.endArray();
         return b;
     }
 
