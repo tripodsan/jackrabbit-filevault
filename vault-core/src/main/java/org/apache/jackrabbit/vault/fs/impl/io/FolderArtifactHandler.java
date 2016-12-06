@@ -84,7 +84,7 @@ public class FolderArtifactHandler extends AbstractArtifactHandler {
             // sync nodes
             Set<String> hints = new HashSet<String>();
             String rootPath = parent.getPath();
-            if (!rootPath.equals("/")) {
+            if (!"/".equals(rootPath)) {
                 rootPath += "/";
             }
             for (Artifact a: artifacts.values(ArtifactType.HINT)) {
@@ -92,6 +92,16 @@ public class FolderArtifactHandler extends AbstractArtifactHandler {
             }
 
             Node node = parent.getNode(dir.getRelativePath());
+
+            // check if node type is correct (JCRVLT-142)
+            String folderPath = node.getPath();
+            if (wspFilter.contains(folderPath) && wspFilter.getImportMode(folderPath) != ImportMode.MERGE) {
+                if (!node.getPrimaryNodeType().getName().equals(nodeType)) {
+                    node.setPrimaryType(nodeType);
+                    info.onModified(folderPath);
+                }
+            }
+
             NodeIterator iter = node.getNodes();
             while (iter.hasNext()) {
                 Node child = iter.nextNode();

@@ -461,10 +461,30 @@ public class TestPackageInstall extends IntegrationTestBase {
     }
 
     /**
-     * Installs a package with a different node type
+     * Installs a package with a different node type: nt:folder -> sling:OrderedFolder
      */
     @Test
     public void testNodeTypeChange() throws RepositoryException, IOException, PackageException {
+        extractVaultPackage("testpackages/tmp_nt_folder.zip");
+        assertNodeExists("/tmp/foo");
+        assertEquals(admin.getNode("/tmp").getPrimaryNodeType().getName(), "nt:folder");
+
+        JcrPackage pack = packMgr.upload(getStream("testpackages/tmp.zip"), false);
+        assertNotNull(pack);
+        assertNodeExists("/etc/packages/my_packages/tmp.zip");
+
+        ImportOptions opts = getDefaultOptions();
+        pack.install(opts);
+
+        assertNodeExists("/tmp/foo");
+        assertEquals(admin.getNode("/tmp").getPrimaryNodeType().getName(), "sling:OrderedFolder");
+    }
+
+    /**
+     * Installs a package with an empty directory (no .content.xml): sling:OrderedFolder -> nt:folder
+     */
+    @Test
+    public void testNodeTypeNtFolder() throws RepositoryException, IOException, PackageException {
         JcrPackage pack = packMgr.upload(getStream("testpackages/tmp.zip"), false);
         assertNotNull(pack);
         assertNodeExists("/etc/packages/my_packages/tmp.zip");
@@ -475,12 +495,7 @@ public class TestPackageInstall extends IntegrationTestBase {
         assertNodeExists("/tmp/foo");
         assertEquals(admin.getNode("/tmp").getPrimaryNodeType().getName(), "sling:OrderedFolder");
 
-        pack = packMgr.upload(getStream("testpackages/tmp_nt_folder.zip"), false);
-        assertNotNull(pack);
-        assertNodeExists("/etc/packages/my_packages/tmp.zip");
-
-        pack.install(opts);
-
+        extractVaultPackage("testpackages/tmp_nt_folder.zip");
         assertNodeExists("/tmp/foo");
         assertEquals(admin.getNode("/tmp").getPrimaryNodeType().getName(), "nt:folder");
     }

@@ -707,7 +707,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
         }
         String parentPath = Text.getRelativeParent(path, 1);
         if (path == null || ("/".equals(path) && parentPath.equals(path))) {
-            throw new RepositoryException("could not crete intermediate nodes");
+            throw new RepositoryException("could not create intermediate nodes");
         }
         Node parent = mkdir(parentPath, autoSave);
         Node node = null;
