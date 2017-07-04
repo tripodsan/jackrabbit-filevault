@@ -69,6 +69,9 @@ import org.apache.jackrabbit.vault.packaging.SubPackageHandling;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.jackrabbit.vault.packaging.Version;
 import org.apache.jackrabbit.vault.packaging.events.PackageEvent;
+import org.apache.jackrabbit.vault.packaging.registry.RegisteredPackage;
+import org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry;
+import org.apache.jackrabbit.vault.packaging.registry.impl.JcrRegisteredPackage;
 import org.apache.jackrabbit.vault.util.JcrConstants;
 import org.apache.jackrabbit.vault.util.Text;
 import org.slf4j.Logger;
@@ -94,7 +97,7 @@ public class JcrPackageImpl implements JcrPackage {
     /**
      * our package manager
      */
-    private final JcrPackageManagerImpl mgr;
+    private final JcrPackageRegistry mgr;
 
     /**
      * underlying node
@@ -114,12 +117,12 @@ public class JcrPackageImpl implements JcrPackage {
     @Nullable
     private JcrPackageDefinitionImpl def;
 
-    public JcrPackageImpl(@Nonnull JcrPackageManagerImpl mgr, @Nullable Node node) throws RepositoryException {
+    public JcrPackageImpl(@Nonnull JcrPackageRegistry mgr, @Nullable Node node) throws RepositoryException {
         this.mgr = mgr;
         this.node = node;
     }
 
-    protected JcrPackageImpl(@Nonnull JcrPackageManagerImpl mgr, @Nullable Node node, @Nullable ZipVaultPackage pack) throws RepositoryException {
+    public JcrPackageImpl(@Nonnull JcrPackageRegistry mgr, @Nullable Node node, @Nullable ZipVaultPackage pack) throws RepositoryException {
         this.mgr = mgr;
         this.node = node;
         this.pack = pack;
@@ -603,8 +606,15 @@ public class JcrPackageImpl implements JcrPackage {
                 ins = in.getByteStream();
                 JcrPackageImpl subPackage;
                 try {
-                    subPackage = (JcrPackageImpl) mgr.upload(ins, true, true);
-                } catch (RepositoryException e1) {
+                    PackageId subPid = mgr.register(ins);
+                    JcrRegisteredPackage subPkg = (JcrRegisteredPackage) mgr.open(subPid);
+                    if (subPkg == null) {
+                        log.error("Package {}: Newly extracted subpackage is gone: {}", pId, subPid);
+                        continue;
+                    } else {
+                        subPackage = (JcrPackageImpl) subPkg.getJcrPackage();
+                    }
+                } catch (IOException e1) {
                     log.error("Package {}: Error while extracting subpackage {}: {}", pId, in.getSystemId());
                     continue;
                 }
@@ -679,8 +689,15 @@ public class JcrPackageImpl implements JcrPackage {
         }
         List<Dependency> unresolved = new LinkedList<Dependency>();
         for (Dependency dep: def.getDependencies()) {
-            if (mgr.resolve(dep, true) == null) {
-                unresolved.add(dep);
+            try {
+                if (mgr.resolve(dep, true) == null) {
+                    unresolved.add(dep);
+                }
+            } catch (IOException e) {
+                if (e.getCause() instanceof RepositoryException) {
+                    throw (RepositoryException) e.getCause();
+                }
+                throw new RepositoryException(e);
             }
         }
         return unresolved.toArray(new Dependency[unresolved.size()]);
@@ -697,9 +714,16 @@ public class JcrPackageImpl implements JcrPackage {
         }
         List<PackageId> resolved = new LinkedList<PackageId>();
         for (Dependency dep: def.getDependencies()) {
-            PackageId id = mgr.resolve(dep, true);
-            if (id != null) {
-                resolved.add(id);
+            try {
+                PackageId id = mgr.resolve(dep, true);
+                if (id != null) {
+                    resolved.add(id);
+                }
+            } catch (IOException e) {
+                if (e.getCause() instanceof RepositoryException) {
+                    throw (RepositoryException) e.getCause();
+                }
+                throw new RepositoryException(e);
             }
         }
         return resolved.toArray(new PackageId[resolved.size()]);
@@ -722,10 +746,10 @@ public class JcrPackageImpl implements JcrPackage {
             if (id == null) {
                 unresolved.add(dep);
             } else {
-                JcrPackageImpl pack = (JcrPackageImpl) mgr.open(id);
-                if (!pack.isInstalled()) {
+                JcrRegisteredPackage pack = (JcrRegisteredPackage) mgr.open(id);
+                if (pack != null && !pack.isInstalled()) {
                     unresolved.add(dep);
-                    uninstalled.add(pack);
+                    uninstalled.add((JcrPackageImpl) pack.getJcrPackage());
                 }
             }
         }

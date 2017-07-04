@@ -268,7 +268,9 @@ public class PackageId implements Comparable<PackageId> {
      *
      * @return the path of this package
      * @since 2.2
+     * @deprecated
      */
+    @Deprecated
     public String getInstallationPath() {
         StringBuilder b = new StringBuilder(ETC_PACKAGES_PREFIX);
         if (group.length() > 0) {
