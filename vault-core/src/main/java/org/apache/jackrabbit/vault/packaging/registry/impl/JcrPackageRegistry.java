@@ -22,10 +22,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -54,6 +56,7 @@ import org.apache.jackrabbit.vault.packaging.events.PackageEvent;
 import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcher;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageDefinitionImpl;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageImpl;
+import org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl;
 import org.apache.jackrabbit.vault.packaging.impl.PackagePropertiesImpl;
 import org.apache.jackrabbit.vault.packaging.impl.ZipVaultPackage;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlan;
@@ -85,9 +88,9 @@ public class JcrPackageRegistry implements PackageRegistry {
     /**
      * root path for packages
      */
-    private static final String PACKAGE_ROOT_PATH = "/etc/packages";
+    public static final String PACKAGE_ROOT_PATH = "/etc/packages";
 
-    private static final String ETC_PACKAGES_PREFIX = "/etc/packages/";
+    public static final String PACKAGE_ROOT_PATH_PREFIX = "/etc/packages/";
 
     /**
      * suggested folder types
@@ -142,9 +145,7 @@ public class JcrPackageRegistry implements PackageRegistry {
         } catch (RepositoryException e) {
             // ignore
         }
-        InputStream in = null;
-        try {
-            in = getClass().getResourceAsStream(DEFAULT_NODETYPES);
+        try (InputStream in = JcrPackageManagerImpl.class.getResourceAsStream(DEFAULT_NODETYPES)){
             if (in == null) {
                 throw new InternalError("Could not load " + DEFAULT_NODETYPES + " resource.");
             }
@@ -154,8 +155,6 @@ public class JcrPackageRegistry implements PackageRegistry {
             installer.install(null, types);
         } catch (Throwable e) {
             log.warn("Error while registering nodetypes. Package installation might not work correctly.", e);
-        } finally {
-            IOUtils.closeQuietly(in);
         }
     }
 
@@ -259,19 +258,19 @@ public class JcrPackageRegistry implements PackageRegistry {
                 if (".snapshot".equals(child.getName())) {
                     continue;
                 }
-                JcrPackageImpl pack = new JcrPackageImpl(this, child);
-                if (pack.isValid()) {
-                    if (onlyInstalled && !pack.isInstalled()) {
-                        continue;
-                    }
-                    PackageId id = pack.getDefinition().getId();
-                    if (dependency.matches(id)) {
-                        if (bestId == null || id.getVersion().compareTo(bestId.getVersion()) > 0) {
-                            bestId = id;
+                try (JcrPackageImpl pack = new JcrPackageImpl(this, child)) {
+                    if (pack.isValid()) {
+                        if (onlyInstalled && !pack.isInstalled()) {
+                            continue;
+                        }
+                        PackageId id = pack.getDefinition().getId();
+                        if (dependency.matches(id)) {
+                            if (bestId == null || id.getVersion().compareTo(bestId.getVersion()) > 0) {
+                                bestId = id;
+                            }
                         }
                     }
                 }
-
             }
             return bestId;
         } catch (RepositoryException e) {
@@ -290,6 +289,7 @@ public class JcrPackageRegistry implements PackageRegistry {
                 if (pkg == null || !pkg.isInstalled()) {
                     continue;
                 }
+                //noinspection resource
                 for (Dependency dep: pkg.getPackage().getDependencies()) {
                     if (dep.matches(id)) {
                         usages.add(pid);
@@ -306,6 +306,7 @@ public class JcrPackageRegistry implements PackageRegistry {
     @Override
     public PackageId register(@Nonnull InputStream in, boolean replace) throws IOException, NoSuchElementException {
         try (JcrPackage pkg = upload(in, replace)){
+            //noinspection resource
             return pkg.getPackage().getId();
         } catch (RepositoryException e) {
             throw new IOException(e);
@@ -344,11 +345,11 @@ public class JcrPackageRegistry implements PackageRegistry {
         PackageId pid = props.getId();
 
         // invalidate pid if path is unknown
-        if (pid == null || getInstallationPath(pid).equals(ZipVaultPackage.UNKNOWN_PATH)) {
-            bin.dispose();
-            throw new IOException("Package does not contain a path specification or valid package id.");
+        if (pid == null) {
+            pid = createRandomPid();
         }
         if (!pid.isValid()) {
+            bin.dispose();
             throw new RepositoryException("Unable to create package. Illegal package name.");
         }
 
@@ -363,11 +364,12 @@ public class JcrPackageRegistry implements PackageRegistry {
         Calendar oldCreatedDate = null;
 
         if (parent.hasNode(name)) {
-            JcrPackage oldPackage = new JcrPackageImpl(this, parent.getNode(name));
-            JcrPackageDefinitionImpl oldDef = (JcrPackageDefinitionImpl) oldPackage.getDefinition();
-            if (oldDef != null) {
-                state = oldDef.getState();
-                oldCreatedDate = oldDef.getCreated();
+            try (JcrPackage oldPackage = new JcrPackageImpl(this, parent.getNode(name))) {
+                JcrPackageDefinitionImpl oldDef = (JcrPackageDefinitionImpl) oldPackage.getDefinition();
+                if (oldDef != null) {
+                    state = oldDef.getState();
+                    oldCreatedDate = oldDef.getCreated();
+                }
             }
 
             if (replace) {
@@ -402,6 +404,7 @@ public class JcrPackageRegistry implements PackageRegistry {
     public PackageId register(@Nonnull File file, boolean isTmpFile, boolean replace) throws IOException, PackageException {
         ZipVaultPackage pack = new ZipVaultPackage(file, isTmpFile, true);
         try (JcrPackage pkg = upload(pack, replace, true)) {
+            //noinspection resource
             return pkg.getPackage().getId();
         } catch (RepositoryException e) {
             throw new IOException(e);
@@ -426,11 +429,8 @@ public class JcrPackageRegistry implements PackageRegistry {
 
         // invalidate pid if path is unknown
         PackageId pid = pkg.getId();
-        if (pid != null && getInstallationPath(pid).equals(ZipVaultPackage.UNKNOWN_PATH)) {
-            pid = null;
-        }
         if (pid == null) {
-            throw new IOException("Package does not contain a path specification and not name hint is given.");
+            pid = createRandomPid();
         }
         if (!pid.isValid()) {
             throw new RepositoryException("Unable to create package. Illegal package name.");
@@ -446,10 +446,11 @@ public class JcrPackageRegistry implements PackageRegistry {
         JcrPackageDefinitionImpl.State state = null;
 
         if (parent.hasNode(name)) {
-            JcrPackage oldPackage = new JcrPackageImpl(this, parent.getNode(name));
-            JcrPackageDefinitionImpl oldDef = (JcrPackageDefinitionImpl) oldPackage.getDefinition();
-            if (oldDef != null) {
-                state = oldDef.getState();
+            try (JcrPackage oldPackage = new JcrPackageImpl(this, parent.getNode(name))) {
+                JcrPackageDefinitionImpl oldDef = (JcrPackageDefinitionImpl) oldPackage.getDefinition();
+                if (oldDef != null) {
+                    state = oldDef.getState();
+                }
             }
 
             if (replace) {
@@ -475,8 +476,6 @@ public class JcrPackageRegistry implements PackageRegistry {
             }
         }
     }
-
-
 
     /**
      * yet another Convenience method to create intermediate nodes.
@@ -615,12 +614,14 @@ public class JcrPackageRegistry implements PackageRegistry {
         return new JcrPackageImpl(this, node);
     }
 
+    @SuppressWarnings("resource")
     @Override
     public boolean remove(@Nonnull PackageId id) throws IOException {
-        JcrPackage pack = (JcrPackage) open(id);
-        if (pack == null) {
+        JcrRegisteredPackage pkg = (JcrRegisteredPackage) open(id);
+        if (pkg == null) {
             return false;
         }
+        JcrPackage pack = pkg.getJcrPackage();
         try {
             JcrPackage snap = pack.getSnapshot();
             if (snap != null) {
@@ -657,7 +658,7 @@ public class JcrPackageRegistry implements PackageRegistry {
                 name == null ? id.getName() : name,
                 version == null ? id.getVersion() : Version.create(version)
         );
-        String dstPath = newId.getInstallationPath() + ".zip";
+        String dstPath = getInstallationPath(newId) + ".zip";
         if (id.equals(newId) && pack.getNode().getPath().equals(dstPath)) {
             log.debug("Package id not changed. won't rename.");
             return pack;
@@ -684,7 +685,46 @@ public class JcrPackageRegistry implements PackageRegistry {
     @Nonnull
     @Override
     public Set<PackageId> packages() throws IOException {
-        return null;
+        try {
+            Node pRoot = getPackageRoot(true);
+            if (pRoot == null) {
+                return Collections.emptySet();
+            }
+            Set<PackageId> packages = new TreeSet<PackageId>();
+            listPackages(pRoot, packages);
+            return packages;
+        } catch (RepositoryException e) {
+            throw new IOException(e);
+        }
+    }
+
+    /**
+     * internally adds the packages below {@code root} to the given list
+     * recursively.
+     *
+     * @param root root node
+     * @param packages list for the packages
+     * @throws RepositoryException if an error occurs
+     */
+    private void listPackages(Node root, Set<PackageId> packages) throws RepositoryException {
+        for (NodeIterator iter = root.getNodes(); iter.hasNext();) {
+            Node child = iter.nextNode();
+            if (".snapshot".equals(child.getName())) {
+                continue;
+            }
+            try (JcrPackageImpl pack = new JcrPackageImpl(this, child)) {
+                if (pack.isValid()) {
+                    // skip packages with illegal names
+                    JcrPackageDefinition jDef = pack.getDefinition();
+                    if (jDef == null || !jDef.getId().isValid()) {
+                        continue;
+                    }
+                    packages.add(jDef.getId());
+                } else if (child.hasNodes()) {
+                    listPackages(child, packages);
+                }
+            }
+        }
     }
 
     /**
@@ -695,7 +735,7 @@ public class JcrPackageRegistry implements PackageRegistry {
      * @since 2.2
      */
     public static String getInstallationPath(PackageId id) {
-        StringBuilder b = new StringBuilder(ETC_PACKAGES_PREFIX);
+        StringBuilder b = new StringBuilder(PACKAGE_ROOT_PATH_PREFIX);
         if (id.getGroup().length() > 0) {
             b.append(id.getGroup());
             b.append("/");
@@ -706,6 +746,14 @@ public class JcrPackageRegistry implements PackageRegistry {
             b.append("-").append(v);
         }
         return b.toString();
+    }
+
+    /**
+     * Creates a random package id for packages that lack one.
+     * @return a random package id.
+     */
+    private static PackageId createRandomPid() {
+        return new PackageId("temporary", "pack_" + UUID.randomUUID().toString(), (String) null);
     }
 
     @Nonnull

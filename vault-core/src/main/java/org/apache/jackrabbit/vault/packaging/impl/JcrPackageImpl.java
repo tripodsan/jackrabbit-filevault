@@ -234,7 +234,7 @@ public class JcrPackageImpl implements JcrPackage {
         PackageId cId = new PackageId(node.getPath());
         // compare installation paths since non-conform version numbers might
         // lead to different pids (bug #35564)
-        if (JcrPackageManagerImpl.getInstallationPath(id).equals(JcrPackageManagerImpl.getInstallationPath(cId))) {
+        if (JcrPackageRegistry.getInstallationPath(id).equals(JcrPackageRegistry.getInstallationPath(cId))) {
             if (autoFix && id.isFromPath()) {
                 // if definition has no id set, fix anyways
                 jDef.setId(cId, autoSave);
@@ -566,7 +566,7 @@ public class JcrPackageImpl implements JcrPackage {
         boolean hasOwnContent = false;
         for (PathFilterSet root: a.getMetaInf().getFilter().getFilterSets()) {
             // todo: find better way to detect subpackages
-            if (!Text.isDescendantOrEqual(JcrPackageManagerImpl.PACKAGE_ROOT_PATH, root.getRoot())) {
+            if (!Text.isDescendantOrEqual(JcrPackageRegistry.PACKAGE_ROOT_PATH, root.getRoot())) {
                 log.debug("Package {}: contains content outside /etc/packages. Sub packages will have a dependency to it", pId);
                 hasOwnContent = true;
                 break;
@@ -604,7 +604,7 @@ public class JcrPackageImpl implements JcrPackage {
                 ins = in.getByteStream();
                 JcrPackageImpl subPackage;
                 try {
-                    PackageId subPid = mgr.register(ins);
+                    PackageId subPid = mgr.register(ins, true);
                     JcrRegisteredPackage subPkg = (JcrRegisteredPackage) mgr.open(subPid);
                     if (subPkg == null) {
                         log.error("Package {}: Newly extracted subpackage is gone: {}", pId, subPid);
@@ -797,16 +797,19 @@ public class JcrPackageImpl implements JcrPackage {
             throw new DependencyException(msg);
         }
         for (PackageId id: usage) {
-            JcrPackageImpl pack = (JcrPackageImpl) mgr.open(id);
-            if (pack == null || !pack.isInstalled()) {
-                continue;
+            try (JcrRegisteredPackage pack = (JcrRegisteredPackage) mgr.open(id)) {
+                if (pack == null || !pack.isInstalled()) {
+                    continue;
+                }
+                PackageId packageId = pack.getId();
+                if (processed.contains(packageId)) {
+                    // ignore cyclic...
+                    continue;
+                }
+
+                //noinspection resource
+                ((JcrPackageImpl) pack.getJcrPackage()).uninstall(processed, opts);
             }
-            PackageId packageId = pack.getDefinition().getId();
-            if (processed.contains(packageId)) {
-                // ignore cyclic...
-                continue;
-            }
-            pack.uninstall(processed, opts);
         }
     }
 
@@ -847,7 +850,7 @@ public class JcrPackageImpl implements JcrPackage {
         }
         log.debug("Creating snapshot for {}.", id);
         JcrPackageManagerImpl packMgr = new JcrPackageManagerImpl(node.getSession());
-        String path = JcrPackageManagerImpl.getInstallationPath(id);
+        String path = JcrPackageRegistry.getInstallationPath(id);
         String parentPath = Text.getRelativeParent(path, 1);
         Node folder = packMgr.mkdir(parentPath, true);
         JcrPackage snap = mgr.createNew(folder, id, null, true);
@@ -881,7 +884,7 @@ public class JcrPackageImpl implements JcrPackage {
         if (node == null) {
             return null;
         }
-        String path = JcrPackageManagerImpl.getInstallationPath(id);
+        String path = JcrPackageRegistry.getInstallationPath(id);
         if (node.getSession().nodeExists(path)) {
             return node.getSession().getNode(path);
         } else if (node.getSession().nodeExists(path + ".zip")) {

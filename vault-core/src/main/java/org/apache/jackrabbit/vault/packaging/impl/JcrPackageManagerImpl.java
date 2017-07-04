@@ -53,7 +53,9 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.jackrabbit.vault.packaging.events.PackageEvent;
 import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcher;
+import org.apache.jackrabbit.vault.packaging.registry.RegisteredPackage;
 import org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry;
+import org.apache.jackrabbit.vault.packaging.registry.impl.JcrRegisteredPackage;
 import org.apache.jackrabbit.vault.util.JcrConstants;
 
 /**
@@ -98,7 +100,9 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     @Override
     public JcrPackage open(PackageId id) throws RepositoryException {
         try {
-            return (JcrPackage) registry.open(id);
+            //noinspection resource
+            JcrRegisteredPackage pkg = (JcrRegisteredPackage) registry.open(id);
+            return pkg == null ? null : pkg.getJcrPackage();
         } catch (IOException e) {
             throw unwrapRepositoryException(e);
         }
