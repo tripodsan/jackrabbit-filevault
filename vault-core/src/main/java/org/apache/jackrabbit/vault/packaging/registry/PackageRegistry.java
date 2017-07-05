@@ -19,14 +19,15 @@ package org.apache.jackrabbit.vault.packaging.registry;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.vault.packaging.Dependency;
+import org.apache.jackrabbit.vault.packaging.NoSuchPackageException;
 import org.apache.jackrabbit.vault.packaging.PackageException;
+import org.apache.jackrabbit.vault.packaging.PackageExistsException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -45,15 +46,26 @@ public interface PackageRegistry {
     RegisteredPackage open(@Nonnull PackageId id) throws IOException;
 
     @Nonnull
-    PackageId register(@Nonnull InputStream in, boolean replace) throws IOException, PackageException;
+    PackageId register(@Nonnull InputStream in, boolean replace) throws IOException, PackageExistsException;
 
     @Nonnull
-    PackageId register(@Nonnull File file, boolean isTempFile, boolean replace) throws IOException, PackageException;
+    PackageId register(@Nonnull File file, boolean isTempFile, boolean replace) throws IOException, PackageExistsException;
 
     @Nonnull
-    PackageId registerExternal(@Nonnull File file, boolean replace) throws IOException, PackageException;
+    PackageId registerExternal(@Nonnull File file, boolean replace) throws IOException, PackageExistsException;
 
-    boolean remove(@Nonnull PackageId id) throws IOException, NoSuchElementException;
+    void remove(@Nonnull PackageId id) throws IOException, NoSuchPackageException;
+
+    /**
+     * Creates a dependency report that lists the resolved and unresolved dependencies.
+     * @param id the package id.
+     * @param onlyInstalled if {@code true} only installed packages are used for resolution
+     * @return the report
+     * @throws IOException if an error accessing the repository occurrs
+     * @throws NoSuchPackageException if the package does not exist.
+     */
+    @Nonnull
+    DependencyReport analyzeDependencies(@Nonnull PackageId id, boolean onlyInstalled) throws IOException, NoSuchPackageException;
 
     @Nullable
     PackageId resolve(@Nonnull Dependency dependency, boolean onlyInstalled) throws IOException;

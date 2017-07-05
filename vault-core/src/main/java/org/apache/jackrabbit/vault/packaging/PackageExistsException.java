@@ -17,24 +17,38 @@
 
 package org.apache.jackrabbit.vault.packaging;
 
-/**
- * Generic exception for package related operations.
- */
-public class PackageException extends Exception {
+import javax.annotation.Nullable;
 
-    public PackageException() {
+/**
+ * Exception thrown if a specified package already exist.
+ */
+public class PackageExistsException extends PackageException {
+
+    private PackageId id;
+
+    public PackageExistsException() {
         super();
     }
 
-    public PackageException(String message) {
+    public PackageExistsException(String message) {
         super(message);
     }
 
-    public PackageException(String message, Throwable cause) {
+    public PackageExistsException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public PackageException(Throwable cause) {
+    public PackageExistsException(Throwable cause) {
         super(cause);
+    }
+
+    @Nullable
+    public PackageId getId() {
+        return id;
+    }
+
+    public PackageExistsException setId(PackageId id) {
+        this.id = id;
+        return this;
     }
 }

@@ -23,7 +23,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.vault.packaging.Dependency;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -58,26 +57,6 @@ public class JcrRegisteredPackage implements RegisteredPackage {
     @Override
     public VaultPackage getPackage() throws IOException {
         return vltPkg;
-    }
-
-    @Nonnull
-    @Override
-    public Dependency[] getUnresolvedDependencies() throws IOException {
-        try {
-            return pkg.getUnresolvedDependencies();
-        } catch (RepositoryException e) {
-            throw new IOException(e);
-        }
-    }
-
-    @Nonnull
-    @Override
-    public PackageId[] getResolvedDependencies() throws IOException {
-        try {
-            return pkg.getResolvedDependencies();
-        } catch (RepositoryException e) {
-            throw new IOException(e);
-        }
     }
 
     @Override

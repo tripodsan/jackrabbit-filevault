@@ -31,6 +31,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -48,7 +49,9 @@ import org.apache.jackrabbit.vault.packaging.ExportOptions;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
+import org.apache.jackrabbit.vault.packaging.NoSuchPackageException;
 import org.apache.jackrabbit.vault.packaging.PackageException;
+import org.apache.jackrabbit.vault.packaging.PackageExistsException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.jackrabbit.vault.packaging.events.PackageEvent;
@@ -162,7 +165,11 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     @Override
     public JcrPackage upload(InputStream in, boolean replace, boolean strict)
             throws RepositoryException, IOException {
-        return registry.upload(in, replace);
+        try {
+            return registry.upload(in, replace);
+        } catch (PackageExistsException e) {
+            throw new ItemExistsException(e.getMessage(), e);
+        }
     }
 
     /**
@@ -222,7 +229,11 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     public JcrPackage upload(File file, boolean isTmpFile, boolean replace, String nameHint, boolean strict)
             throws RepositoryException, IOException {
         ZipVaultPackage pack = new ZipVaultPackage(file, isTmpFile, strict);
-        return registry.upload(pack, replace, true);
+        try {
+            return registry.upload(pack, replace, true);
+        } catch (PackageExistsException e) {
+            throw new ItemExistsException(e.getMessage(), e);
+        }
     }
 
     /**
@@ -264,6 +275,8 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
             registry.remove(pack.getDefinition().getId());
         } catch (IOException e) {
             throw unwrapRepositoryException(e);
+        } catch (NoSuchPackageException e) {
+            // old implementation ignored this ignore
         }
     }
 

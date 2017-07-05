@@ -23,7 +23,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.NoSuchElementException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -32,7 +33,6 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Binary;
-import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -48,7 +48,9 @@ import org.apache.jackrabbit.vault.fs.spi.ServiceProviderFactory;
 import org.apache.jackrabbit.vault.packaging.Dependency;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
+import org.apache.jackrabbit.vault.packaging.NoSuchPackageException;
 import org.apache.jackrabbit.vault.packaging.PackageException;
+import org.apache.jackrabbit.vault.packaging.PackageExistsException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.jackrabbit.vault.packaging.Version;
@@ -64,6 +66,7 @@ import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlanBuilder;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionResult;
 import org.apache.jackrabbit.vault.packaging.registry.PackageRegistry;
 import org.apache.jackrabbit.vault.packaging.registry.RegisteredPackage;
+import org.apache.jackrabbit.vault.packaging.registry.DependencyReport;
 import org.apache.jackrabbit.vault.util.InputStreamPump;
 import org.apache.jackrabbit.vault.util.JcrConstants;
 import org.apache.jackrabbit.vault.util.Text;
@@ -281,6 +284,7 @@ public class JcrPackageRegistry implements PackageRegistry {
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
     public PackageId[] usage(PackageId id) throws IOException {
         TreeSet<PackageId> usages = new TreeSet<PackageId>();
@@ -301,10 +305,34 @@ public class JcrPackageRegistry implements PackageRegistry {
         return usages.toArray(new PackageId[usages.size()]);
     }
 
+    @Nonnull
+    @Override
+    public DependencyReport analyzeDependencies(@Nonnull PackageId id, boolean onlyInstalled) throws IOException, NoSuchPackageException {
+        List<Dependency> unresolved = new LinkedList<Dependency>();
+        List<PackageId> resolved = new LinkedList<PackageId>();
+        try (RegisteredPackage pkg = open(id)) {
+            if (pkg == null) {
+                throw new NoSuchPackageException().setId(id);
+            }
+            //noinspection resource
+            for (Dependency dep : pkg.getPackage().getDependencies()) {
+                PackageId resolvedId = resolve(dep, onlyInstalled);
+                if (resolvedId == null) {
+                    unresolved.add(dep);
+                } else {
+                    resolved.add(resolvedId);
+                }
+            }
+        }
+
+        return new DependencyReportImpl(id, unresolved.toArray(new Dependency[unresolved.size()]),
+                resolved.toArray(new PackageId[resolved.size()])
+        );
+    }
 
     @Nonnull
     @Override
-    public PackageId register(@Nonnull InputStream in, boolean replace) throws IOException, NoSuchElementException {
+    public PackageId register(@Nonnull InputStream in, boolean replace) throws IOException, PackageExistsException {
         try (JcrPackage pkg = upload(in, replace)){
             //noinspection resource
             return pkg.getPackage().getId();
@@ -314,7 +342,7 @@ public class JcrPackageRegistry implements PackageRegistry {
     }
 
     public JcrPackage upload(InputStream in, boolean replace)
-            throws RepositoryException, IOException {
+            throws RepositoryException, IOException, PackageExistsException {
 
         MemoryArchive archive = new MemoryArchive(true);
         InputStreamPump pump = new InputStreamPump(in , archive);
@@ -375,7 +403,7 @@ public class JcrPackageRegistry implements PackageRegistry {
             if (replace) {
                 parent.getNode(name).remove();
             } else {
-                throw new ItemExistsException("Package already exists: " + path);
+                throw new PackageExistsException("Package already exists: " + pid).setId(pid);
             }
         }
         JcrPackage jcrPack = null;
@@ -401,7 +429,7 @@ public class JcrPackageRegistry implements PackageRegistry {
 
     @Nonnull
     @Override
-    public PackageId register(@Nonnull File file, boolean isTmpFile, boolean replace) throws IOException, PackageException {
+    public PackageId register(@Nonnull File file, boolean isTmpFile, boolean replace) throws IOException, PackageExistsException {
         ZipVaultPackage pack = new ZipVaultPackage(file, isTmpFile, true);
         try (JcrPackage pkg = upload(pack, replace, true)) {
             //noinspection resource
@@ -413,11 +441,11 @@ public class JcrPackageRegistry implements PackageRegistry {
 
     @Nonnull
     @Override
-    public PackageId registerExternal(@Nonnull File file, boolean replace) throws IOException, PackageException {
+    public PackageId registerExternal(@Nonnull File file, boolean replace) throws IOException, PackageExistsException {
         throw new UnsupportedOperationException("linking files to repository persistence is not supported.");
     }
 
-    public JcrPackage upload(ZipVaultPackage pkg, boolean replace, boolean store) throws RepositoryException, IOException {
+    public JcrPackage upload(ZipVaultPackage pkg, boolean replace, boolean store) throws RepositoryException, IOException, PackageExistsException {
 
         // open zip packages
         if (pkg.getArchive().getJcrRoot() == null) {
@@ -456,7 +484,7 @@ public class JcrPackageRegistry implements PackageRegistry {
             if (replace) {
                 parent.getNode(name).remove();
             } else {
-                throw new ItemExistsException("Package already exists: " + path);
+                throw new PackageExistsException("Package already exists: " + pid).setId(pid);
             }
         }
         JcrPackage jcrPack = null;
@@ -616,10 +644,10 @@ public class JcrPackageRegistry implements PackageRegistry {
 
     @SuppressWarnings("resource")
     @Override
-    public boolean remove(@Nonnull PackageId id) throws IOException {
+    public void remove(@Nonnull PackageId id) throws IOException, NoSuchPackageException {
         JcrRegisteredPackage pkg = (JcrRegisteredPackage) open(id);
         if (pkg == null) {
-            return false;
+            throw new NoSuchPackageException().setId(id);
         }
         JcrPackage pack = pkg.getJcrPackage();
         try {
@@ -633,7 +661,6 @@ public class JcrPackageRegistry implements PackageRegistry {
             throw new IOException(e);
         }
         dispatch(PackageEvent.Type.REMOVE, id, null);
-        return true;
     }
 
     /**

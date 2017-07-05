@@ -16,61 +16,37 @@
  */
 package org.apache.jackrabbit.vault.packaging.registry;
 
-import java.io.IOException;
-import java.util.Calendar;
-
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.vault.packaging.Dependency;
 import org.apache.jackrabbit.vault.packaging.DependencyHandling;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.jackrabbit.vault.packaging.VaultPackage;
-import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * {@code RegisteredPackage}...
+ * Reports dependency usages.
  */
-@ProviderType
-public interface RegisteredPackage extends Comparable<RegisteredPackage>, AutoCloseable {
+public interface DependencyReport {
 
     /**
-     * Returns the id of this package
-     * @return the id of this package.
+     * The id of the package this report is created for.
+     * @return the package Id
      */
     @Nonnull
     PackageId getId();
 
     /**
-     * Returns the vault package stored in the data of this package
-     * @return the package
-     * @throws IOException if an I/O error occurs
+     * Returns the dependencies that are not resolved. If the {@link DependencyHandling} is set to strict, the package
+     * will not installed if any unresolved dependencies are listed.
+     * @return the array of unresolved dependencies.
      */
     @Nonnull
-    VaultPackage getPackage() throws IOException;
+    Dependency[] getUnresolvedDependencies();
 
     /**
-     * Returns the size of the underlying package.
-     * @return the size in bytes
+     * Returns a list of the installed packages that this package depends on.
+     * @return the array of resolved dependencies
      */
-    long getSize();
-
-    /**
-     * Checks if this package is installed.
-     * @return {@code true} if this package is installed.
-     */
-    boolean isInstalled();
-
-    /**
-     * Returns the date when the package was installed
-     * @return the installed date or {@code null} if not installed.
-     */
-    @CheckForNull
-    Calendar getInstallationTime();
-
-    /**
-     * Closes this package and releases underlying data.
-     */
-    void close();
+    @Nonnull
+    PackageId[] getResolvedDependencies();
 
 }
