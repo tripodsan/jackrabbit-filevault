@@ -16,11 +16,46 @@
  */
 package org.apache.jackrabbit.vault.packaging.registry;
 
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * {@code ExecutionResult}...
+ * {@code ExecutionTask}...
  */
 @ProviderType
-public interface ExecutionResult {
+public interface PackageTask {
+
+    enum Type {
+        INSTALL,
+        UNINSTALL,
+        REMOVE,
+        EXTRACT
+    }
+
+    enum State {
+        NEW,
+        VALID,
+        RUNNING,
+        FINISHED,
+        ERROR
+    }
+
+    @Nonnull
+    PackageId getPackageId();
+
+    @Nonnull
+    Type getType();
+
+    @Nonnull
+    State getState();
+
+    // get creation time
+    // get start time
+    // get end time
+    // get execution info (import/export info)
+    // get execution log
+    // get error
+
 }

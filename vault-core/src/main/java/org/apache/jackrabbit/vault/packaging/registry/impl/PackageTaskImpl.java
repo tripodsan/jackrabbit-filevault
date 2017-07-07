@@ -14,32 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.vault.packaging.registry;
-
-import java.io.IOException;
-import java.util.List;
+package org.apache.jackrabbit.vault.packaging.registry.impl;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.vault.packaging.PackageException;
-import org.osgi.annotation.versioning.ProviderType;
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.apache.jackrabbit.vault.packaging.registry.PackageTask;
 
 /**
- * {@code ExecutionPlan}...
+ * {@code PackageTaskImpl}...
  */
-@ProviderType
-public interface ExecutionPlan {
+public class PackageTaskImpl implements PackageTask {
+
+    private final PackageId id;
+
+    private final Type type;
+
+    private State state = State.NEW;
+
+    public PackageTaskImpl(@Nonnull PackageId id, @Nonnull Type type) {
+        this.id = id;
+        this.type = type;
+    }
 
     @Nonnull
-    String getId();
+    @Override
+    public PackageId getPackageId() {
+        return id;
+    }
 
     @Nonnull
-    List<PackageTask> getTasks();
+    @Override
+    public Type getType() {
+        return type;
+    }
 
     @Nonnull
-    ExecutionPlan execute() throws IOException, PackageException;
-
-    @Nonnull
-    ExecutionPlan executeAsync() throws IOException, PackageException;
-
+    @Override
+    public State getState() {
+        return state;
+    }
 }

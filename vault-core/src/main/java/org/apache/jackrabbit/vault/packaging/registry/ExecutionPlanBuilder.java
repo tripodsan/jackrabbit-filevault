@@ -18,13 +18,13 @@ package org.apache.jackrabbit.vault.packaging.registry;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.vault.fs.io.ImportOptions;
+import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.packaging.PackageException;
-import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -34,22 +34,22 @@ import org.osgi.annotation.versioning.ProviderType;
 public interface ExecutionPlanBuilder {
 
     @Nonnull
-    ExecutionPlanBuilder withInstallPackages(@Nonnull ImportOptions opts, @Nonnull PackageId ... id);
+    ExecutionPlanBuilder load(@Nonnull InputStream in) throws IOException;
 
     @Nonnull
-    ExecutionPlanBuilder withExtractPackages(@Nonnull ImportOptions opts, @Nonnull PackageId ... id);
+    ExecutionPlanBuilder save(@Nonnull OutputStream out) throws IOException, PackageException;
 
     @Nonnull
-    ExecutionPlanBuilder withUninstallPackages(@Nonnull PackageId... id);
+    PackageTaskBuilder addTask();
 
     @Nonnull
-    ExecutionPlanBuilder withRemovePackages(@Nonnull PackageId... id);
+    ExecutionPlanBuilder with(@Nonnull Session session);
 
     @Nonnull
-    ExecutionPlanBuilder fromSource(@Nonnull InputStream in);
+    ExecutionPlanBuilder with(@Nonnull ProgressTrackerListener listener);
 
     @Nonnull
-    ExecutionPlanBuilder withSession(@Nonnull Session session);
+    ExecutionPlanBuilder validate() throws IOException, PackageException;
 
     @Nonnull
     ExecutionPlan build() throws IOException, PackageException;

@@ -19,11 +19,9 @@ package org.apache.jackrabbit.vault.packaging.registry;
 import java.io.IOException;
 import java.util.Calendar;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.vault.packaging.Dependency;
-import org.apache.jackrabbit.vault.packaging.DependencyHandling;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.osgi.annotation.versioning.ProviderType;
@@ -65,7 +63,7 @@ public interface RegisteredPackage extends Comparable<RegisteredPackage>, AutoCl
      * Returns the date when the package was installed
      * @return the installed date or {@code null} if not installed.
      */
-    @CheckForNull
+    @Nullable
     Calendar getInstallationTime();
 
     /**

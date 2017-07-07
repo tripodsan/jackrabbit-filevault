@@ -25,6 +25,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -61,12 +62,11 @@ import org.apache.jackrabbit.vault.packaging.impl.JcrPackageImpl;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl;
 import org.apache.jackrabbit.vault.packaging.impl.PackagePropertiesImpl;
 import org.apache.jackrabbit.vault.packaging.impl.ZipVaultPackage;
+import org.apache.jackrabbit.vault.packaging.registry.DependencyReport;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlan;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlanBuilder;
-import org.apache.jackrabbit.vault.packaging.registry.ExecutionResult;
 import org.apache.jackrabbit.vault.packaging.registry.PackageRegistry;
 import org.apache.jackrabbit.vault.packaging.registry.RegisteredPackage;
-import org.apache.jackrabbit.vault.packaging.registry.DependencyReport;
 import org.apache.jackrabbit.vault.util.InputStreamPump;
 import org.apache.jackrabbit.vault.util.JcrConstants;
 import org.apache.jackrabbit.vault.util.Text;
@@ -785,13 +785,13 @@ public class JcrPackageRegistry implements PackageRegistry {
 
     @Nonnull
     @Override
-    public ExecutionPlanBuilder createExecutionPlanBuilder() {
-        return null;
+    public ExecutionPlanBuilder createExecutionPlan() {
+        return new ExecutionPlanBuilderImpl(this);
     }
 
     @Nonnull
     @Override
-    public ExecutionResult execute(@Nonnull ExecutionPlan plan) throws IOException, PackageException {
-        return null;
+    public Map<String, ExecutionPlan> getAsyncExecutionPlans() {
+        throw new UnsupportedOperationException("async execution plans are not implemented yet");
     }
 }

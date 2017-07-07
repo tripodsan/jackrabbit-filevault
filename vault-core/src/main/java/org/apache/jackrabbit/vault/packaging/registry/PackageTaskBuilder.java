@@ -16,30 +16,24 @@
  */
 package org.apache.jackrabbit.vault.packaging.registry;
 
-import java.io.IOException;
-import java.util.List;
-
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.vault.packaging.PackageException;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * {@code ExecutionPlan}...
+ * {@code ExecutionTaskBuilder}...
  */
 @ProviderType
-public interface ExecutionPlan {
+public interface PackageTaskBuilder {
 
     @Nonnull
-    String getId();
+    PackageTaskBuilder with(@Nonnull PackageId id);
 
     @Nonnull
-    List<PackageTask> getTasks();
+    ExecutionPlanBuilder with(@Nonnull PackageTask.Type type);
 
-    @Nonnull
-    ExecutionPlan execute() throws IOException, PackageException;
-
-    @Nonnull
-    ExecutionPlan executeAsync() throws IOException, PackageException;
+    // @Nonnull
+    // ExecutionTaskBuilder with(@Nonnull ImportOptions options);
 
 }

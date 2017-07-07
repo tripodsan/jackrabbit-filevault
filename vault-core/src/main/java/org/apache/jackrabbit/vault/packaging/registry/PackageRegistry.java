@@ -19,6 +19,8 @@ package org.apache.jackrabbit.vault.packaging.registry;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -62,7 +64,7 @@ public interface PackageRegistry {
      * @param onlyInstalled if {@code true} only installed packages are used for resolution
      * @return the report
      * @throws IOException if an error accessing the repository occurrs
-     * @throws NoSuchPackageException if the package does not exist.
+     * @throws NoSuchPackageException if the package with the given {@code id} does not exist.
      */
     @Nonnull
     DependencyReport analyzeDependencies(@Nonnull PackageId id, boolean onlyInstalled) throws IOException, NoSuchPackageException;
@@ -74,9 +76,8 @@ public interface PackageRegistry {
     PackageId[] usage(@Nonnull PackageId id) throws IOException;
 
     @Nonnull
-    ExecutionPlanBuilder createExecutionPlanBuilder();
+    ExecutionPlanBuilder createExecutionPlan();
 
     @Nonnull
-    ExecutionResult execute(@Nonnull ExecutionPlan plan) throws IOException, PackageException;
-
+    Map<String, ExecutionPlan> getAsyncExecutionPlans();
 }
