@@ -52,7 +52,7 @@ import org.xml.sax.helpers.AttributesImpl;
  */
 public class ExecutionPlanBuilderImpl implements ExecutionPlanBuilder {
 
-    private final static String ATTR_VERSION = "1.0";
+    private final static String ATTR_VERSION = "version";
     private static final String TAG_EXECUTION_PLAN = "executionPlan";
     private static final String TAG_TASK = "task";
     private static final String ATTR_CMD = "cmd";
@@ -197,7 +197,15 @@ public class ExecutionPlanBuilderImpl implements ExecutionPlanBuilder {
         if (plan == null) {
             validate();
         }
-        return plan.with(registry).with(listener);
+        // check if session is present or if no task needs it
+        if (session == null) {
+            for (PackageTask task: plan.getTasks()) {
+                if (task.getType() != PackageTask.Type.REMOVE) {
+                    throw new PackageException("Session not set in builder, but " + task + " task requires it.");
+                }
+            }
+        }
+        return plan.with(registry).with(session).with(listener);
     }
 
     private class TaskBuilder implements PackageTaskBuilder {

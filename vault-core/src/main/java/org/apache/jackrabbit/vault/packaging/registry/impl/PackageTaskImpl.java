@@ -54,4 +54,12 @@ public class PackageTaskImpl implements PackageTask {
     public State getState() {
         return state;
     }
+
+    @Override
+    public String toString() {
+        return "PackageTaskImpl{" + "id=" + id +
+                ", type=" + type +
+                ", state=" + state +
+                '}';
+    }
 }

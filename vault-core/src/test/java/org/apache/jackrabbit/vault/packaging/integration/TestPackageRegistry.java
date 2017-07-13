@@ -28,8 +28,6 @@ import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageExistsException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.registry.DependencyReport;
-import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlan;
-import org.apache.jackrabbit.vault.packaging.registry.PackageTask;
 import org.apache.jackrabbit.vault.packaging.registry.PackageRegistry;
 import org.apache.jackrabbit.vault.packaging.registry.RegisteredPackage;
 import org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry;
@@ -313,12 +311,5 @@ public class TestPackageRegistry extends IntegrationTestBase {
         packMgr.open(idC).install(getDefaultOptions());
 
         assertEquals("usage", "my_packages:test_b:1.0", PackageId.toString(registry.usage(idC)));
-
-        ExecutionPlan plan = registry.createExecutionPlan()
-                .addTask().with(idB).with(PackageTask.Type.EXTRACT)
-                .with(admin)
-                .with(getDefaultOptions().getListener())
-                .build()
-                .execute();
     }
 }

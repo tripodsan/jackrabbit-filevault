@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.jcr.Session;
 
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.packaging.PackageException;
@@ -40,6 +41,8 @@ public class ExecutionPlanImpl implements ExecutionPlan {
     private PackageRegistry registry;
 
     private ProgressTrackerListener listener;
+
+    private Session session;
 
     public ExecutionPlanImpl(List<PackageTask> tasks) {
         this.tasks.addAll(tasks);
@@ -62,6 +65,11 @@ public class ExecutionPlanImpl implements ExecutionPlan {
 
     ExecutionPlanImpl with(PackageRegistry registry) {
         this.registry = registry;
+        return this;
+    }
+
+    ExecutionPlanImpl with(Session session) {
+        this.session = session;
         return this;
     }
 
