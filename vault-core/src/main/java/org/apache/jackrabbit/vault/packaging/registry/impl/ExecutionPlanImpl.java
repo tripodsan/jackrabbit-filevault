@@ -28,11 +28,18 @@ import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlan;
 import org.apache.jackrabbit.vault.packaging.registry.PackageRegistry;
 import org.apache.jackrabbit.vault.packaging.registry.PackageTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code ExecutionPlanImpl}...
  */
 public class ExecutionPlanImpl implements ExecutionPlan {
+
+    /**
+     * default logger
+     */
+    private static final Logger log = LoggerFactory.getLogger(ExecutionPlanImpl.class);
 
     private List<PackageTask> tasks = new ArrayList<PackageTask>();
 
@@ -78,15 +85,54 @@ public class ExecutionPlanImpl implements ExecutionPlan {
         return this;
     }
 
-    @Nonnull
+    PackageRegistry getRegistry() {
+        return registry;
+    }
+
+    ProgressTrackerListener getListener() {
+        return listener;
+    }
+
+    Session getSession() {
+        return session;
+    }
+
     @Override
-    public ExecutionPlan execute() throws IOException, PackageException {
-        return this;
+    public boolean isExecuted() {
+        for (PackageTask task: tasks) {
+            if (task.getState() != PackageTask.State.COMPLETED && task.getState() != PackageTask.State.ERROR) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean hasErrors() {
+        for (PackageTask task: tasks) {
+            if (task.getState() == PackageTask.State.ERROR) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Nonnull
-    @Override
-    public ExecutionPlan executeAsync() throws IOException, PackageException {
-        throw new UnsupportedOperationException("async plans are not implemented yet");
+    public ExecutionPlan execute() throws IOException, PackageException {
+        if (isExecuted()) {
+            log.warn("executing plan that was already executed.");
+            return this;
+        }
+
+        for (PackageTask task: tasks) {
+            if (task instanceof PackageTaskImpl) {
+                ((PackageTaskImpl) task).execute(this);
+            } else {
+                throw new PackageException("task class " + task.getClass().getName() + " is not supported.");
+            }
+        }
+        return this;
     }
+
+
 }

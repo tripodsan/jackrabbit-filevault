@@ -19,8 +19,6 @@ package org.apache.jackrabbit.vault.packaging.registry;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -28,34 +26,93 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.vault.packaging.Dependency;
 import org.apache.jackrabbit.vault.packaging.NoSuchPackageException;
-import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageExistsException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * {@code PackagePersistence}...
+ * The package registry is the next generation {@link org.apache.jackrabbit.vault.packaging.PackageManager} and
+ * {@link org.apache.jackrabbit.vault.packaging.JcrPackageManager}. It defines storage independent methods to
+ * register (upload), enumerate and remove packages. The installation lifecycle of the packages is provided via
+ * {@link ExecutionPlan}s. Which currently only supports 1 execution task at a time.
  */
 @ProviderType
 public interface PackageRegistry {
 
+    /**
+     * Checks if this registry contains the package with the given id.
+     * @param id the package id.
+     * @return {@code true} if the package is registered.
+     * @throws IOException if an I/O error occurrs.
+     */
     boolean contains(@Nonnull PackageId id) throws IOException;
 
+    /**
+     * Returns as set of all packages registered in this registry.
+     * @return a set of package ids.
+     * @throws IOException if an I/O error occurrs.
+     */
     @Nonnull
     Set<PackageId> packages() throws IOException;
 
+    /**
+     * Opens the package with the given id.
+     * @param id the package id
+     * @return the package or {@code null} if it does not exists.
+     * @throws IOException if an I/O error occurrs.
+     */
     @Nullable
     RegisteredPackage open(@Nonnull PackageId id) throws IOException;
 
+    /**
+     * Registers a package provided via an input stream. The method fails, if a package with the same id already exists,
+     * and {@code replace} is set to {@code false}. otherwise the existing package is replaced.
+     *
+     * @param in the input stream to the package data
+     * @param replace {@code true} if existing package should be replaced.
+     * @return the new package id.
+     * @throws IOException if an I/O error occurrs.
+     * @throws PackageExistsException if the package exists and {@code replace} is {@code false}.
+     */
     @Nonnull
     PackageId register(@Nonnull InputStream in, boolean replace) throws IOException, PackageExistsException;
 
+    /**
+     * Registers a package provided via a file. The method fails, if a package with the same id already exists,
+     * and {@code replace} is set to {@code false}; otherwise the existing package is replaced.
+     *
+     * @param file the file to the package data
+     * @param replace {@code true} if existing package should be replaced.
+     * @return the new package id.
+     * @throws IOException if an I/O error occurrs.
+     * @throws PackageExistsException if the package exists and {@code replace} is {@code false}.
+     */
     @Nonnull
-    PackageId register(@Nonnull File file, boolean isTempFile, boolean replace) throws IOException, PackageExistsException;
+    PackageId register(@Nonnull File file, boolean replace) throws IOException, PackageExistsException;
 
+    /**
+     * Registers a package provided via an external file. The binary data of the package will not be copied into the
+     * underlying persistence but only be referenced. Removing such a linked package afterwards will not delete the
+     * original file.
+     *
+     * The method fails, if a package with the same id already exists,
+     * and {@code replace} is set to {@code false}; otherwise the existing package is replaced.
+     *
+     * @param file the file to the package data.
+     * @param replace {@code true} if existing package should be replaced.
+     * @return the new package id.
+     * @throws IOException if an I/O error occurrs.
+     * @throws PackageExistsException if the package exists and {@code replace} is {@code false}.
+     */
     @Nonnull
     PackageId registerExternal(@Nonnull File file, boolean replace) throws IOException, PackageExistsException;
 
+    /**
+     * Removes the package from this registry.
+     * @param id the id of the package to remove
+     * @throws IOException if an I/O error occurrs.
+     * @throws NoSuchPackageException if the package does not exist
+     */
     void remove(@Nonnull PackageId id) throws IOException, NoSuchPackageException;
 
     /**
@@ -69,15 +126,32 @@ public interface PackageRegistry {
     @Nonnull
     DependencyReport analyzeDependencies(@Nonnull PackageId id, boolean onlyInstalled) throws IOException, NoSuchPackageException;
 
+    /**
+     * Tries to resolve the given dependency and returns the id of the package that matches the dependency filter best.
+     * @param dependency the dependency to resolve against.
+     * @param onlyInstalled if {@code true} only installed packages are respected.
+     * @return the package id or {@code null}
+     * @throws IOException if an I/O error occurrs.
+     */
     @Nullable
     PackageId resolve(@Nonnull Dependency dependency, boolean onlyInstalled) throws IOException;
 
+    /**
+     * Returns the package ids of installed packages that depend on the given package.
+     *
+     * @param id the package id to search for
+     * @return the array of package ids.
+     * @throws IOException if an I/O error occurs.
+     */
     @Nonnull
     PackageId[] usage(@Nonnull PackageId id) throws IOException;
 
+    /**
+     * Creates a new execution plan builder. The builder allows to create an execution plan for package installation
+     * related tasks.
+     *
+     * @return a new builder
+     */
     @Nonnull
     ExecutionPlanBuilder createExecutionPlan();
-
-    @Nonnull
-    Map<String, ExecutionPlan> getAsyncExecutionPlans();
 }

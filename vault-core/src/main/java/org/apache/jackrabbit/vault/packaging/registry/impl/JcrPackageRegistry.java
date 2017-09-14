@@ -25,7 +25,6 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -63,7 +62,6 @@ import org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl;
 import org.apache.jackrabbit.vault.packaging.impl.PackagePropertiesImpl;
 import org.apache.jackrabbit.vault.packaging.impl.ZipVaultPackage;
 import org.apache.jackrabbit.vault.packaging.registry.DependencyReport;
-import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlan;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlanBuilder;
 import org.apache.jackrabbit.vault.packaging.registry.PackageRegistry;
 import org.apache.jackrabbit.vault.packaging.registry.RegisteredPackage;
@@ -429,9 +427,9 @@ public class JcrPackageRegistry implements PackageRegistry {
 
     @Nonnull
     @Override
-    public PackageId register(@Nonnull File file, boolean isTmpFile, boolean replace) throws IOException, PackageExistsException {
-        ZipVaultPackage pack = new ZipVaultPackage(file, isTmpFile, true);
-        try (JcrPackage pkg = upload(pack, replace, true)) {
+    public PackageId register(@Nonnull File file, boolean replace) throws IOException, PackageExistsException {
+        ZipVaultPackage pack = new ZipVaultPackage(file, false, true);
+        try (JcrPackage pkg = upload(pack, replace)) {
             //noinspection resource
             return pkg.getPackage().getId();
         } catch (RepositoryException e) {
@@ -445,7 +443,7 @@ public class JcrPackageRegistry implements PackageRegistry {
         throw new UnsupportedOperationException("linking files to repository persistence is not supported.");
     }
 
-    public JcrPackage upload(ZipVaultPackage pkg, boolean replace, boolean store) throws RepositoryException, IOException, PackageExistsException {
+    public JcrPackage upload(ZipVaultPackage pkg, boolean replace) throws RepositoryException, IOException, PackageExistsException {
 
         // open zip packages
         if (pkg.getArchive().getJcrRoot() == null) {
@@ -489,7 +487,7 @@ public class JcrPackageRegistry implements PackageRegistry {
         }
         JcrPackage jcrPack = null;
         try {
-            jcrPack = createNew(parent, pid, store ? pkg : null, false);
+            jcrPack = createNew(parent, pid, pkg, false);
             JcrPackageDefinitionImpl def = (JcrPackageDefinitionImpl) jcrPack.getDefinition();
             if (state != null && def != null) {
                 def.setState(state);
@@ -789,9 +787,4 @@ public class JcrPackageRegistry implements PackageRegistry {
         return new ExecutionPlanBuilderImpl(this);
     }
 
-    @Nonnull
-    @Override
-    public Map<String, ExecutionPlan> getAsyncExecutionPlans() {
-        throw new UnsupportedOperationException("async execution plans are not implemented yet");
-    }
 }

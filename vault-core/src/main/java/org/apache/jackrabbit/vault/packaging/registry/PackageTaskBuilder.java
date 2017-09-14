@@ -27,13 +27,20 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface PackageTaskBuilder {
 
+    /**
+     * Sets the package id of this task.
+     * @param id the package id
+     * @return this.
+     */
     @Nonnull
     PackageTaskBuilder with(@Nonnull PackageId id);
 
+    /**
+     * Sets the type of this task
+     * @param type the type
+     * @return this.
+     */
     @Nonnull
     ExecutionPlanBuilder with(@Nonnull PackageTask.Type type);
-
-    // @Nonnull
-    // ExecutionTaskBuilder with(@Nonnull ImportOptions options);
 
 }

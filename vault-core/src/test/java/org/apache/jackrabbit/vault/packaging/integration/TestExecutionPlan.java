@@ -19,29 +19,22 @@ package org.apache.jackrabbit.vault.packaging.integration;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 
-import javax.jcr.RepositoryException;
-
-import org.apache.jackrabbit.vault.packaging.Dependency;
-import org.apache.jackrabbit.vault.packaging.NoSuchPackageException;
+import org.apache.jackrabbit.vault.packaging.CyclicDependencyException;
+import org.apache.jackrabbit.vault.packaging.DependencyException;
 import org.apache.jackrabbit.vault.packaging.PackageException;
-import org.apache.jackrabbit.vault.packaging.PackageExistsException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.jackrabbit.vault.packaging.registry.DependencyReport;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlan;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlanBuilder;
 import org.apache.jackrabbit.vault.packaging.registry.PackageRegistry;
 import org.apache.jackrabbit.vault.packaging.registry.PackageTask;
-import org.apache.jackrabbit.vault.packaging.registry.RegisteredPackage;
 import org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -67,6 +60,17 @@ public class TestExecutionPlan extends IntegrationTestBase {
      */
     private static String TEST_PACKAGE_C_10 = "testpackages/test_c-1.0.zip";
 
+    /**
+     * Test package D-1.0. Depends on B and E
+     */
+    private static String TEST_PACKAGE_D_10 = "testpackages/test_d-1.0.zip";
+
+    /**
+     * Test package E-1.0. Depends on D
+     */
+    private static String TEST_PACKAGE_E_10 = "testpackages/test_e-1.0.zip";
+
+
     private PackageRegistry registry;
 
     @Override
@@ -82,22 +86,23 @@ public class TestExecutionPlan extends IntegrationTestBase {
      */
     @Test
     public void testSerialization() throws IOException, PackageException {
+        PackageId idC = registry.register(getStream(TEST_PACKAGE_C_10), false);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ExecutionPlanBuilder builder = registry.createExecutionPlan();
         builder
-                .addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.EXTRACT)
-                .addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.INSTALL)
-                .addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.REMOVE)
-                .addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.UNINSTALL)
+                .addTask().with(idC).with(PackageTask.Type.EXTRACT)
+                .addTask().with(idC).with(PackageTask.Type.INSTALL)
+                .addTask().with(idC).with(PackageTask.Type.REMOVE)
+                .addTask().with(idC).with(PackageTask.Type.UNINSTALL)
                 .save(out);
 
         String expected =
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<executionPlan version=\"1.0\">\n" +
-                "    <task cmd=\"extract\" packageId=\"my_packages:tmp\"/>\n" +
-                "    <task cmd=\"install\" packageId=\"my_packages:tmp\"/>\n" +
-                "    <task cmd=\"remove\" packageId=\"my_packages:tmp\"/>\n" +
-                "    <task cmd=\"uninstall\" packageId=\"my_packages:tmp\"/>\n" +
+                "    <task cmd=\"extract\" packageId=\"my_packages:test_c:1.0\"/>\n" +
+                "    <task cmd=\"remove\" packageId=\"my_packages:test_c:1.0\"/>\n" +
+                "    <task cmd=\"uninstall\" packageId=\"my_packages:test_c:1.0\"/>\n" +
+                "    <task cmd=\"install\" packageId=\"my_packages:test_c:1.0\"/>\n" +
                 "</executionPlan>\n";
 
         String result = out.toString("utf-8");
@@ -140,17 +145,17 @@ public class TestExecutionPlan extends IntegrationTestBase {
     public void testSessionIsRequired() throws IOException, PackageException {
         try {
             ExecutionPlanBuilder builder = registry.createExecutionPlan();
-            builder.addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.UNINSTALL).build();
+            builder.addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.UNINSTALL).execute();
             fail("non-remove task with no session must fail");
         } catch (PackageException e) {
             // expected
         }
 
         ExecutionPlanBuilder builder = registry.createExecutionPlan();
-        builder.addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.UNINSTALL).with(admin).build();
+        builder.addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.UNINSTALL).with(admin).execute();
 
         builder = registry.createExecutionPlan();
-        builder.addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.REMOVE).build();
+        builder.addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.REMOVE).execute();
     }
 
     @Test
@@ -158,20 +163,83 @@ public class TestExecutionPlan extends IntegrationTestBase {
         PackageId idA = registry.register(getStream(TEST_PACKAGE_A_10), false);
         PackageId idB = registry.register(getStream(TEST_PACKAGE_B_10), false);
         PackageId idC = registry.register(getStream(TEST_PACKAGE_C_10), false);
-        assertFalse("package A is installed", registry.open(idA).isInstalled());
-        assertFalse("package B is installed", registry.open(idB).isInstalled());
-        assertFalse("package C is installed", registry.open(idC).isInstalled());
+        assertFalse("package A is not installed", registry.open(idA).isInstalled());
+        assertFalse("package B is not installed", registry.open(idB).isInstalled());
+        assertFalse("package C is not installed", registry.open(idC).isInstalled());
 
         ExecutionPlan plan = registry.createExecutionPlan()
                 .addTask().with(idA).with(PackageTask.Type.INSTALL)
                 .with(admin)
                 .with(getDefaultOptions().getListener())
-                .build();
-
-        plan.execute();
+                .execute();
+        assertTrue("plan is finished", plan.isExecuted());
+        assertFalse("plan has no errors", plan.hasErrors());
 
         assertTrue("package A is installed", registry.open(idA).isInstalled());
         assertTrue("package B is installed", registry.open(idB).isInstalled());
         assertTrue("package C is installed", registry.open(idC).isInstalled());
+    }
+
+    @Test
+    public void testInstallTask2() throws IOException, PackageException {
+        PackageId idA = registry.register(getStream(TEST_PACKAGE_A_10), false);
+        PackageId idB = registry.register(getStream(TEST_PACKAGE_B_10), false);
+        PackageId idC = registry.register(getStream(TEST_PACKAGE_C_10), false);
+        assertFalse("package A is not installed", registry.open(idA).isInstalled());
+        assertFalse("package B is not installed", registry.open(idB).isInstalled());
+        assertFalse("package C is not installed", registry.open(idC).isInstalled());
+
+        ExecutionPlan plan = registry.createExecutionPlan()
+                .addTask().with(idC).with(PackageTask.Type.INSTALL)
+                .addTask().with(idA).with(PackageTask.Type.INSTALL)
+                .with(admin)
+                .with(getDefaultOptions().getListener())
+                .execute();
+        assertTrue("plan is finished", plan.isExecuted());
+        assertFalse("plan has no errors", plan.hasErrors());
+
+        assertTrue("package A is installed", registry.open(idA).isInstalled());
+        assertTrue("package B is installed", registry.open(idB).isInstalled());
+        assertTrue("package C is installed", registry.open(idC).isInstalled());
+    }
+
+    @Test
+    public void testValidateCyclicTaskFails() throws IOException, PackageException {
+        PackageId idB = registry.register(getStream(TEST_PACKAGE_B_10), false);
+        PackageId idC = registry.register(getStream(TEST_PACKAGE_C_10), false);
+        PackageId idD = registry.register(getStream(TEST_PACKAGE_D_10), false);
+        PackageId idE = registry.register(getStream(TEST_PACKAGE_E_10), false);
+        assertFalse("package B is not installed", registry.open(idB).isInstalled());
+        assertFalse("package C is not installed", registry.open(idD).isInstalled());
+        assertFalse("package D is not installed", registry.open(idC).isInstalled());
+        assertFalse("package E is not installed", registry.open(idE).isInstalled());
+
+        try {
+            registry.createExecutionPlan()
+                    .addTask().with(idD).with(PackageTask.Type.INSTALL)
+                    .with(admin)
+                    .with(getDefaultOptions().getListener())
+                    .validate();
+            fail("plan should fail with CyclicDependencyException");
+        } catch (CyclicDependencyException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testMissingDependencyFails() throws IOException, PackageException {
+        PackageId idB = registry.register(getStream(TEST_PACKAGE_B_10), false);
+        assertFalse("package B is not installed", registry.open(idB).isInstalled());
+
+        try {
+            registry.createExecutionPlan()
+                    .addTask().with(idB).with(PackageTask.Type.INSTALL)
+                    .with(admin)
+                    .with(getDefaultOptions().getListener())
+                    .validate();
+            fail("plan should fail with DependencyException");
+        } catch (DependencyException e) {
+            // expected
+        }
     }
 }

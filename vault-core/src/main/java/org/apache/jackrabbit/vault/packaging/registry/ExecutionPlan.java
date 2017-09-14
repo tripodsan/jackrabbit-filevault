@@ -16,30 +16,41 @@
  */
 package org.apache.jackrabbit.vault.packaging.registry;
 
-import java.io.IOException;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * {@code ExecutionPlan}...
+ * Holds a list of tasks that perform package installation related operations.
  */
 @ProviderType
 public interface ExecutionPlan {
 
+    /**
+     * An id of the execution plan.
+     * @return the id.
+     */
     @Nonnull
     String getId();
 
+    /**
+     * Retrieves the list of all tasks
+     * @return the tasks.
+     */
     @Nonnull
     List<PackageTask> getTasks();
 
-    @Nonnull
-    ExecutionPlan execute() throws IOException, PackageException;
+    /**
+     * Checks if this plan has finished.
+     * @return {@code true} if executed.
+     */
+    boolean isExecuted();
 
-    @Nonnull
-    ExecutionPlan executeAsync() throws IOException, PackageException;
-
+    /**
+     * checks if this plan has error
+     * @return {@code true} if it has errors.
+     */
+    boolean hasErrors();
 }

@@ -190,7 +190,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
         ZipVaultPackage pkg = new ZipVaultPackage(archive, true);
 
         PackageId pid = pkg.getId();
-        JcrPackage jcrPack = registry.upload(pkg, replace, false);
+        JcrPackage jcrPack = registry.upload(pkg, replace);
         jcrPack = new JcrPackageImpl(registry, jcrPack.getNode(), pkg);
         jcrPack.extract(options);
 
@@ -232,7 +232,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
             throws RepositoryException, IOException {
         ZipVaultPackage pack = new ZipVaultPackage(file, isTmpFile, strict);
         try {
-            return registry.upload(pack, replace, true);
+            return registry.upload(pack, replace);
         } catch (PackageExistsException e) {
             throw new ItemExistsException(e.getMessage(), e);
         }

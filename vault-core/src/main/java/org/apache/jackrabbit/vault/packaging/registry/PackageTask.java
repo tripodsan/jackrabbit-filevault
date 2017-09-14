@@ -17,45 +17,90 @@
 package org.apache.jackrabbit.vault.packaging.registry;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * {@code ExecutionTask}...
+ * Describes a package operation task.
  */
 @ProviderType
 public interface PackageTask {
 
+    /**
+     * Task type
+     */
     enum Type {
+
+        /**
+         * Package installation
+         */
         INSTALL,
+
+        /**
+         * Package uninstallation
+         */
         UNINSTALL,
+
+        /**
+         * Package removal
+         */
         REMOVE,
+
+        /**
+         * Package extraction
+         */
         EXTRACT
     }
 
+    /**
+     * Task state
+     */
     enum State {
+        /**
+         * task is new
+         */
         NEW,
-        VALID,
+        /**
+         * Task is running
+         */
         RUNNING,
-        FINISHED,
+        /**
+         * Task has completed
+         */
+        COMPLETED,
+        /**
+         * Task has errors
+         */
         ERROR
     }
 
+    /**
+     * Returns the package id of this task.
+     * @return the package id.
+     */
     @Nonnull
     PackageId getPackageId();
 
+    /**
+     * Returns the task type.
+     * @return the task type.
+     */
     @Nonnull
     Type getType();
 
+    /**
+     * Returns the task state
+     * @return the task state
+     */
     @Nonnull
     State getState();
 
-    // get creation time
-    // get start time
-    // get end time
-    // get execution info (import/export info)
-    // get execution log
-    // get error
-
+    /**
+     * Returns the error if there was one.
+     * @return the error
+     */
+    @Nullable
+    Throwable getError();
 }

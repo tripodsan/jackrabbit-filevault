@@ -20,8 +20,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Session;
@@ -31,15 +36,23 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
+import org.apache.jackrabbit.vault.packaging.CyclicDependencyException;
+import org.apache.jackrabbit.vault.packaging.Dependency;
+import org.apache.jackrabbit.vault.packaging.DependencyException;
+import org.apache.jackrabbit.vault.packaging.NoSuchPackageException;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.apache.jackrabbit.vault.packaging.registry.DependencyReport;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlan;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlanBuilder;
 import org.apache.jackrabbit.vault.packaging.registry.PackageTask;
 import org.apache.jackrabbit.vault.packaging.registry.PackageTaskBuilder;
+import org.apache.jackrabbit.vault.packaging.registry.RegisteredPackage;
 import org.apache.jackrabbit.vault.util.RejectingEntityResolver;
 import org.apache.jackrabbit.vault.util.xml.serialize.OutputFormat;
 import org.apache.jackrabbit.vault.util.xml.serialize.XMLSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -51,6 +64,11 @@ import org.xml.sax.helpers.AttributesImpl;
  * {@code ExecutionPlanBuilderImpl}...
  */
 public class ExecutionPlanBuilderImpl implements ExecutionPlanBuilder {
+
+    /**
+     * default logger
+     */
+    private static final Logger log = LoggerFactory.getLogger(ExecutionPlanBuilderImpl.class);
 
     private final static String ATTR_VERSION = "version";
     private static final String TAG_EXECUTION_PLAN = "executionPlan";
@@ -180,20 +198,73 @@ public class ExecutionPlanBuilderImpl implements ExecutionPlanBuilder {
     @Nonnull
     @Override
     public ExecutionPlanBuilder validate() throws IOException, PackageException {
+        Map<PackageId, PackageTask> installTasks = new HashMap<PackageId, PackageTask>();
         List<PackageTask> packageTasks = new ArrayList<PackageTask>(tasks.size());
         for (TaskBuilder task: tasks) {
             if (task.id == null || task.type == null) {
                 throw new PackageException("task builder must have package id and type defined.");
             }
-            packageTasks.add(new PackageTaskImpl(task.id, task.type));
+            PackageTaskImpl pTask = new PackageTaskImpl(task.id, task.type);
+            // only handle install tasks for now
+            if (task.type == PackageTask.Type.INSTALL) {
+                installTasks.put(task.id, pTask);
+            } else {
+                packageTasks.add(pTask);
+            }
         }
+
+        for (PackageId id: installTasks.keySet().toArray(new PackageId[installTasks.size()])) {
+            Set<PackageId> resolved = new HashSet<PackageId>();
+            resolve(id, packageTasks, installTasks, resolved);
+        }
+
+        for (PackageTask task: packageTasks) {
+            log.info("- {}", task);
+        }
+
         plan = new ExecutionPlanImpl(packageTasks);
         return this;
     }
 
+    private void resolve(PackageId id, List<PackageTask> packageTasks, Map<PackageId, PackageTask> installTasks, Set<PackageId> resolved) throws IOException, PackageException {
+        if (resolved.contains(id)) {
+            throw new CyclicDependencyException("Package has cyclic dependencies: " + id);
+        }
+        resolved.add(id);
+        DependencyReport report = registry.analyzeDependencies(id, false);
+        if (report.getUnresolvedDependencies().length > 0) {
+            throw new DependencyException("Package has unresolved dependencies: " + Dependency.toString(report.getUnresolvedDependencies()));
+        }
+        for (PackageId depId: report.getResolvedDependencies()) {
+            // if the package task is already present, continue resolution
+            if (installTasks.get(depId) == PackageTaskImpl.MARKER) {
+                continue;
+            }
+            // if the package is already installed, continue resolution
+            try (RegisteredPackage pkg = registry.open(depId)) {
+                if (pkg == null || pkg.isInstalled()) {
+                    continue;
+                }
+            }
+            resolve(depId, packageTasks, installTasks, resolved);
+        }
+        PackageTask task = installTasks.get(id);
+        if (task == PackageTaskImpl.MARKER) {
+            // task was added during resolution
+            return;
+        }
+        if (task == null) {
+            // package is not registered in plan, but need to be installed due to dependency
+            task = new PackageTaskImpl(id, PackageTask.Type.INSTALL);
+        }
+        packageTasks.add(task);
+        // mark as processed
+        installTasks.put(id, PackageTaskImpl.MARKER);
+    }
+
     @Nonnull
     @Override
-    public ExecutionPlan build() throws IOException, PackageException {
+    public ExecutionPlan execute() throws IOException, PackageException {
         if (plan == null) {
             validate();
         }
@@ -205,7 +276,7 @@ public class ExecutionPlanBuilderImpl implements ExecutionPlanBuilder {
                 }
             }
         }
-        return plan.with(registry).with(session).with(listener);
+        return plan.with(registry).with(session).with(listener).execute();
     }
 
     private class TaskBuilder implements PackageTaskBuilder {

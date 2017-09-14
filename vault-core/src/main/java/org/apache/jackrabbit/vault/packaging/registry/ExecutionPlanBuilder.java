@@ -33,24 +33,63 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface ExecutionPlanBuilder {
 
+    /**
+     * Loads the tasks from a serialized plan and replaces the plans already in this builder.
+     * @param in input stream to the data.
+     * @return this
+     * @throws IOException if an I/O error occurrs.
+     */
     @Nonnull
     ExecutionPlanBuilder load(@Nonnull InputStream in) throws IOException;
 
+    /**
+     * Serializes the tasks of this plan.
+     * @param out the output stream
+     * @return this
+     * @throws IOException if an I/O error occurrs.
+     * @throws PackageException if this builder does not have valid tasks.
+     */
     @Nonnull
     ExecutionPlanBuilder save(@Nonnull OutputStream out) throws IOException, PackageException;
 
+    /**
+     * Adds a new task to this builder.
+     * @return an package task builder that helps to assemble the task.
+     */
     @Nonnull
     PackageTaskBuilder addTask();
 
-    @Nonnull
-    ExecutionPlanBuilder with(@Nonnull Session session);
-
-    @Nonnull
-    ExecutionPlanBuilder with(@Nonnull ProgressTrackerListener listener);
-
+    /**
+     * Validates this plan.
+     * @return this.
+     * @throws IOException if an I/O error occurrs.
+     * @throws PackageException if the plan is not valid.
+     */
     @Nonnull
     ExecutionPlanBuilder validate() throws IOException, PackageException;
 
+    /**
+     * Sets the JCR session for this execution plan.
+     * @param session the session
+     * @return this.
+     */
     @Nonnull
-    ExecutionPlan build() throws IOException, PackageException;
+    ExecutionPlanBuilder with(@Nonnull Session session);
+
+    /**
+     * Sets the progress tracker listener for this plan.
+     * @param listener the listener
+     * @return this.
+     */
+    @Nonnull
+    ExecutionPlanBuilder with(@Nonnull ProgressTrackerListener listener);
+
+    /**
+     * builds an executes the plan synchronously.
+     * @return the execution plan.
+     * @throws IOException if an I/O error occurrs.
+     * @throws PackageException if a package operation fails.
+     */
+    @Nonnull
+    ExecutionPlan execute() throws IOException, PackageException;
 }

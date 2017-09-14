@@ -128,7 +128,7 @@ public class TestPackageRegistry extends IntegrationTestBase {
     @Test
     public void testRegisterFileTwiceFails() throws IOException, PackageException {
         File file = getTempFile("testpackages/tmp.zip");
-        PackageId id = registry.register(file, false, false);
+        PackageId id = registry.register(file, false);
         assertEquals("package id", TMP_PACKAGE_ID, id);
         assertTrue("file should still exist", file.exists());
 
@@ -138,7 +138,7 @@ public class TestPackageRegistry extends IntegrationTestBase {
         }
 
         try {
-            registry.register(file, false, false);
+            registry.register(file, false);
             fail("registering the package twice should fail");
         } catch (PackageExistsException e) {
             // expected
@@ -154,7 +154,7 @@ public class TestPackageRegistry extends IntegrationTestBase {
     @Test
     public void testRegisterTempFileTwiceFails() throws IOException, PackageException {
         File file = getTempFile("testpackages/tmp.zip");
-        PackageId id = registry.register(file, true, false);
+        PackageId id = registry.register(file, false);
         assertEquals("package id", TMP_PACKAGE_ID, id);
         assertFalse("file should not exist", file.exists());
 
@@ -165,7 +165,7 @@ public class TestPackageRegistry extends IntegrationTestBase {
 
         file = getTempFile("testpackages/tmp.zip");
         try {
-            registry.register(file, true, false);
+            registry.register(file, false);
             fail("registering the package twice should fail");
         } catch (PackageExistsException e) {
             // expected
@@ -179,24 +179,11 @@ public class TestPackageRegistry extends IntegrationTestBase {
     @Test
     public void testRegisterFileTwiceSucceeds() throws IOException, PackageException {
         File file = getTempFile("testpackages/tmp.zip");
-        PackageId id = registry.register(file, false, false);
+        PackageId id = registry.register(file, false);
         assertEquals("package id", TMP_PACKAGE_ID, id);
         assertTrue("file should still exist", file.exists());
-        registry.register(file, false, true);
+        registry.register(file, true);
         file.delete();
-    }
-
-    /**
-     * registers a package twice via temp file (replace = true)
-     */
-    @Test
-    public void testRegisterTempFileTwiceSucceeds() throws IOException, PackageException {
-        File file = getTempFile("testpackages/tmp.zip");
-        PackageId id = registry.register(file, false, false);
-        assertTrue("file should still exist", file.exists());
-        assertEquals("package id", TMP_PACKAGE_ID, id);
-        registry.register(file, true, true);
-        assertFalse("file should not exist", file.exists());
     }
 
     /**
