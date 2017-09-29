@@ -156,7 +156,6 @@ public class TestPackageRegistry extends IntegrationTestBase {
         File file = getTempFile("testpackages/tmp.zip");
         PackageId id = registry.register(file, false);
         assertEquals("package id", TMP_PACKAGE_ID, id);
-        assertFalse("file should not exist", file.exists());
 
         try (RegisteredPackage pkg = registry.open(id)) {
             assertEquals("package id of registered is correct", TMP_PACKAGE_ID, pkg.getId());

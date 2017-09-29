@@ -34,7 +34,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * The package registry is the next generation {@link org.apache.jackrabbit.vault.packaging.PackageManager} and
  * {@link org.apache.jackrabbit.vault.packaging.JcrPackageManager}. It defines storage independent methods to
  * register (upload), enumerate and remove packages. The installation lifecycle of the packages is provided via
- * {@link ExecutionPlan}s. Which currently only supports 1 execution task at a time.
+ * {@link ExecutionPlan}s.
  */
 @ProviderType
 public interface PackageRegistry {

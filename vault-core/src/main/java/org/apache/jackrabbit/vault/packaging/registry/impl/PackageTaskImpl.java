@@ -98,7 +98,7 @@ public class PackageTaskImpl implements PackageTask {
         try {
             switch (type) {
                 case INSTALL:
-                    doInstall(executionPlan);
+                    doInstall(executionPlan, false);
                     break;
                 case UNINSTALL:
                     doUninstall(executionPlan);
@@ -107,7 +107,7 @@ public class PackageTaskImpl implements PackageTask {
                     doRemove(executionPlan);
                     break;
                 case EXTRACT:
-                    doExtract(executionPlan);
+                    doInstall(executionPlan, true);
                     break;
             }
             state = State.COMPLETED;
@@ -118,12 +118,22 @@ public class PackageTaskImpl implements PackageTask {
         }
     }
 
-    private void doExtract(ExecutionPlanImpl plan) {
-        throw new UnsupportedOperationException();
-    }
-
-    private void doRemove(ExecutionPlanImpl plan) {
-        throw new UnsupportedOperationException();
+    /**
+     * Performs the removal.
+     * @param plan the execution plan
+     * @throws IOException if an I/O error occurs
+     * @throws PackageException if a package error occurs
+     */
+    private void doRemove(ExecutionPlanImpl plan) throws IOException, PackageException {
+        try (RegisteredPackage pkg = plan.getRegistry().open(id)) {
+            if (pkg == null) {
+                throw new NoSuchPackageException("No such package: " + id);
+            }
+            if (pkg.isInstalled()) {
+                throw new PackageException("refusing to remove installed package: " + id);
+            }
+            plan.getRegistry().remove(id);
+        }
     }
 
     /**
@@ -159,7 +169,7 @@ public class PackageTaskImpl implements PackageTask {
      * @throws IOException if an I/O error occurs
      * @throws PackageException if a package error occurs
      */
-    private void doInstall(ExecutionPlanImpl plan) throws IOException, PackageException {
+    private void doInstall(ExecutionPlanImpl plan, boolean extract) throws IOException, PackageException {
         ImportOptions opts = new ImportOptions();
         opts.setListener(plan.getListener());
         // execution plan resolution already has resolved all dependencies, so there is no need to use best effort here.
@@ -173,7 +183,11 @@ public class PackageTaskImpl implements PackageTask {
                 throw new PackageException("non jcr packages not supported yet");
             }
             try (JcrPackage jcrPkg = ((JcrRegisteredPackage) pkg).getJcrPackage()){
-                jcrPkg.install(opts);
+                if (extract) {
+                    jcrPkg.extract(opts);
+                } else {
+                    jcrPkg.install(opts);
+                }
             } catch (RepositoryException e) {
                 throw new IOException(e);
             }

@@ -90,10 +90,11 @@ public class TestExecutionPlan extends IntegrationTestBase {
     @Test
     public void testSerialization() throws IOException, PackageException {
         PackageId idC = registry.register(getStream(TEST_PACKAGE_C_10), false);
+        PackageId idB = registry.register(getStream(TEST_PACKAGE_B_10), false);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ExecutionPlanBuilder builder = registry.createExecutionPlan();
         builder
-                .addTask().with(idC).with(PackageTask.Type.EXTRACT)
+                .addTask().with(idB).with(PackageTask.Type.EXTRACT)
                 .addTask().with(idC).with(PackageTask.Type.INSTALL)
                 .addTask().with(idC).with(PackageTask.Type.REMOVE)
                 .addTask().with(idC).with(PackageTask.Type.UNINSTALL)
@@ -101,12 +102,12 @@ public class TestExecutionPlan extends IntegrationTestBase {
 
         String expected =
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<executionPlan version=\"1.0\">\n" +
-                "    <task cmd=\"extract\" packageId=\"my_packages:test_c:1.0\"/>\n" +
-                "    <task cmd=\"remove\" packageId=\"my_packages:test_c:1.0\"/>\n" +
-                "    <task cmd=\"uninstall\" packageId=\"my_packages:test_c:1.0\"/>\n" +
-                "    <task cmd=\"install\" packageId=\"my_packages:test_c:1.0\"/>\n" +
-                "</executionPlan>\n";
+                        "<executionPlan version=\"1.0\">\n" +
+                        "    <task cmd=\"uninstall\" packageId=\"my_packages:test_c:1.0\"/>\n" +
+                        "    <task cmd=\"remove\" packageId=\"my_packages:test_c:1.0\"/>\n" +
+                        "    <task cmd=\"install\" packageId=\"my_packages:test_c:1.0\"/>\n" +
+                        "    <task cmd=\"extract\" packageId=\"my_packages:test_b:1.0\"/>\n" +
+                        "</executionPlan>\n";
 
         String result = out.toString("utf-8");
         assertEquals(expected, result);
@@ -139,26 +140,6 @@ public class TestExecutionPlan extends IntegrationTestBase {
         } catch (PackageException e) {
             // expected
         }
-    }
-
-    /**
-     * Tests if build fails if session is missing for non remove tasks
-     */
-    @Test
-    public void testSessionIsRequired() throws IOException, PackageException {
-        try {
-            ExecutionPlanBuilder builder = registry.createExecutionPlan();
-            builder.addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.UNINSTALL).execute();
-            fail("non-remove task with no session must fail");
-        } catch (PackageException e) {
-            // expected
-        }
-
-        ExecutionPlanBuilder builder = registry.createExecutionPlan();
-        builder.addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.UNINSTALL).with(admin).execute();
-
-        builder = registry.createExecutionPlan();
-        builder.addTask().with(TMP_PACKAGE_ID).with(PackageTask.Type.REMOVE).execute();
     }
 
     @Test
@@ -288,6 +269,57 @@ public class TestExecutionPlan extends IntegrationTestBase {
         assertFalse("package A is not installed", registry.open(TEST_PACKAGE_ID_A_10).isInstalled());
         assertFalse("package B is not installed", registry.open(TEST_PACKAGE_ID_B_10).isInstalled());
         assertFalse("package C is not installed", registry.open(TEST_PACKAGE_ID_C_10).isInstalled());
+    }
+
+    @Test
+    public void testRemoveTask() throws IOException, PackageException {
+        PackageId idA = registry.register(getStream(TEST_PACKAGE_A_10), false);
+        assertTrue("package A is registered", registry.contains(idA));
+
+        ExecutionPlan plan = registry.createExecutionPlan()
+                .addTask().with(idA).with(PackageTask.Type.REMOVE)
+                .with(admin)
+                .with(getDefaultOptions().getListener())
+                .execute();
+        assertTrue("plan is finished", plan.isExecuted());
+        assertFalse("plan has no errors", plan.hasErrors());
+        assertFalse("package A is removed", registry.contains(idA));
+    }
+
+    @Test
+    public void testRemoveInstalledTask() throws IOException, PackageException {
+        testInstallTask();
+
+        ExecutionPlan plan = registry.createExecutionPlan()
+                .addTask().with(TEST_PACKAGE_ID_C_10).with(PackageTask.Type.REMOVE)
+                .with(admin)
+                .with(getDefaultOptions().getListener())
+                .execute();
+        assertTrue("plan is finished", plan.isExecuted());
+        assertTrue("plan has errors", plan.hasErrors());
+        assertTrue("package A is not removed", registry.contains(TEST_PACKAGE_ID_C_10));
+    }
+
+    @Test
+    public void testExtractTask() throws IOException, PackageException {
+        PackageId idA = registry.register(getStream(TEST_PACKAGE_A_10), false);
+        PackageId idB = registry.register(getStream(TEST_PACKAGE_B_10), false);
+        PackageId idC = registry.register(getStream(TEST_PACKAGE_C_10), false);
+        assertFalse("package A is not installed", registry.open(idA).isInstalled());
+        assertFalse("package B is not installed", registry.open(idB).isInstalled());
+        assertFalse("package C is not installed", registry.open(idC).isInstalled());
+
+        ExecutionPlan plan = registry.createExecutionPlan()
+                .addTask().with(idA).with(PackageTask.Type.EXTRACT)
+                .with(admin)
+                .with(getDefaultOptions().getListener())
+                .execute();
+        assertTrue("plan is finished", plan.isExecuted());
+        assertFalse("plan has no errors", plan.hasErrors());
+
+        assertTrue("package A is installed", registry.open(idA).isInstalled());
+        assertTrue("package B is installed", registry.open(idB).isInstalled());
+        assertTrue("package C is installed", registry.open(idC).isInstalled());
     }
 
 
