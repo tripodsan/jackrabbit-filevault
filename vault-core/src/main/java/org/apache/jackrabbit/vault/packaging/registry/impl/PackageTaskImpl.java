@@ -25,17 +25,23 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.vault.fs.io.ImportOptions;
 import org.apache.jackrabbit.vault.packaging.DependencyHandling;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
+import org.apache.jackrabbit.vault.packaging.NoSuchPackageException;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.jackrabbit.vault.packaging.VaultPackage;
-import org.apache.jackrabbit.vault.packaging.impl.JcrPackageImpl;
 import org.apache.jackrabbit.vault.packaging.registry.PackageTask;
 import org.apache.jackrabbit.vault.packaging.registry.RegisteredPackage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code PackageTaskImpl}...
  */
 public class PackageTaskImpl implements PackageTask {
+
+    /**
+     * default logger
+     */
+    private static final Logger log = LoggerFactory.getLogger(PackageTaskImpl.class);
 
     final static PackageTaskImpl MARKER = new PackageTaskImpl(new PackageId("", "" ,""), Type.INSTALL);
 
@@ -47,7 +53,7 @@ public class PackageTaskImpl implements PackageTask {
 
     private Throwable error;
 
-    public PackageTaskImpl(@Nonnull PackageId id, @Nonnull Type type) {
+    PackageTaskImpl(@Nonnull PackageId id, @Nonnull Type type) {
         this.id = id;
         this.type = type;
     }
@@ -106,6 +112,7 @@ public class PackageTaskImpl implements PackageTask {
             }
             state = State.COMPLETED;
         } catch (Exception e) {
+            log.info("error during package task {} on {}: {}", type, id, e.toString());
             error  = e;
             state = State.ERROR;
         }
@@ -119,10 +126,39 @@ public class PackageTaskImpl implements PackageTask {
         throw new UnsupportedOperationException();
     }
 
-    private void doUninstall(ExecutionPlanImpl plan) {
-        throw new UnsupportedOperationException();
+    /**
+     * Performs the uninstallation.
+     * @param plan the execution plan
+     * @throws IOException if an I/O error occurs
+     * @throws PackageException if a package error occurs
+     */
+    private void doUninstall(ExecutionPlanImpl plan) throws IOException, PackageException {
+        ImportOptions opts = new ImportOptions();
+        opts.setListener(plan.getListener());
+        // execution plan resolution already has resolved all dependencies, so there is no need to use best effort here.
+        opts.setDependencyHandling(DependencyHandling.STRICT);
+
+        try (RegisteredPackage pkg = plan.getRegistry().open(id)) {
+            if (pkg == null) {
+                throw new NoSuchPackageException("No such package: " + id);
+            }
+            if (!(pkg instanceof JcrRegisteredPackage)) {
+                throw new PackageException("non jcr packages not supported yet");
+            }
+            try (JcrPackage jcrPkg = ((JcrRegisteredPackage) pkg).getJcrPackage()){
+                jcrPkg.uninstall(opts);
+            } catch (RepositoryException e) {
+                throw new IOException(e);
+            }
+        }
     }
 
+    /**
+     * Performs the installation.
+     * @param plan the execution plan
+     * @throws IOException if an I/O error occurs
+     * @throws PackageException if a package error occurs
+     */
     private void doInstall(ExecutionPlanImpl plan) throws IOException, PackageException {
         ImportOptions opts = new ImportOptions();
         opts.setListener(plan.getListener());
@@ -130,6 +166,9 @@ public class PackageTaskImpl implements PackageTask {
         opts.setDependencyHandling(DependencyHandling.STRICT);
 
         try (RegisteredPackage pkg = plan.getRegistry().open(id)) {
+            if (pkg == null) {
+                throw new NoSuchPackageException("No such package: " + id);
+            }
             if (!(pkg instanceof JcrRegisteredPackage)) {
                 throw new PackageException("non jcr packages not supported yet");
             }

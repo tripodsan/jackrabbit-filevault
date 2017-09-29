@@ -49,16 +49,19 @@ public class TestExecutionPlan extends IntegrationTestBase {
      * Test package A-1.0. Depends on B and C-1.X
      */
     private static String TEST_PACKAGE_A_10 = "testpackages/test_a-1.0.zip";
+    private static PackageId TEST_PACKAGE_ID_A_10 = PackageId.fromString("my_packages:test_a:1.0");
 
     /**
      * Test package B-1.0. Depends on C
      */
     private static String TEST_PACKAGE_B_10 = "testpackages/test_b-1.0.zip";
+    private static PackageId TEST_PACKAGE_ID_B_10 = PackageId.fromString("my_packages:test_b:1.0");
 
     /**
      * Test package C-1.0
      */
     private static String TEST_PACKAGE_C_10 = "testpackages/test_c-1.0.zip";
+    private static PackageId TEST_PACKAGE_ID_C_10 = PackageId.fromString("my_packages:test_c:1.0");
 
     /**
      * Test package D-1.0. Depends on B and E
@@ -242,4 +245,50 @@ public class TestExecutionPlan extends IntegrationTestBase {
             // expected
         }
     }
+
+    @Test
+    public void testValidateMissingFails() throws IOException {
+        for (PackageTask.Type type: PackageTask.Type.values()) {
+            try {
+                registry.createExecutionPlan().addTask().with(TEST_PACKAGE_ID_A_10).with(type).validate();
+                fail(type + " task with missing package must not validate");
+            } catch (PackageException e) {
+                // ok
+            }
+        }
+    }
+
+    @Test
+    public void testUninstallTask() throws IOException, PackageException {
+        testInstallTask();
+
+        ExecutionPlan plan = registry.createExecutionPlan()
+                .addTask().with(TEST_PACKAGE_ID_A_10).with(PackageTask.Type.UNINSTALL)
+                .with(admin)
+                .with(getDefaultOptions().getListener())
+                .execute();
+        assertTrue("plan is finished", plan.isExecuted());
+        assertFalse("plan has no errors", plan.hasErrors());
+
+        assertFalse("package A is not installed", registry.open(TEST_PACKAGE_ID_A_10).isInstalled());
+    }
+
+    @Test
+    public void testUninstallAutomaticDependenciesTask() throws IOException, PackageException {
+        testInstallTask();
+
+        ExecutionPlan plan = registry.createExecutionPlan()
+                .addTask().with(TEST_PACKAGE_ID_C_10).with(PackageTask.Type.UNINSTALL)
+                .with(admin)
+                .with(getDefaultOptions().getListener())
+                .execute();
+        assertTrue("plan is finished", plan.isExecuted());
+        assertFalse("plan has no errors", plan.hasErrors());
+
+        assertFalse("package A is not installed", registry.open(TEST_PACKAGE_ID_A_10).isInstalled());
+        assertFalse("package B is not installed", registry.open(TEST_PACKAGE_ID_B_10).isInstalled());
+        assertFalse("package C is not installed", registry.open(TEST_PACKAGE_ID_C_10).isInstalled());
+    }
+
+
 }

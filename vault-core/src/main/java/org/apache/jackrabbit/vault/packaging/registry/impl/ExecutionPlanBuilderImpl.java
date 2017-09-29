@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -199,23 +198,41 @@ public class ExecutionPlanBuilderImpl implements ExecutionPlanBuilder {
     @Override
     public ExecutionPlanBuilder validate() throws IOException, PackageException {
         Map<PackageId, PackageTask> installTasks = new HashMap<PackageId, PackageTask>();
+        Map<PackageId, PackageTask> uninstallTasks = new HashMap<PackageId, PackageTask>();
+        Map<PackageId, PackageTask> removeTasks = new HashMap<PackageId, PackageTask>();
         List<PackageTask> packageTasks = new ArrayList<PackageTask>(tasks.size());
         for (TaskBuilder task: tasks) {
             if (task.id == null || task.type == null) {
                 throw new PackageException("task builder must have package id and type defined.");
             }
+            if (!registry.contains(task.id)) {
+                throw new NoSuchPackageException("No such package: " + task.id);
+            }
             PackageTaskImpl pTask = new PackageTaskImpl(task.id, task.type);
-            // only handle install tasks for now
-            if (task.type == PackageTask.Type.INSTALL) {
-                installTasks.put(task.id, pTask);
-            } else {
-                packageTasks.add(pTask);
+            // very simple task resolution: uninstall -> remove -> install/extract
+            switch (task.type) {
+                case INSTALL:
+                case EXTRACT:
+                    installTasks.put(task.id, pTask);
+                    break;
+                case UNINSTALL:
+                    uninstallTasks.put(task.id, pTask);
+                    break;
+                case REMOVE:
+                    removeTasks.put(task.id, pTask);
+                    break;
             }
         }
 
+        for (PackageId id: uninstallTasks.keySet().toArray(new PackageId[uninstallTasks.size()])) {
+            resolveUninstall(id, packageTasks, uninstallTasks, new HashSet<PackageId>());
+        }
+
+        // todo: validate remove
+        packageTasks.addAll(removeTasks.values());
+
         for (PackageId id: installTasks.keySet().toArray(new PackageId[installTasks.size()])) {
-            Set<PackageId> resolved = new HashSet<PackageId>();
-            resolve(id, packageTasks, installTasks, resolved);
+            resolveInstall(id, packageTasks, installTasks, new HashSet<PackageId>());
         }
 
         for (PackageTask task: packageTasks) {
@@ -226,7 +243,7 @@ public class ExecutionPlanBuilderImpl implements ExecutionPlanBuilder {
         return this;
     }
 
-    private void resolve(PackageId id, List<PackageTask> packageTasks, Map<PackageId, PackageTask> installTasks, Set<PackageId> resolved) throws IOException, PackageException {
+    private void resolveInstall(PackageId id, List<PackageTask> packageTasks, Map<PackageId, PackageTask> installTasks, Set<PackageId> resolved) throws IOException, PackageException {
         if (resolved.contains(id)) {
             throw new CyclicDependencyException("Package has cyclic dependencies: " + id);
         }
@@ -246,7 +263,7 @@ public class ExecutionPlanBuilderImpl implements ExecutionPlanBuilder {
                     continue;
                 }
             }
-            resolve(depId, packageTasks, installTasks, resolved);
+            resolveInstall(depId, packageTasks, installTasks, resolved);
         }
         PackageTask task = installTasks.get(id);
         if (task == PackageTaskImpl.MARKER) {
@@ -260,6 +277,38 @@ public class ExecutionPlanBuilderImpl implements ExecutionPlanBuilder {
         packageTasks.add(task);
         // mark as processed
         installTasks.put(id, PackageTaskImpl.MARKER);
+    }
+
+    private void resolveUninstall(PackageId id, List<PackageTask> packageTasks, Map<PackageId, PackageTask> uninstallTasks, Set<PackageId> resolved) throws IOException, PackageException {
+        if (resolved.contains(id)) {
+            throw new CyclicDependencyException("Package has cyclic dependencies: " + id);
+        }
+        resolved.add(id);
+        for (PackageId depId: registry.usage(id)) {
+            // if the package task is already present, continue resolution
+            if (uninstallTasks.get(depId) == PackageTaskImpl.MARKER) {
+                continue;
+            }
+            // if the package is already uninstalled, continue resolution
+            try (RegisteredPackage pkg = registry.open(depId)) {
+                if (pkg == null || !pkg.isInstalled()) {
+                    continue;
+                }
+            }
+            resolveUninstall(depId, packageTasks, uninstallTasks, resolved);
+        }
+        PackageTask task = uninstallTasks.get(id);
+        if (task == PackageTaskImpl.MARKER) {
+            // task was added during resolution
+            return;
+        }
+        if (task == null) {
+            // package is not registered in plan, but need to be installed due to dependency
+            task = new PackageTaskImpl(id, PackageTask.Type.UNINSTALL);
+        }
+        packageTasks.add(task);
+        // mark as processed
+        uninstallTasks.put(id, PackageTaskImpl.MARKER);
     }
 
     @Nonnull
