@@ -223,6 +223,7 @@ public class IntegrationTestBase  {
 
         // ensure not packages or tmp
         clean("/etc");
+        clean("/var");
         clean("/tmp");
         clean("/testroot");
 

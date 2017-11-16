@@ -79,6 +79,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl.ARCHIVE_PACKAGE_ROOT_PATH;
+import static org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl.LEGACY_PACKAGE_ROOT_PATH;
 
 /**
  * Implements a JcrPackage
@@ -221,32 +222,12 @@ public class JcrPackageImpl implements JcrPackage {
 
     /**
      * {@inheritDoc}
+     *
+     * @return {@code true} always.
      */
+    @Deprecated
     public boolean verifyId(boolean autoFix, boolean autoSave) throws RepositoryException {
-        // check if package id is correct
-        JcrPackageDefinition jDef = getDefinition();
-        if (jDef == null) {
-            return true;
-        }
-        if (node == null) {
-            return false;
-        }
-        PackageId id = jDef.getId();
-        PackageId cId = new PackageId(node.getPath());
-        // compare installation paths since non-conform version numbers might
-        // lead to different pids (bug #35564)
-        if (JcrPackageRegistry.getInstallationPath(id).equals(JcrPackageRegistry.getInstallationPath(cId))) {
-            if (autoFix && id.isFromPath()) {
-                // if definition has no id set, fix anyways
-                jDef.setId(cId, autoSave);
-            }
-            return true;
-        }
-        if (autoFix) {
-            log.warn("Fixing non-matching id from {} to {}.", id, cId);
-            jDef.setId(cId, autoSave);
-        }
-        return false;
+        return true;
     }
 
 
@@ -576,7 +557,7 @@ public class JcrPackageImpl implements JcrPackage {
         boolean hasOwnContent = false;
         for (PathFilterSet root: a.getMetaInf().getFilter().getFilterSets()) {
             // todo: find better way to detect subpackages
-            if (!Text.isDescendantOrEqual(JcrPackageRegistry.PACKAGE_ROOT_PATH, root.getRoot())) {
+            if (!Text.isDescendantOrEqual(LEGACY_PACKAGE_ROOT_PATH, root.getRoot())) {
                 log.debug("Package {}: contains content outside /etc/packages. Sub packages will have a dependency to it", pId);
                 hasOwnContent = true;
                 break;
@@ -848,7 +829,7 @@ public class JcrPackageImpl implements JcrPackage {
             return null;
         }
         PackageId id = getSnapshotId();
-        Node packNode = getPackageNode(id);
+        Node packNode = getSnapshotNode();
         if (packNode != null) {
             if (!replace) {
                 log.debug("Refusing to recreate snapshot {}, already exists.", id);
@@ -860,7 +841,7 @@ public class JcrPackageImpl implements JcrPackage {
         }
         log.debug("Creating snapshot for {}.", id);
         JcrPackageManagerImpl packMgr = new JcrPackageManagerImpl(node.getSession());
-        String path = JcrPackageRegistry.getInstallationPath(id);
+        String path = mgr.getInstallationPath(id);
         String parentPath = Text.getRelativeParent(path, 1);
         Node folder = packMgr.mkdir(parentPath, true);
         JcrPackage snap = mgr.createNew(folder, id, null, true);
@@ -884,17 +865,16 @@ public class JcrPackageImpl implements JcrPackage {
     }
 
     /**
-     * Returns the package node of the given package id.
-     * @param id the package id
+     * Returns the snapshot package node of this package
      * @return the package node
      * @throws RepositoryException if an error occurs
      */
     @CheckForNull
-    private Node getPackageNode(PackageId id) throws RepositoryException {
+    private Node getSnapshotNode() throws RepositoryException {
         if (node == null) {
             return null;
         }
-        String path = JcrPackageRegistry.getInstallationPath(id);
+        String path = node.getParent().getPath() + "/.snapshot/" + node.getName();
         if (node.getSession().nodeExists(path)) {
             return node.getSession().getNode(path);
         } else if (node.getSession().nodeExists(path + ".zip")) {
@@ -907,8 +887,7 @@ public class JcrPackageImpl implements JcrPackage {
      * {@inheritDoc}
      */
     public JcrPackage getSnapshot() throws RepositoryException {
-        PackageId id = getSnapshotId();
-        Node packNode = getPackageNode(id);
+        Node packNode = getSnapshotNode();
         if (packNode != null) {
             JcrPackageImpl snap = new JcrPackageImpl(mgr, packNode);
             if (snap.isValid()) {

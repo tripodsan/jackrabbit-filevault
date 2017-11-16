@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -87,9 +88,9 @@ public class JcrPackageRegistry implements PackageRegistry {
     private static final String DEFAULT_NODETYPES = "nodetypes.cnd";
 
     /**
-     * root path for packages
+     * legacy root path for packages
      */
-    public static final String PACKAGE_ROOT_PATH = "/etc/packages";
+    private static final String PACKAGE_ROOT_PATH = "/etc/packages";
 
     public static final String PACKAGE_ROOT_PATH_PREFIX = "/etc/packages/";
 
@@ -107,24 +108,52 @@ public class JcrPackageRegistry implements PackageRegistry {
     private PackageEventDispatcher dispatcher;
 
     /**
-     * package root (/etc/packages)
+     * package root nodes
      */
-    private Node packRoot;
+    private final List<Node> packRoots;
 
-    public JcrPackageRegistry(Session session) {
+    /**
+     * the package root paths.
+     */
+    private final String[] packRootPaths;
+
+    /**
+     * the package root prefix of the primary root path.
+     */
+    private final String primaryPackRootPathPrefix;
+
+
+    /**
+     * Creates a new JcrPackageRegistry based on the given session.
+     * @param session the JCR session that is used to access the repository.
+     * @param roots the root paths to store the packages.
+     */
+    public JcrPackageRegistry(@Nonnull Session session, @Nullable String ... roots) {
         this.session = session;
+        if (roots == null || roots.length == 0) {
+            packRootPaths = new String[]{PACKAGE_ROOT_PATH};
+        } else {
+            packRootPaths = roots;
+        }
+        packRoots = new ArrayList<Node>(packRootPaths.length);
+        primaryPackRootPathPrefix = packRootPaths[0] + "/";
         initNodeTypes();
     }
 
-    @Nullable
-    PackageEventDispatcher getDispatcher() {
-        return dispatcher;
-    }
-
+    /**
+     * Sets the event dispatcher
+     * @param dispatcher the dispatcher.
+     */
     public void setDispatcher(@Nullable PackageEventDispatcher dispatcher) {
         this.dispatcher = dispatcher;
     }
 
+    /**
+     * Dispatches a package event using the configured dispatcher.
+     * @param type event type
+     * @param id package id
+     * @param related related packages
+     */
     public void dispatch(@Nonnull PackageEvent.Type type, @Nonnull PackageId id, @Nullable PackageId[] related) {
         if (dispatcher == null) {
             return;
@@ -160,37 +189,43 @@ public class JcrPackageRegistry implements PackageRegistry {
     }
 
     /**
-     * {@inheritDoc}
+     * Returns the list of package roots, where as the first id the primary one. If the primary root does not exist,
+     * it will be created.
+     *
+     * @param noCreate if {@code false} the roots are not created if missing.
+     * @return the list of package roots.
+     * @throws RepositoryException if an error occurs.
      */
-    public Node getPackageRoot(boolean noCreate) throws RepositoryException {
-        if (packRoot == null) {
-            if (session.nodeExists(PACKAGE_ROOT_PATH)) {
-                packRoot = session.getNode(PACKAGE_ROOT_PATH);
-            } else if (noCreate) {
-                return null;
-            } else {
-                // assert that the session has no pending changes
-                if (session.hasPendingChanges()) {
-                    throw new RepositoryException("Unwilling to create package root folder while session has transient changes.");
+    @Nonnull
+    public List<Node> getPackageRoots(boolean noCreate) throws RepositoryException {
+        if (packRoots.isEmpty()) {
+            for (String path : packRootPaths) {
+                if (session.nodeExists(path)) {
+                    packRoots.add(session.getNode(path));
+                } else if (!noCreate && packRoots.isEmpty()) {
+                    // assert that the session has no pending changes
+                    if (session.hasPendingChanges()) {
+                        throw new RepositoryException("Unwilling to create package root folder while session has transient changes.");
+                    }
+                    // try to create the missing intermediate nodes
+                    String etcPath = Text.getRelativeParent(path, 1);
+                    Node etc;
+                    if (session.nodeExists(etcPath)) {
+                        etc = session.getNode(etcPath);
+                    } else {
+                        etc = session.getRootNode().addNode(Text.getName(etcPath), JcrConstants.NT_FOLDER);
+                    }
+                    Node pack = etc.addNode(Text.getName(path), JcrConstants.NT_FOLDER);
+                    try {
+                        session.save();
+                    } finally {
+                        session.refresh(false);
+                    }
+                    packRoots.add(pack);
                 }
-                // try to create the missing intermediate nodes
-                String etcPath = Text.getRelativeParent(PACKAGE_ROOT_PATH, 1);
-                Node etc;
-                if (session.nodeExists(etcPath)) {
-                    etc = session.getNode(etcPath);
-                } else {
-                    etc = session.getRootNode().addNode(Text.getName(etcPath), JcrConstants.NT_FOLDER);
-                }
-                Node pack = etc.addNode(Text.getName(PACKAGE_ROOT_PATH), JcrConstants.NT_FOLDER);
-                try {
-                    session.save();
-                } finally {
-                    session.refresh(false);
-                }
-                packRoot = pack;
             }
         }
-        return packRoot;
+        return packRoots;
     }
 
     @Nullable
@@ -215,11 +250,14 @@ public class JcrPackageRegistry implements PackageRegistry {
 
     @Nullable
     private Node getPackageNode(@Nonnull PackageId id) throws RepositoryException {
-        String path = getInstallationPath(id);
-        String[] exts = new String[]{"", ".zip", ".jar"};
-        for (String ext: exts) {
-            if (session.nodeExists(path + ext)) {
-                return session.getNode(path + ext);
+        String relPath = getRelativeInstallationPath(id);
+        for (String pfx: packRootPaths) {
+            String path = pfx + relPath;
+            String[] exts = new String[]{"", ".zip", ".jar"};
+            for (String ext: exts) {
+                if (session.nodeExists(path + ext)) {
+                    return session.getNode(path + ext);
+                }
             }
         }
         return null;
@@ -247,27 +285,28 @@ public class JcrPackageRegistry implements PackageRegistry {
     @Override
     public PackageId resolve(Dependency dependency, boolean onlyInstalled) throws IOException {
         try {
-            Node root = getPackageRoot(false);
-            if (!root.hasNode(dependency.getGroup())) {
-                return null;
-            }
-            Node groupNode = root.getNode(dependency.getGroup());
-            NodeIterator iter = groupNode.getNodes();
             PackageId bestId = null;
-            while (iter.hasNext()) {
-                Node child = iter.nextNode();
-                if (".snapshot".equals(child.getName())) {
+            for (Node root: getPackageRoots(false)) {
+                if (!root.hasNode(dependency.getGroup())) {
                     continue;
                 }
-                try (JcrPackageImpl pack = new JcrPackageImpl(this, child)) {
-                    if (pack.isValid()) {
-                        if (onlyInstalled && !pack.isInstalled()) {
-                            continue;
-                        }
-                        PackageId id = pack.getDefinition().getId();
-                        if (dependency.matches(id)) {
-                            if (bestId == null || id.getVersion().compareTo(bestId.getVersion()) > 0) {
-                                bestId = id;
+                Node groupNode = root.getNode(dependency.getGroup());
+                NodeIterator iter = groupNode.getNodes();
+                while (iter.hasNext()) {
+                    Node child = iter.nextNode();
+                    if (".snapshot".equals(child.getName())) {
+                        continue;
+                    }
+                    try (JcrPackageImpl pack = new JcrPackageImpl(this, child)) {
+                        if (pack.isValid()) {
+                            if (onlyInstalled && !pack.isInstalled()) {
+                                continue;
+                            }
+                            PackageId id = pack.getDefinition().getId();
+                            if (dependency.matches(id)) {
+                                if (bestId == null || id.getVersion().compareTo(bestId.getVersion()) > 0) {
+                                    bestId = id;
+                                }
                             }
                         }
                     }
@@ -711,12 +750,10 @@ public class JcrPackageRegistry implements PackageRegistry {
     @Override
     public Set<PackageId> packages() throws IOException {
         try {
-            Node pRoot = getPackageRoot(true);
-            if (pRoot == null) {
-                return Collections.emptySet();
-            }
             Set<PackageId> packages = new TreeSet<PackageId>();
-            listPackages(pRoot, packages);
+            for (Node pRoot: getPackageRoots(true)) {
+                listPackages(pRoot, packages);
+            }
             return packages;
         } catch (RepositoryException e) {
             throw new IOException(e);
@@ -753,14 +790,25 @@ public class JcrPackageRegistry implements PackageRegistry {
     }
 
     /**
-     * Returns the path of this package. please note that since 2.3 this also
+     * Returns the primary path of this package. please note that since 2.3 this also
      * includes the version, but never the extension (.zip).
      *
      * @return the path of this package
      * @since 2.2
      */
-    public static String getInstallationPath(PackageId id) {
-        StringBuilder b = new StringBuilder(PACKAGE_ROOT_PATH_PREFIX);
+    public String getInstallationPath(PackageId id) {
+        return packRootPaths[0] + getRelativeInstallationPath(id);
+    }
+
+    /**
+     * Returns the relative path of this package. please note that since 2.3 this also
+     * includes the version, but never the extension (.zip).
+     *
+     * @return the relative path of this package
+     * @since 2.2
+     */
+    public String getRelativeInstallationPath(PackageId id) {
+        StringBuilder b = new StringBuilder("/");
         if (id.getGroup().length() > 0) {
             b.append(id.getGroup());
             b.append("/");

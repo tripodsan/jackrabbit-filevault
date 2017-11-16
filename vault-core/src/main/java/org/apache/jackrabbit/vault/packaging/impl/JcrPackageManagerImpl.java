@@ -72,6 +72,11 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     public final static String ARCHIVE_PACKAGE_ROOT_PATH = "/jcr_root/etc/packages";
 
     /**
+     * root path for packages. used to detect subpackages.
+     */
+    final static String LEGACY_PACKAGE_ROOT_PATH = "/etc/packages";
+
+    /**
      * internal package persistence
      */
     private final JcrPackageRegistry registry;
@@ -82,7 +87,21 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
      * @param session repository session
      */
     public JcrPackageManagerImpl(Session session) {
-        this(new JcrPackageRegistry(session));
+        this(session, LEGACY_PACKAGE_ROOT_PATH);
+    }
+
+    /**
+     * Creates a new package manager using the given session. This method allows to specify one more or package
+     * registry root paths, where the first will be the primary when installing new packages. The others server as
+     * backward compatibility to read existing packages.
+     *
+     * @param session repository session
+     * @param roots the root paths to store the packages.
+     *
+     * @see JcrPackageRegistry(Session, String ...)
+     */
+    public JcrPackageManagerImpl(Session session, String ... roots) {
+        this(new JcrPackageRegistry(session, roots));
     }
 
     private JcrPackageManagerImpl(JcrPackageRegistry registry) {
@@ -96,6 +115,9 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
         return new RepositoryException(e);
     }
 
+    public JcrPackageRegistry getRegistry() {
+        return registry;
+    }
 
     /**
      * {@inheritDoc}
@@ -441,7 +463,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
      */
     @Override
     public Node getPackageRoot() throws RepositoryException {
-        return registry.getPackageRoot(false);
+        return registry.getPackageRoots(false).get(0);
     }
 
     /**
@@ -449,7 +471,8 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
      */
     @Override
     public Node getPackageRoot(boolean noCreate) throws RepositoryException {
-        return registry.getPackageRoot(noCreate);
+        List<Node> roots = registry.getPackageRoots(noCreate);
+        return roots.size() > 0 ? roots.get(0) : null;
     }
 
     /**

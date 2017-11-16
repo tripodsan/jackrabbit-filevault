@@ -39,6 +39,11 @@ import static org.junit.Assert.assertTrue;
  */
 public class TestSubPackages extends IntegrationTestBase {
 
+    private static final PackageId PACKAGE_ID_SUB_A = PackageId.fromString("my_packages:sub_a");
+    private static final PackageId PACKAGE_ID_SUB_A_SNAPSHOT = PackageId.fromString("my_packages/.snapshot/:sub_a");
+    private static final PackageId PACKAGE_ID_SUB_B = PackageId.fromString("my_packages:sub_b");
+    private static final PackageId PACKAGE_ID_SUB_B_SNAPSHOT = PackageId.fromString("my_packages/.snapshot/:sub_b");
+
     /**
      * Installs a package that contains sub packages non recursive
      */
@@ -52,13 +57,13 @@ public class TestSubPackages extends IntegrationTestBase {
         opts.setNonRecursive(true);
         pack.install(opts);
 
-        // check for sub packages
-        assertNodeExists("/etc/packages/my_packages/sub_a.zip");
-        assertNodeExists("/etc/packages/my_packages/sub_b.zip");
+        // check for sub packages. should be installed below the primary package root
+        assertNodeExists(packMgr.getRegistry().getInstallationPath(PACKAGE_ID_SUB_A));
+        assertNodeExists(packMgr.getRegistry().getInstallationPath(PACKAGE_ID_SUB_B));
 
         // check for snapshots
-        assertNodeMissing("/etc/packages/my_packages/.snapshot/sub_a.zip");
-        assertNodeMissing("/etc/packages/my_packages/.snapshot/sub_b.zip");
+        assertNodeMissing(packMgr.getRegistry().getInstallationPath(PACKAGE_ID_SUB_A_SNAPSHOT));
+        assertNodeMissing(packMgr.getRegistry().getInstallationPath(PACKAGE_ID_SUB_B_SNAPSHOT));
 
         assertNodeMissing("/tmp/a");
         assertNodeMissing("/tmp/b");
@@ -66,10 +71,10 @@ public class TestSubPackages extends IntegrationTestBase {
         // check for sub packages dependency
         String expected = new Dependency(pack.getDefinition().getId()).toString();
 
-        JcrPackage p1 = packMgr.open(admin.getNode("/etc/packages/my_packages/sub_a.zip"));
+        JcrPackage p1 = packMgr.open(PACKAGE_ID_SUB_A);
         assertEquals("has 1 dependency", 1, p1.getDefinition().getDependencies().length);
         assertEquals("has dependency to parent package", expected, p1.getDefinition().getDependencies()[0].toString());
-        JcrPackage p2 = packMgr.open(admin.getNode("/etc/packages/my_packages/sub_b.zip"));
+        JcrPackage p2 = packMgr.open(PACKAGE_ID_SUB_B);
         assertEquals("has 1 dependency", 1, p2.getDefinition().getDependencies().length);
         assertEquals("has dependency to parent package", expected, p2.getDefinition().getDependencies()[0].toString());
 
@@ -423,11 +428,11 @@ public class TestSubPackages extends IntegrationTestBase {
         // check for sub packages dependency
         String expected = "testGroup:testName:[1.0,2.0]";
 
-        JcrPackage p1 = packMgr.open(admin.getNode("/etc/packages/my_packages/sub_a.zip"));
+        JcrPackage p1 = packMgr.open(PACKAGE_ID_SUB_A);
         assertEquals("has 1 dependency", 1, p1.getDefinition().getDependencies().length);
         assertEquals("has dep inherited from parent", expected, p1.getDefinition().getDependencies()[0].toString());
 
-        JcrPackage p2 = packMgr.open(admin.getNode("/etc/packages/my_packages/sub_b.zip"));
+        JcrPackage p2 = packMgr.open(PACKAGE_ID_SUB_B);
         assertEquals("has 1 dependency", 1, p2.getDefinition().getDependencies().length);
         assertEquals("has dep inherited from parent", expected, p2.getDefinition().getDependencies()[0].toString());
 
