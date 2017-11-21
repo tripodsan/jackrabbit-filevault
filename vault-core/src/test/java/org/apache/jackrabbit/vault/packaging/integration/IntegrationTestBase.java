@@ -125,11 +125,17 @@ public class IntegrationTestBase  {
 
     public static final PackageId TMP_PACKAGE_ID = new PackageId("my_packages", "tmp", "");
 
+    public static final PackageId TMP_SNAPSHOT_PACKAGE_ID = PackageId.fromString("my_packages/.snapshot:tmp");
+
     public static final PackageId TEST_PACKAGE_A_10_ID = new PackageId("my_packages", "test_a", "1.0");
 
     public static final PackageId TEST_PACKAGE_B_10_ID = new PackageId("my_packages", "test_b", "1.0");
 
     public static final PackageId TEST_PACKAGE_C_10_ID = new PackageId("my_packages", "test_c", "1.0");
+
+    public static final PackageId PACKAGE_ID_SUB_A = PackageId.fromString("my_packages:sub_a");
+
+    public static final PackageId PACKAGE_ID_SUB_B = PackageId.fromString("my_packages:sub_b");
 
     /**
      * Test package A-1.0. Depends on B and C-1.X
@@ -407,6 +413,24 @@ public class IntegrationTestBase  {
             }
         });
         return opts;
+    }
+
+    /**
+     * Returns the installation path of the package including the ".zip" extension.
+     * @param id the package id
+     * @return the path
+     */
+    public String getInstallationPath(PackageId id) {
+        // make sure we use the one from the test parameter
+        return packMgr.getRegistry().getInstallationPath(id) + ".zip";
+    }
+
+    public void assertPackageNodeExists(PackageId id) throws RepositoryException {
+        assertNodeExists(getInstallationPath(id));
+    }
+
+    public void assertPackageNodeMissing(PackageId id) throws RepositoryException {
+        assertNodeMissing(getInstallationPath(id));
     }
 
     public void assertNodeExists(String path) throws RepositoryException {

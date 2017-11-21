@@ -67,7 +67,7 @@ public class PackagingImpl implements Packaging {
          * Defines the package roots of the package manager
          */
         @AttributeDefinition
-        String[] packageRoots() default {"/var/packages", "/etc/packages"};
+        String[] packageRoots() default {"/etc/packages"};
     }
 
     @Activate
