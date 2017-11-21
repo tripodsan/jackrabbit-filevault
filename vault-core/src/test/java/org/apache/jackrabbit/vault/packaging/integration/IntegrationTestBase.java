@@ -123,6 +123,30 @@ public class IntegrationTestBase  {
     private static final File DIR_DATA_STORE = new File(REPO_HOME + "/datastore");
     private static final File DIR_BLOB_STORE = new File(REPO_HOME + "/blobstore");
 
+    public static final PackageId TMP_PACKAGE_ID = new PackageId("my_packages", "tmp", "");
+
+    public static final PackageId TEST_PACKAGE_A_10_ID = new PackageId("my_packages", "test_a", "1.0");
+
+    public static final PackageId TEST_PACKAGE_B_10_ID = new PackageId("my_packages", "test_b", "1.0");
+
+    public static final PackageId TEST_PACKAGE_C_10_ID = new PackageId("my_packages", "test_c", "1.0");
+
+    /**
+     * Test package A-1.0. Depends on B and C-1.X
+     */
+    public static String TEST_PACKAGE_A_10 = "testpackages/test_a-1.0.zip";
+
+    /**
+     * Test package B-1.0. Depends on C
+     */
+    public static String TEST_PACKAGE_B_10 = "testpackages/test_b-1.0.zip";
+
+    /**
+     * Test package C-1.0
+     */
+    public static String TEST_PACKAGE_C_10 = "testpackages/test_c-1.0.zip";
+
+
     @ClassRule
     public static TemporaryFolder tempFolder = new TemporaryFolder();
 

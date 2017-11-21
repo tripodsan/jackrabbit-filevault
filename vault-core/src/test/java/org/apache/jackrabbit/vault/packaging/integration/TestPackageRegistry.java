@@ -47,29 +47,6 @@ import static org.junit.Assert.fail;
  */
 public class TestPackageRegistry extends IntegrationTestBase {
 
-    private static final PackageId TMP_PACKAGE_ID = new PackageId("my_packages", "tmp", "");
-
-    private static final PackageId TEST_PACKAGE_A_10_ID = new PackageId("my_packages", "test_a", "1.0");
-
-    private static final PackageId TEST_PACKAGE_B_10_ID = new PackageId("my_packages", "test_b", "1.0");
-
-    private static final PackageId TEST_PACKAGE_C_10_ID = new PackageId("my_packages", "test_c", "1.0");
-
-    /**
-     * Test package A-1.0. Depends on B and C-1.X
-     */
-    private static String TEST_PACKAGE_A_10 = "testpackages/test_a-1.0.zip";
-
-    /**
-     * Test package B-1.0. Depends on C
-     */
-    private static String TEST_PACKAGE_B_10 = "testpackages/test_b-1.0.zip";
-
-    /**
-     * Test package C-1.0
-     */
-    private static String TEST_PACKAGE_C_10 = "testpackages/test_c-1.0.zip";
-
     private JcrPackageRegistry registry;
 
     @Override

@@ -488,15 +488,12 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
      */
     @Override
     public List<JcrPackage> listPackages(WorkspaceFilter filter) throws RepositoryException {
-        Node root = getPackageRoot(true);
-        if (root == null) {
-            return Collections.emptyList();
-        } else {
-            List<JcrPackage> packages = new LinkedList<JcrPackage>();
+        List<JcrPackage> packages = new LinkedList<JcrPackage>();
+        for (Node root: registry.getPackageRoots(false)) {
             listPackages(root, packages, filter, false, false);
-            Collections.sort(packages);
-            return packages;
         }
+        Collections.sort(packages);
+        return packages;
     }
 
     /**
@@ -504,36 +501,45 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
      */
     @Override
     public List<JcrPackage> listPackages(String group, boolean built) throws RepositoryException {
-        Node pRoot = getPackageRoot(true);
-        if (pRoot == null) {
-            return Collections.emptyList();
-        }
         List<JcrPackage> packages = new LinkedList<JcrPackage>();
-        if (group == null) {
-            listPackages(pRoot, packages, null, built, false);
+        for (Node root: registry.getPackageRoots(false)) {
+            listPackages(root, packages, group, built);
+        }
+        Collections.sort(packages);
+        return packages;
+    }
+
+    /**
+     * internally lists all the packages below the given package root and adds them to the given list.
+     * @param pkgRoot the package root
+     * @param packages the list of packages
+     * @param group optional group to search below
+     * @param built if {@code true} only packages with size > 0 are returned
+     * @throws RepositoryException if an error occurrs
+     */
+    private void listPackages(Node pkgRoot, List<JcrPackage> packages, String group, boolean built) throws RepositoryException {
+        if (group == null || group.length() == 0) {
+            listPackages(pkgRoot, packages, null, built, false);
         } else {
-            Node root = pRoot;
+            if (group.equals(pkgRoot.getPath())) {
+                group = "";
+            } else if (group.startsWith(pkgRoot.getPath() + "/")) {
+                group = group.substring(pkgRoot.getPath().length() + 1);
+            }
+            if (group.startsWith("/")) {
+                // don't scan outside the roots
+                return;
+            }
+            Node root = pkgRoot;
             if (group.length() > 0) {
-                if (group.equals(pRoot.getPath())) {
-                    group = "";
-                } else if (group.startsWith(pRoot.getPath() + "/")) {
-                    group = group.substring(pRoot.getPath().length() + 1);
-                }
-                if (group.startsWith("/")) {
-                    // don't scan outside /etc/packages
-                    return packages;
-                } else if (group.length() > 0) {
-                    if (root.hasNode(group)) {
-                        root = root.getNode(group);
-                    } else {
-                        return packages;
-                    }
+                if (root.hasNode(group)) {
+                    root = root.getNode(group);
+                } else {
+                    return;
                 }
             }
             listPackages(root, packages, null, built, true);
         }
-        Collections.sort(packages);
-        return packages;
     }
 
     /**

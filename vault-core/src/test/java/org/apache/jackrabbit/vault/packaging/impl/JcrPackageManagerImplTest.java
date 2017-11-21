@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.vault.packaging.impl;
 
+import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.GuestCredentials;
@@ -31,6 +34,10 @@ import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.vault.packaging.JcrPackage;
+import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
+import org.apache.jackrabbit.vault.packaging.PackageException;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.integration.IntegrationTestBase;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -113,6 +120,14 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
     }
 
     @Test
+    public void testAlternativePackageRootCreatesOnlyOneNode() throws RepositoryException {
+        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin, "/var/packages", "/etc/packages");
+        Node packageNode = jcrPackageManager.getPackageRoot(false);
+        assertEquals("/var/packages", packageNode.getPath());
+        assertNodeMissing("/etc/packages");
+    }
+
+    @Test
     public void testGetPackageRootWithAdminPendingChanges() throws Exception {
         admin.getRootNode().addNode("testNode");
 
@@ -181,6 +196,94 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
             anonymous.logout();
         }
     }
+
+    /**
+     * test package list
+     */
+    @Test
+    public void testListPackages() throws IOException, PackageException, RepositoryException {
+        assertTrue("initially the packages set is empty", packMgr.listPackages().isEmpty());
+        packMgr.upload(getStream("../integration/testpackages/tmp.zip"), false);
+        assertEquals("package list contains 1 element", 1, packMgr.listPackages().size());
+        JcrPackage pkg = packMgr.listPackages().get(0);
+        assertEquals("contains new package", TMP_PACKAGE_ID, pkg.getDefinition().getId());
+    }
+
+    /**
+     * test package list
+     */
+    @Test
+    public void testListPackagesWithGroup() throws IOException, PackageException, RepositoryException {
+        packMgr.upload(getStream("../integration/testpackages/tmp.zip"), false);
+        packMgr.create("foo", "test-package");
+        assertEquals("package list contains 2 elements", 2, packMgr.listPackages().size());
+
+        JcrPackage pkg = packMgr.listPackages("my_packages", false).get(0);
+        assertEquals("contains new package", TMP_PACKAGE_ID, pkg.getDefinition().getId());
+
+        pkg = packMgr.listPackages("foo", false).get(0);
+        assertEquals("contains new package", "foo:test-package", pkg.getDefinition().getId().toString());
+
+        // don't report the not-built one
+        assertEquals("package list contains 2 elements", 0, packMgr.listPackages("foo", true).size());
+    }
+
+    /**
+     * test package list with multiple roots
+     */
+    @Test
+    public void testListPackagesMultiRoot() throws IOException, PackageException, RepositoryException {
+        assertTrue("initially the packages set is empty", packMgr.listPackages().isEmpty());
+        packMgr.upload(getStream("../integration/" + TEST_PACKAGE_A_10), false);
+        packMgr.upload(getStream("../integration/" + TEST_PACKAGE_B_10), false);
+        assertEquals("package list contains 2 elements", 2, packMgr.listPackages().size());
+
+        JcrPackageManager multiRootMgr = new JcrPackageManagerImpl(admin, "/var/packages" , "/etc/packages");
+        assertEquals("package list contains 2 elements", 2, multiRootMgr.listPackages().size());
+
+        // install 3rd package in /var
+        multiRootMgr.upload(getStream("../integration/" + TEST_PACKAGE_C_10), false);
+        List<JcrPackage> pkgs = multiRootMgr.listPackages();
+        assertEquals("packages contains 3 elements", 3, pkgs.size());
+        Set<PackageId> ids = new HashSet<PackageId>();
+        for (JcrPackage p: pkgs) {
+            ids.add(p.getDefinition().getId());
+        }
+
+        assertTrue("contains new packages", ids.contains(TEST_PACKAGE_A_10_ID));
+        assertTrue("contains new packages", ids.contains(TEST_PACKAGE_B_10_ID));
+        assertTrue("contains new packages", ids.contains(TEST_PACKAGE_C_10_ID));
+    }
+
+    /**
+     * test package list with multiple roots
+     */
+    @Test
+    public void testListPackagesMultiRootAndGroup() throws IOException, PackageException, RepositoryException {
+        assertTrue("initially the packages set is empty", packMgr.listPackages().isEmpty());
+        packMgr.upload(getStream("../integration/" + TEST_PACKAGE_A_10), false);
+        packMgr.upload(getStream("../integration/" + TEST_PACKAGE_B_10), false);
+        packMgr.create("foo", "test-package");
+        assertEquals("package list contains 3 elements", 3, packMgr.listPackages().size());
+
+        JcrPackageManager multiRootMgr = new JcrPackageManagerImpl(admin, "/var/packages" , "/etc/packages");
+        assertEquals("package list contains 3 elements", 3, multiRootMgr.listPackages().size());
+
+        // install 3rd package in /var
+        multiRootMgr.upload(getStream("../integration/" + TEST_PACKAGE_C_10), false);
+        multiRootMgr.create("foo", "var-test-package");
+
+        List<JcrPackage> pkgs = multiRootMgr.listPackages("foo", false);
+        assertEquals("packages contains 2 elements", 2, pkgs.size());
+        Set<String> ids = new HashSet<String>();
+        for (JcrPackage p: pkgs) {
+            ids.add(p.getDefinition().getId().toString());
+        }
+
+        assertTrue("contains new packages", ids.contains("foo:test-package"));
+        assertTrue("contains new packages", ids.contains("foo:var-test-package"));
+    }
+
 
     private String getNextPath(String path) throws RepositoryException {
         Node currentNode = admin.getNode(path);
