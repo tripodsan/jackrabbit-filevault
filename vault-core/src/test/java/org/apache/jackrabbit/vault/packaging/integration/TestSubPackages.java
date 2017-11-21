@@ -395,8 +395,8 @@ public class TestSubPackages extends IntegrationTestBase {
         assertNodeExists(getInstallationPath(PACKAGE_ID_SUB_A));
         assertNodeExists(getInstallationPath(PACKAGE_ID_SUB_B));
 
-        assertEquals("Package Id", ids[0].toString(), "my_packages:sub_a");
-        assertEquals("Package Id", ids[1].toString(), "my_packages:sub_b");
+        assertEquals("Package Id", ids[0], PACKAGE_ID_SUB_A);
+        assertEquals("Package Id", ids[1], PACKAGE_ID_SUB_B);
     }
 
     /**
@@ -416,8 +416,8 @@ public class TestSubPackages extends IntegrationTestBase {
         assertTrue("Package is installed", subPackage.isInstalled());
 
         ids = pack.extractSubpackages(opts);
-        assertEquals("Package Id", ids[0].toString(), "my_packages:sub_a");
-        assertEquals("Package Id", ids[1].toString(), "my_packages:sub_b");
+        assertEquals("Package Id", ids[0], PACKAGE_ID_SUB_A);
+        assertEquals("Package Id", ids[1], PACKAGE_ID_SUB_B);
 
         subPackage = packMgr.open(pid);
         subPackage.install(opts);
