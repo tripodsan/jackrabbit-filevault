@@ -46,7 +46,8 @@ public class PackagingService {
      * @return the package manager
      */
     public static JcrPackageManager getPackageManager(Session session) {
-        return new JcrPackageManagerImpl(session);
+        // todo: should somehow pass the package roots
+        return new JcrPackageManagerImpl(session, new String[0]);
     }
 
     /**

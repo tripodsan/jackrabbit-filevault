@@ -64,7 +64,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
         Session session = mock(Session.class);
         when(session.nodeExists(anyString())).thenReturn(false);
         when(session.getWorkspace()).thenReturn(admin.getWorkspace());
-        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(session);
+        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(session, new String[0]);
         String path = "/etc/packages";
         try {
             jcrPackageManager.mkdir(path, true);
@@ -80,7 +80,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
     @Ignore("unstable results in maven")
     public void testMkDirWithAnonymousSession() throws Exception {
         Session session = repository.login(new GuestCredentials());
-        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(session);
+        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(session, new String[0]);
         jcrPackageManager.mkdir("/something/that/is/not/going/to/be/found/anywhere/in/this/repository/even/if/searching/in/very/long/paths/like/this", false);
         jcrPackageManager.mkdir("/something/that/is/not/going/to/be/found/anywhere/in/this/repository/even/if/searching/in/very/long/paths/like/this", false);
         jcrPackageManager.mkdir("/something/that/is/not/going/to/be/found/anywhere/in/this/repository/even/if/searching/in/very/long/paths/like/this", false);
@@ -88,7 +88,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
 
     @Test
     public void mkdDirStressTest() throws Exception {
-        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin);
+        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin, new String[0]);
         String path = admin.getRootNode().getPath();
         while (path != null) {
             jcrPackageManager.mkdir(path, true);
@@ -99,14 +99,14 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
 
     @Test
     public void testGetPackageRootNoCreate() throws Exception {
-        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin);
+        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin, new String[0]);
 
         assertNull(jcrPackageManager.getPackageRoot(true));
     }
 
     @Test
     public void testGetPackageRootWithCreate() throws Exception {
-        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin);
+        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin, new String[0]);
 
         Node packageNode = jcrPackageManager.getPackageRoot(false);
         assertEquals("/etc/packages", packageNode.getPath());
@@ -114,14 +114,14 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
 
     @Test
     public void testGetPackageRootTwice() throws Exception {
-        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin);
+        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin, new String[0]);
         Node packageNode = jcrPackageManager.getPackageRoot(false);
         assertSame(packageNode, jcrPackageManager.getPackageRoot());
     }
 
     @Test
     public void testAlternativePackageRootCreatesOnlyOneNode() throws RepositoryException {
-        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin, "/var/packages", "/etc/packages");
+        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin, new String[]{"/var/packages", "/etc/packages"});
         Node packageNode = jcrPackageManager.getPackageRoot(false);
         assertEquals("/var/packages", packageNode.getPath());
         assertNodeMissing("/etc/packages");
@@ -131,7 +131,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
     public void testGetPackageRootWithAdminPendingChanges() throws Exception {
         admin.getRootNode().addNode("testNode");
 
-        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin);
+        JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(admin, new String[0]);
         try {
             jcrPackageManager.getPackageRoot(false);
             fail("transient modifications must fail the package root creation.");
@@ -142,7 +142,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
 
     @Test
     public void testGetPackageRootNoRootAccess() throws Exception {
-        Node packageRoot = new JcrPackageManagerImpl(admin).getPackageRoot();
+        Node packageRoot = new JcrPackageManagerImpl(admin, new String[0]).getPackageRoot();
 
         // TODO: maybe rather change the setup of the test-base to not assume that everyone has full read-access
         AccessControlManager acMgr = admin.getAccessControlManager();
@@ -160,7 +160,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
             assertFalse(anonymous.nodeExists("/etc"));
             assertTrue(anonymous.nodeExists("/etc/packages"));
 
-            JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(anonymous);
+            JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(anonymous, new String[0]);
             jcrPackageManager.getPackageRoot(false);
         } finally {
             anonymous.logout();
@@ -183,7 +183,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
 
         Session anonymous = repository.login(new GuestCredentials());
         try {
-            JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(anonymous);
+            JcrPackageManagerImpl jcrPackageManager = new JcrPackageManagerImpl(anonymous, new String[0]);
             assertNull(jcrPackageManager.getPackageRoot(true));
 
             try {
@@ -238,7 +238,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
         packMgr.upload(getStream("../integration/" + TEST_PACKAGE_B_10), false);
         assertEquals("package list contains 2 elements", 2, packMgr.listPackages().size());
 
-        JcrPackageManager multiRootMgr = new JcrPackageManagerImpl(admin, "/var/packages" , "/etc/packages");
+        JcrPackageManager multiRootMgr = new JcrPackageManagerImpl(admin, new String[]{"/var/packages" , "/etc/packages"});
         assertEquals("package list contains 2 elements", 2, multiRootMgr.listPackages().size());
 
         // install 3rd package in /var
@@ -266,7 +266,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
         packMgr.create("foo", "test-package");
         assertEquals("package list contains 3 elements", 3, packMgr.listPackages().size());
 
-        JcrPackageManager multiRootMgr = new JcrPackageManagerImpl(admin, "/var/packages" , "/etc/packages");
+        JcrPackageManager multiRootMgr = new JcrPackageManagerImpl(admin, new String[]{"/var/packages" , "/etc/packages"});
         assertEquals("package list contains 3 elements", 3, multiRootMgr.listPackages().size());
 
         // install 3rd package in /var

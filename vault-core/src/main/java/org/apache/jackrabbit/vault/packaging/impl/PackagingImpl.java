@@ -26,8 +26,12 @@ import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageManager;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcher;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 /**
  * {@code PackagingImpl}...
@@ -37,6 +41,7 @@ import org.osgi.service.component.annotations.Reference;
         immediate = true,
         property = {"service.vendor=The Apache Software Foundation"}
 )
+@Designate(ocd = PackagingImpl.Config.class)
 public class PackagingImpl implements Packaging {
 
     @Reference
@@ -47,8 +52,27 @@ public class PackagingImpl implements Packaging {
      */
     private final PackageManagerImpl pkgManager = new PackageManagerImpl();
 
+    private String[] packageRoots = new String[0];
+
     public PackagingImpl() {
         pkgManager.setDispatcher(eventDispatcher);
+    }
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Packaging Service"
+    )
+    @interface Config {
+
+        /**
+         * Defines the package roots of the package manager
+         */
+        @AttributeDefinition
+        String[] packageRoots() default {"/var/packages", "/etc/packages"};
+    }
+
+    @Activate
+    private void activate(Config config) {
+        this.packageRoots = config.packageRoots();
     }
 
     /**
@@ -62,7 +86,7 @@ public class PackagingImpl implements Packaging {
      * {@inheritDoc}
      */
     public JcrPackageManager getPackageManager(Session session) {
-        JcrPackageManagerImpl mgr = new JcrPackageManagerImpl(session);
+        JcrPackageManagerImpl mgr = new JcrPackageManagerImpl(session, packageRoots);
         mgr.setDispatcher(eventDispatcher);
         return mgr;
     }

@@ -621,7 +621,7 @@ public class TestPackageInstall extends IntegrationTestBase {
         admin.save();
 
         Session session = repository.login(new SimpleCredentials(userId, userPwd.toCharArray()));
-        JcrPackageManagerImpl userPackMgr = new JcrPackageManagerImpl(session);
+        JcrPackageManagerImpl userPackMgr = new JcrPackageManagerImpl(session, new String[0]);
         pack = userPackMgr.open(id);
         ImportOptions opts = getDefaultOptions();
         pack.install(opts);
@@ -662,7 +662,7 @@ public class TestPackageInstall extends IntegrationTestBase {
         admin.save();
 
         Session session = repository.login(new SimpleCredentials(userId, userPwd.toCharArray()));
-        JcrPackageManagerImpl userPackMgr = new JcrPackageManagerImpl(session);
+        JcrPackageManagerImpl userPackMgr = new JcrPackageManagerImpl(session, new String[0]);
         pack = userPackMgr.open(id);
         ImportOptions opts = getDefaultOptions();
         pack.extract(opts);

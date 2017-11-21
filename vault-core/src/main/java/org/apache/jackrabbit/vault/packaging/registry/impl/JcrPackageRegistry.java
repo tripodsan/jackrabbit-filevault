@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -90,9 +89,9 @@ public class JcrPackageRegistry implements PackageRegistry {
     /**
      * legacy root path for packages
      */
-    private static final String PACKAGE_ROOT_PATH = "/etc/packages";
+    public static final String LEGACY_PACKAGE_ROOT_PATH = "/etc/packages";
 
-    public static final String PACKAGE_ROOT_PATH_PREFIX = "/etc/packages/";
+    public static final String LEGACY_PACKAGE_ROOT_PATH_PREFIX = "/etc/packages/";
 
     /**
      * suggested folder types
@@ -131,7 +130,7 @@ public class JcrPackageRegistry implements PackageRegistry {
     public JcrPackageRegistry(@Nonnull Session session, @Nullable String ... roots) {
         this.session = session;
         if (roots == null || roots.length == 0) {
-            packRootPaths = new String[]{PACKAGE_ROOT_PATH};
+            packRootPaths = new String[]{LEGACY_PACKAGE_ROOT_PATH};
         } else {
             packRootPaths = roots;
         }
@@ -186,6 +185,15 @@ public class JcrPackageRegistry implements PackageRegistry {
         } catch (Throwable e) {
             log.warn("Error while registering nodetypes. Package installation might not work correctly.", e);
         }
+    }
+
+    /**
+     * Returns the package root paths this registry is created with.
+     * @return the package root paths.
+     */
+    @Nonnull
+    public String[] getPackRootPaths() {
+        return packRootPaths;
     }
 
     /**

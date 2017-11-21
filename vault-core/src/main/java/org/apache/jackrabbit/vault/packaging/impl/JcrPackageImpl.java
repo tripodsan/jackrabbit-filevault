@@ -79,7 +79,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl.ARCHIVE_PACKAGE_ROOT_PATH;
-import static org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl.LEGACY_PACKAGE_ROOT_PATH;
+import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.LEGACY_PACKAGE_ROOT_PATH;
 
 /**
  * Implements a JcrPackage
@@ -415,8 +415,22 @@ public class JcrPackageImpl implements JcrPackage {
                     }
                 }
                 if (p.isValid()) {
-                    // ensure that sub package is marked as not-installed. it might contain wrong data in vlt:definition (JCRVLT-114)
                     JcrPackageDefinitionImpl def = (JcrPackageDefinitionImpl) p.getDefinition();
+                    PackageId pId = def.getId();
+
+                    // check if package is at the correct location
+                    String expectedPath = mgr.getInstallationPath(pId) + ".zip";
+                    if (!expectedPath.equals(path)) {
+                        log.info("Moving sub-package in place: {} -> {}", path, expectedPath);
+                        s.getWorkspace().move(path, expectedPath);
+                        path = expectedPath;
+                        // re-acquire the package and definition
+                        p.close();
+                        p = new JcrPackageImpl(mgr, s.getNode(path));
+                        def = (JcrPackageDefinitionImpl) p.getDefinition();
+                    }
+
+                    // ensure that sub package is marked as not-installed. it might contain wrong data in vlt:definition (JCRVLT-114)
                     def.clearLastUnpacked(false);
 
                     // add dependency to the parent package if required
@@ -426,12 +440,11 @@ public class JcrPackageImpl implements JcrPackage {
                         def.setDependencies(newDeps, false);
                     }
 
-                    PackageId pId = def.getId();
                     String pName = pId.getName();
                     Version pVersion = pId.getVersion();
 
                     // get the list of packages available in the same group
-                    JcrPackageManager pkgMgr = new JcrPackageManagerImpl(s);                    
+                    JcrPackageManager pkgMgr = new JcrPackageManagerImpl(s, mgr.getPackRootPaths()); // todo: use registry instead ?
                     List<JcrPackage> listPackages = pkgMgr.listPackages(pId.getGroup(), true);
 
                     // keep some status variable if a more recent is found in the next loop
@@ -475,7 +488,7 @@ public class JcrPackageImpl implements JcrPackage {
                     throw e;
                 }
             }
-            List<String> subIds = new LinkedList<String>();
+            List<PackageId> subIds = new LinkedList<PackageId>();
             SubPackageHandling sb = pack.getSubPackageHandling();
             for (JcrPackageImpl p: subPacks) {
                 boolean skip = false;
@@ -501,18 +514,21 @@ public class JcrPackageImpl implements JcrPackage {
                 if (!skip) {
                     if (createSnapshot && option == SubPackageHandling.Option.INSTALL) {
                         p.extract(options, true, true);
-                        subIds.add(id.toString());
+                        subIds.add(id);
                     } else {
                         p.extract(options, false, true);
                     }
                 }
                 p.close();
             }
-            // register sub packages in snapshot for uninstall
+            // register sub packages in snapshot and on package for uninstall
             if (snap != null) {
-                snap.getDefinition().getNode().setProperty(JcrPackageDefinition.PN_SUB_PACKAGES, subIds.toArray(new String[subIds.size()]));
-                s.save();
+                ((JcrPackageDefinitionImpl) snap.getDefinition()).setSubPackages(subIds);
             }
+            if (def != null) {
+                def.setSubPackages(subIds);
+            }
+            s.save();
         }
 
         if (createSnapshot) {
@@ -840,7 +856,7 @@ public class JcrPackageImpl implements JcrPackage {
             }
         }
         log.debug("Creating snapshot for {}.", id);
-        JcrPackageManagerImpl packMgr = new JcrPackageManagerImpl(node.getSession());
+        JcrPackageManagerImpl packMgr = new JcrPackageManagerImpl(node.getSession(), mgr.getPackRootPaths());
         String path = mgr.getInstallationPath(id);
         String parentPath = Text.getRelativeParent(path, 1);
         Node folder = packMgr.mkdir(parentPath, true);
@@ -937,6 +953,10 @@ public class JcrPackageImpl implements JcrPackage {
         }
 
         JcrPackage snap = getSnapshot();
+        List<PackageId> subPackages = snap == null
+                ? def.getSubPackages()
+                : ((JcrPackageDefinitionImpl) snap.getDefinition()).getSubPackages();
+
         if (snap == null) {
             if (opts.isStrict()) {
                 throw new PackageException("Unable to uninstall package. No snapshot present.");
@@ -949,29 +969,17 @@ public class JcrPackageImpl implements JcrPackage {
         } else {
             Session s = getNode().getSession();
             // check for recursive uninstall
-            if (!opts.isNonRecursive()) {
-                Node defNode = snap.getDefNode();
-                LinkedList<PackageId> subPackages = new LinkedList<PackageId>();
-                if (defNode.hasProperty(JcrPackageDefinition.PN_SUB_PACKAGES)) {
-                    Value[] subIds = defNode.getProperty(JcrPackageDefinition.PN_SUB_PACKAGES).getValues();
-                    for (Value v : subIds) {
-                        // reverse installation order
-                        subPackages.addLast(PackageId.fromString(v.getString()));
-                    }
-                }
-                if (subPackages.size() > 0) {
-                    JcrPackageManagerImpl packMgr = new JcrPackageManagerImpl(s);
-                    for (PackageId id : subPackages) {
-                        JcrPackage pack = packMgr.open(id);
-                        if (pack != null) {
-                            if (pack.getSnapshot() == null) {
-                                log.warn("Unable to uninstall sub package {}. Snapshot missing.", id);
-                            } else {
-                                pack.uninstall(opts);
-                            }
+            if (!opts.isNonRecursive() && subPackages.size() > 0) {
+                JcrPackageManagerImpl packMgr = new JcrPackageManagerImpl(s, mgr.getPackRootPaths());
+                for (PackageId id : subPackages) {
+                    JcrPackage pack = packMgr.open(id);
+                    if (pack != null) {
+                        if (pack.getSnapshot() == null) {
+                            log.warn("Unable to uninstall sub package {}. Snapshot missing.", id);
+                        } else {
+                            pack.uninstall(opts);
                         }
                     }
-
                 }
             }
 
@@ -983,6 +991,15 @@ public class JcrPackageImpl implements JcrPackage {
             snap.extract(opts);
             snap.getNode().remove();
             s.save();
+        }
+
+        // uninstallation always removes the sub-packages, unless non-recursive and snapshot missing
+        if (!opts.isNonRecursive() || snap != null) {
+            for (PackageId id : subPackages) {
+                if (mgr.contains(id)) {
+                    mgr.remove(id);
+                }
+            }
         }
 
         // revert installed flags on this package

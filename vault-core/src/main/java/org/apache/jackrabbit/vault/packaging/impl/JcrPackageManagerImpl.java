@@ -72,23 +72,9 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     public final static String ARCHIVE_PACKAGE_ROOT_PATH = "/jcr_root/etc/packages";
 
     /**
-     * root path for packages. used to detect subpackages.
-     */
-    final static String LEGACY_PACKAGE_ROOT_PATH = "/etc/packages";
-
-    /**
      * internal package persistence
      */
     private final JcrPackageRegistry registry;
-
-    /**
-     * Creates a new package manager using the given session.
-     *
-     * @param session repository session
-     */
-    public JcrPackageManagerImpl(Session session) {
-        this(session, LEGACY_PACKAGE_ROOT_PATH);
-    }
 
     /**
      * Creates a new package manager using the given session. This method allows to specify one more or package
@@ -100,7 +86,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
      *
      * @see JcrPackageRegistry(Session, String ...)
      */
-    public JcrPackageManagerImpl(Session session, String ... roots) {
+    public JcrPackageManagerImpl(Session session, String[] roots) {
         this(new JcrPackageRegistry(session, roots));
     }
 
@@ -489,7 +475,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     @Override
     public List<JcrPackage> listPackages(WorkspaceFilter filter) throws RepositoryException {
         List<JcrPackage> packages = new LinkedList<JcrPackage>();
-        for (Node root: registry.getPackageRoots(false)) {
+        for (Node root: registry.getPackageRoots(true)) {
             listPackages(root, packages, filter, false, false);
         }
         Collections.sort(packages);
@@ -502,7 +488,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     @Override
     public List<JcrPackage> listPackages(String group, boolean built) throws RepositoryException {
         List<JcrPackage> packages = new LinkedList<JcrPackage>();
-        for (Node root: registry.getPackageRoots(false)) {
+        for (Node root: registry.getPackageRoots(true)) {
             listPackages(root, packages, group, built);
         }
         Collections.sort(packages);
