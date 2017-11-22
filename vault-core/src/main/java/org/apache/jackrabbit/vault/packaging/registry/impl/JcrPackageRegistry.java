@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -37,9 +38,11 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.NodeType;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.MemoryArchive;
 import org.apache.jackrabbit.vault.fs.spi.CNDReader;
@@ -87,11 +90,14 @@ public class JcrPackageRegistry implements PackageRegistry {
     private static final String DEFAULT_NODETYPES = "nodetypes.cnd";
 
     /**
-     * legacy root path for packages
+     * default root path for packages
      */
-    public static final String LEGACY_PACKAGE_ROOT_PATH = "/etc/packages";
+    public static final String DEFAULT_PACKAGE_ROOT_PATH = "/etc/packages";
 
-    public static final String LEGACY_PACKAGE_ROOT_PATH_PREFIX = "/etc/packages/";
+    /**
+     * default root path prefix for packages
+     */
+    public static final String DEFAULT_PACKAGE_ROOT_PATH_PREFIX = DEFAULT_PACKAGE_ROOT_PATH + "/";
 
     /**
      * suggested folder types
@@ -109,7 +115,7 @@ public class JcrPackageRegistry implements PackageRegistry {
     /**
      * package root nodes
      */
-    private final List<Node> packRoots;
+    private final Node[] packRoots;
 
     /**
      * the package root paths.
@@ -130,11 +136,11 @@ public class JcrPackageRegistry implements PackageRegistry {
     public JcrPackageRegistry(@Nonnull Session session, @Nullable String ... roots) {
         this.session = session;
         if (roots == null || roots.length == 0) {
-            packRootPaths = new String[]{LEGACY_PACKAGE_ROOT_PATH};
+            packRootPaths = new String[]{DEFAULT_PACKAGE_ROOT_PATH};
         } else {
             packRootPaths = roots;
         }
-        packRoots = new ArrayList<Node>(packRootPaths.length);
+        packRoots = new Node[packRootPaths.length];
         primaryPackRootPathPrefix = packRootPaths[0] + "/";
         initNodeTypes();
     }
@@ -197,43 +203,41 @@ public class JcrPackageRegistry implements PackageRegistry {
     }
 
     /**
-     * Returns the list of package roots, where as the first id the primary one. If the primary root does not exist,
-     * it will be created.
+     * Returns the primary package root. If the root does not exist yet and {@code autoCreate} is {@code true} it will
+     * be created.
      *
-     * @param noCreate if {@code false} the roots are not created if missing.
+     * @param autoCreate if {@code true} the roots are created if missing.
+     * @return the the package root or {@code null}
+     * @throws RepositoryException if an error occurs.
+     */
+    @Nullable
+    public Node getPrimaryPackageRoot(boolean autoCreate) throws RepositoryException {
+        if (packRoots[0] == null && autoCreate) {
+            packRoots[0] = JcrUtils.getOrCreateByPath(packRootPaths[0], NodeType.NT_FOLDER, NodeType.NT_FOLDER, session, true);
+        }
+        return packRoots[0];
+    }
+
+    /**
+     * Returns the list of package roots that currently exist in no particular order.
+     *
      * @return the list of package roots.
      * @throws RepositoryException if an error occurs.
      */
     @Nonnull
-    public List<Node> getPackageRoots(boolean noCreate) throws RepositoryException {
-        if (packRoots.isEmpty()) {
-            for (String path : packRootPaths) {
-                if (session.nodeExists(path)) {
-                    packRoots.add(session.getNode(path));
-                } else if (!noCreate && packRoots.isEmpty()) {
-                    // assert that the session has no pending changes
-                    if (session.hasPendingChanges()) {
-                        throw new RepositoryException("Unwilling to create package root folder while session has transient changes.");
-                    }
-                    // try to create the missing intermediate nodes
-                    String etcPath = Text.getRelativeParent(path, 1);
-                    Node etc;
-                    if (session.nodeExists(etcPath)) {
-                        etc = session.getNode(etcPath);
-                    } else {
-                        etc = session.getRootNode().addNode(Text.getName(etcPath), JcrConstants.NT_FOLDER);
-                    }
-                    Node pack = etc.addNode(Text.getName(path), JcrConstants.NT_FOLDER);
-                    try {
-                        session.save();
-                    } finally {
-                        session.refresh(false);
-                    }
-                    packRoots.add(pack);
+    public List<Node> getPackageRoots() throws RepositoryException {
+        List<Node> roots = new ArrayList<>(packRootPaths.length);
+        for (int i=0; i<packRootPaths.length; i++) {
+            if (packRoots[i] == null) {
+                if (session.nodeExists(packRootPaths[i])) {
+                    packRoots[i] = session.getNode(packRootPaths[i]);
                 }
             }
+            if (packRoots[i] != null) {
+                roots.add(packRoots[i]);
+            }
         }
-        return packRoots;
+        return roots;
     }
 
     @Nullable
@@ -294,7 +298,7 @@ public class JcrPackageRegistry implements PackageRegistry {
     public PackageId resolve(Dependency dependency, boolean onlyInstalled) throws IOException {
         try {
             PackageId bestId = null;
-            for (Node root: getPackageRoots(false)) {
+            for (Node root: getPackageRoots()) {
                 if (!root.hasNode(dependency.getGroup())) {
                     continue;
                 }
@@ -759,7 +763,7 @@ public class JcrPackageRegistry implements PackageRegistry {
     public Set<PackageId> packages() throws IOException {
         try {
             Set<PackageId> packages = new TreeSet<PackageId>();
-            for (Node pRoot: getPackageRoots(true)) {
+            for (Node pRoot: getPackageRoots()) {
                 listPackages(pRoot, packages);
             }
             return packages;

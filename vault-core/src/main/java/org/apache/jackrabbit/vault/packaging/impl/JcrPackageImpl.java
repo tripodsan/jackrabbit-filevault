@@ -38,7 +38,6 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.Value;
 import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.commons.io.FileUtils;
@@ -79,7 +78,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl.ARCHIVE_PACKAGE_ROOT_PATH;
-import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.LEGACY_PACKAGE_ROOT_PATH;
+import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.DEFAULT_PACKAGE_ROOT_PATH;
 
 /**
  * Implements a JcrPackage
@@ -573,7 +572,7 @@ public class JcrPackageImpl implements JcrPackage {
         boolean hasOwnContent = false;
         for (PathFilterSet root: a.getMetaInf().getFilter().getFilterSets()) {
             // todo: find better way to detect subpackages
-            if (!Text.isDescendantOrEqual(LEGACY_PACKAGE_ROOT_PATH, root.getRoot())) {
+            if (!Text.isDescendantOrEqual(DEFAULT_PACKAGE_ROOT_PATH, root.getRoot())) {
                 log.debug("Package {}: contains content outside /etc/packages. Sub packages will have a dependency to it", pId);
                 hasOwnContent = true;
                 break;

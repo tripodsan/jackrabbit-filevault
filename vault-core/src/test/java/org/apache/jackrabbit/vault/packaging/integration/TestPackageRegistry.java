@@ -198,7 +198,7 @@ public class TestPackageRegistry extends IntegrationTestBase {
      * test packages set with multiple roots
      */
     @Test
-    public void testPackagesMultiRoot() throws IOException, PackageException {
+    public void testPackagesMultiRoot() throws IOException, PackageException, RepositoryException {
         assertTrue("initially the packages set is empty", registry.packages().isEmpty());
         registry.register(getStream(TEST_PACKAGE_A_10), false);
         registry.register(getStream(TEST_PACKAGE_B_10), false);
@@ -333,29 +333,34 @@ public class TestPackageRegistry extends IntegrationTestBase {
 
     @Test
     public void testPackageRootNoCreate() throws RepositoryException {
-        assertTrue("no node, no root", registry.getPackageRoots(true). isEmpty());
+        assertTrue("no nodes, no roots", registry.getPackageRoots().isEmpty());
     }
 
     @Test
-    public void testPackageRootCreatesLegacy() throws RepositoryException {
-        List<Node> roots = registry.getPackageRoots(false);
-        assertEquals("Has 1 package root", 1, roots.size());
-        assertEquals("root has legacy path", "/etc/packages", roots.get(0).getPath());
+    public void testPrimaryPackageRootNoCreate() throws RepositoryException {
+        assertNull("no node, no root", registry.getPrimaryPackageRoot(false));
+    }
+
+    @Test
+    public void testPrimaryPackageRootCreatesLegacy() throws RepositoryException {
+        Node root = registry.getPrimaryPackageRoot(true);
+        assertEquals("root has legacy path", "/etc/packages", root.getPath());
     }
 
     @Test
     public void testAlternativePackageRootCreatesOnlyOneNode() throws RepositoryException {
         JcrPackageRegistry reg = new JcrPackageRegistry(admin, "/var/packages", "/etc/packages");
-        List<Node> roots = reg.getPackageRoots(false);
+        List<Node> roots = reg.getPackageRoots();
         assertEquals("Has 1 package root", 1, roots.size());
         assertEquals("root has correct path", "/var/packages", roots.get(0).getPath());
     }
 
     @Test
     public void testAlternativePackageRootReportsBothNodes() throws RepositoryException {
-        registry.getPackageRoots(false); // create legacy path
+        registry.getPrimaryPackageRoot(true); // create legacy path
         JcrPackageRegistry reg = new JcrPackageRegistry(admin, "/var/packages", "/etc/packages");
-        List<Node> roots = reg.getPackageRoots(false);
+        reg.getPrimaryPackageRoot(true); // create new path
+        List<Node> roots = reg.getPackageRoots();
         assertEquals("Has 2 package root", 2, roots.size());
         assertEquals("primary root has correct path", "/var/packages", roots.get(0).getPath());
         assertEquals("secondary root has legacy path", "/etc/packages", roots.get(1).getPath());

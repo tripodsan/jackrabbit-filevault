@@ -449,7 +449,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
      */
     @Override
     public Node getPackageRoot() throws RepositoryException {
-        return registry.getPackageRoots(false).get(0);
+        return registry.getPrimaryPackageRoot(true);
     }
 
     /**
@@ -457,8 +457,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
      */
     @Override
     public Node getPackageRoot(boolean noCreate) throws RepositoryException {
-        List<Node> roots = registry.getPackageRoots(noCreate);
-        return roots.size() > 0 ? roots.get(0) : null;
+        return registry.getPrimaryPackageRoot(!noCreate);
     }
 
     /**
@@ -475,7 +474,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     @Override
     public List<JcrPackage> listPackages(WorkspaceFilter filter) throws RepositoryException {
         List<JcrPackage> packages = new LinkedList<JcrPackage>();
-        for (Node root: registry.getPackageRoots(true)) {
+        for (Node root: registry.getPackageRoots()) {
             listPackages(root, packages, filter, false, false);
         }
         Collections.sort(packages);
@@ -488,7 +487,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     @Override
     public List<JcrPackage> listPackages(String group, boolean built) throws RepositoryException {
         List<JcrPackage> packages = new LinkedList<JcrPackage>();
-        for (Node root: registry.getPackageRoots(true)) {
+        for (Node root: registry.getPackageRoots()) {
             listPackages(root, packages, group, built);
         }
         Collections.sort(packages);
