@@ -40,6 +40,7 @@ import javax.jcr.Session;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
+import org.apache.jackrabbit.vault.fs.config.DefaultMetaInf;
 import org.apache.jackrabbit.vault.fs.impl.ArchiveWrapper;
 import org.apache.jackrabbit.vault.fs.impl.SubPackageFilterArchive;
 import org.apache.jackrabbit.vault.fs.io.Archive;
@@ -60,6 +61,8 @@ import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcher;
 import org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry;
 import org.apache.jackrabbit.vault.packaging.registry.impl.JcrRegisteredPackage;
 import org.apache.jackrabbit.vault.util.JcrConstants;
+
+import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.DEFAULT_PACKAGE_ROOT_PATH;
 
 /**
  * Extends the {@code PackageManager} by JCR specific methods
@@ -330,10 +333,24 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
         validateSubPackages(def);
         def.sealForAssembly(now, true);
 
+        DefaultMetaInf inf = (DefaultMetaInf) def.getMetaInf();
+        CompositeExportProcessor processor = new CompositeExportProcessor();
+
+        // tweak filter for primary root, in case it contains sub-packages
+        if (!registry.getPackRootPaths()[0].equals(DEFAULT_PACKAGE_ROOT_PATH)) {
+            SubPackageExportProcessor sp = new SubPackageExportProcessor(this, packNode.getSession());
+            WorkspaceFilter newFilter = sp.prepare(inf.getFilter());
+            if (newFilter != null) {
+                inf.setFilter(newFilter);
+                processor.addProcessor(sp);
+            }
+        }
+
         ExportOptions opts = new ExportOptions();
-        opts.setMetaInf(def.getMetaInf());
+        opts.setMetaInf(inf);
         opts.setListener(listener);
-        opts.setPostProcessor(def.getInjectProcessor());
+        processor.addProcessor(def.getInjectProcessor());
+        opts.setPostProcessor(processor);
 
         VaultPackage pack = assemble(packNode.getSession(), opts, (File) null);
         PackageId id = pack.getId();

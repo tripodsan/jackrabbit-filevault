@@ -18,21 +18,24 @@
 package org.apache.jackrabbit.vault.packaging.integration;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.vault.fs.io.ImportOptions;
 import org.apache.jackrabbit.vault.packaging.Dependency;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
-import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcherImpl;
-import org.apache.jackrabbit.vault.packaging.impl.ActivityLog;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl;
+import org.apache.jackrabbit.vault.util.DefaultProgressListener;
+import org.apache.tika.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -607,4 +610,77 @@ public class TestSubPackages extends IntegrationTestBase {
         assertEquals("has dependency to parent package", expected, p2.getDefinition().getDependencies()[0].toString());
     }
 
+    /**
+     * Test if installing and re-creating a package with sub-packages on an alternative path results in the same package again.
+     */
+    @Test
+    public void testRoundTrip() throws IOException, RepositoryException, PackageException {
+        JcrPackage pack = packMgr.upload(getStream("testpackages/subtest.zip"), false);
+        assertNotNull(pack);
+
+        // install
+        ImportOptions opts = getDefaultOptions();
+        opts.setNonRecursive(true);
+        pack.install(opts);
+
+        // create new package
+        JcrPackage pkg = packMgr.open(PACKAGE_ID_SUB_TEST);
+        packMgr.assemble(pkg, new DefaultProgressListener());
+
+        ZipInputStream in = new ZipInputStream(pkg.getData().getBinary().getStream());
+        ZipEntry e;
+        List<String> entries = new ArrayList<>();
+        String filter = "";
+        while ((e = in.getNextEntry()) != null) {
+            entries.add(e.getName());
+            if ("META-INF/vault/filter.xml".equals(e.getName())) {
+                filter = IOUtils.toString(in, "utf-8");
+            }
+        }
+        in.close();
+        Collections.sort(entries);
+        StringBuffer result = new StringBuffer();
+        for (String name: entries) {
+            // exclude some of the entries that depend on the repository setup
+            if ("jcr_root/etc/.content.xml".equals(name)
+                    || "jcr_root/etc/packages/my_packages/.content.xml".equals(name)
+                    || "jcr_root/etc/packages/.content.xml".equals(name)) {
+                continue;
+            }
+            result.append(name).append("\n");
+        }
+        assertEquals("Filter must be correct",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<workspaceFilter version=\"1.0\">\n" +
+                "    <filter root=\"/etc/packages/my_packages/sub_a.zip\"/>\n" +
+                "    <filter root=\"/etc/packages/my_packages/sub_b.zip\"/>\n" +
+                "</workspaceFilter>\n", filter);
+
+        assertEquals("Package must contain proper entries.",
+                "META-INF/\n" +
+                "META-INF/MANIFEST.MF\n" +
+                "META-INF/vault/\n" +
+                "META-INF/vault/config.xml\n" +
+                "META-INF/vault/definition/\n" +
+                "META-INF/vault/definition/.content.xml\n" +
+                "META-INF/vault/filter.xml\n" +
+                "META-INF/vault/nodetypes.cnd\n" +
+                "META-INF/vault/properties.xml\n" +
+                "jcr_root/.content.xml\n" +
+                "jcr_root/etc/\n" +
+                "jcr_root/etc/packages/\n" +
+                "jcr_root/etc/packages/my_packages/\n" +
+                "jcr_root/etc/packages/my_packages/sub_a.zip\n" +
+                "jcr_root/etc/packages/my_packages/sub_a.zip.dir/\n" +
+                "jcr_root/etc/packages/my_packages/sub_a.zip.dir/.content.xml\n" +
+                "jcr_root/etc/packages/my_packages/sub_a.zip.dir/_jcr_content/\n" +
+                "jcr_root/etc/packages/my_packages/sub_a.zip.dir/_jcr_content/_vlt_definition/\n" +
+                "jcr_root/etc/packages/my_packages/sub_a.zip.dir/_jcr_content/_vlt_definition/.content.xml\n" +
+                "jcr_root/etc/packages/my_packages/sub_b.zip\n" +
+                "jcr_root/etc/packages/my_packages/sub_b.zip.dir/\n" +
+                "jcr_root/etc/packages/my_packages/sub_b.zip.dir/.content.xml\n" +
+                "jcr_root/etc/packages/my_packages/sub_b.zip.dir/_jcr_content/\n" +
+                "jcr_root/etc/packages/my_packages/sub_b.zip.dir/_jcr_content/_vlt_definition/\n" +
+                "jcr_root/etc/packages/my_packages/sub_b.zip.dir/_jcr_content/_vlt_definition/.content.xml\n", result.toString());
+    }
 }
