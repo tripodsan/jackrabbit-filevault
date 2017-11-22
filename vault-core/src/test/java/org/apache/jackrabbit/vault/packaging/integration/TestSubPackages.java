@@ -610,6 +610,22 @@ public class TestSubPackages extends IntegrationTestBase {
         assertEquals("has dependency to parent package", expected, p2.getDefinition().getDependencies()[0].toString());
     }
 
+    @Test
+    public void testInstallingSubPackagesTwice() throws IOException, RepositoryException, PackageException {
+        JcrPackage pack = packMgr.upload(getStream("testpackages/subtest.zip"), true);
+        assertNotNull(pack);
+
+        // install
+        ImportOptions opts = getDefaultOptions();
+        opts.setNonRecursive(true);
+        pack.install(opts);
+
+        // install
+        opts = getDefaultOptions();
+        opts.setNonRecursive(true);
+        pack.install(opts);
+    }
+
     /**
      * Test if installing and re-creating a package with sub-packages on an alternative path results in the same package again.
      */

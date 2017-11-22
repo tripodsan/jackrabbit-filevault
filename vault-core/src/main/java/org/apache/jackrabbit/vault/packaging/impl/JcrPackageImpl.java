@@ -420,8 +420,14 @@ public class JcrPackageImpl implements JcrPackage {
                     // check if package is at the correct location
                     String expectedPath = mgr.getInstallationPath(pId) + ".zip";
                     if (!expectedPath.equals(path)) {
-                        log.info("Moving sub-package in place: {} -> {}", path, expectedPath);
-                        s.getWorkspace().move(path, expectedPath);
+                        if (s.nodeExists(expectedPath)) {
+                            log.info("(Removed duplicated sub-package in {}. Still present at {}", path, expectedPath);
+                            s.getNode(path).remove();
+                            s.save();
+                        } else {
+                            log.info("Moving sub-package in place: {} -> {}", path, expectedPath);
+                            s.getWorkspace().move(path, expectedPath);
+                        }
                         path = expectedPath;
                         // re-acquire the package and definition
                         p.close();

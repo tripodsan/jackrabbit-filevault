@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.vault.packaging.impl;
 
+import java.util.Arrays;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -32,6 +34,8 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code PackagingImpl}...
@@ -43,6 +47,11 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 )
 @Designate(ocd = PackagingImpl.Config.class)
 public class PackagingImpl implements Packaging {
+
+    /**
+     * default logger
+     */
+    private static final Logger log = LoggerFactory.getLogger(PackagingImpl.class);
 
     @Reference
     private PackageEventDispatcher eventDispatcher;
@@ -73,6 +82,7 @@ public class PackagingImpl implements Packaging {
     @Activate
     private void activate(Config config) {
         this.packageRoots = config.packageRoots();
+        log.info("Jackrabbit Filevault Packaging initialized with roots {}", Arrays.toString(packageRoots));
     }
 
     /**
