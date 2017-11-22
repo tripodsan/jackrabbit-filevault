@@ -44,6 +44,7 @@ import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl;
 import org.apache.tika.io.IOUtils;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -636,6 +637,8 @@ public class TestPackageInstall extends IntegrationTestBase {
      */
     @Test
     public void testExtractWithoutRootAndTmpAccess() throws IOException, RepositoryException, ConfigurationException, PackageException {
+        Assume.assumeTrue(!isOak());
+
         JcrPackage pack = packMgr.upload(getStream("testpackages/tmp_foo.zip"), true, true);
         assertNotNull(pack);
         assertTrue(pack.isValid());

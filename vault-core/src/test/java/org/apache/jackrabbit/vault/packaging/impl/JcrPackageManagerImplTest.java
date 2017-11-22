@@ -27,6 +27,7 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlEntry;
@@ -142,7 +143,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
 
     @Test
     public void testGetPackageRootNoRootAccess() throws Exception {
-        Node packageRoot = new JcrPackageManagerImpl(admin, new String[0]).getPackageRoot();
+        Node packageRoot = packMgr.getPackageRoot();
 
         // TODO: maybe rather change the setup of the test-base to not assume that everyone has full read-access
         AccessControlManager acMgr = admin.getAccessControlManager();
@@ -189,7 +190,7 @@ public class JcrPackageManagerImplTest extends IntegrationTestBase {
             try {
                 jcrPackageManager.getPackageRoot(false);
                 fail();
-            } catch (AccessDeniedException e) {
+            } catch (AccessDeniedException | PathNotFoundException e) {
                 // success
             }
         }  finally {

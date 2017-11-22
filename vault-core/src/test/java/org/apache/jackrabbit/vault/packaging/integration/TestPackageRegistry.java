@@ -350,9 +350,10 @@ public class TestPackageRegistry extends IntegrationTestBase {
     @Test
     public void testAlternativePackageRootCreatesOnlyOneNode() throws RepositoryException {
         JcrPackageRegistry reg = new JcrPackageRegistry(admin, "/var/packages", "/etc/packages");
+        Node root = reg.getPrimaryPackageRoot(true);
+        assertEquals("root has correct path", "/var/packages", root.getPath());
         List<Node> roots = reg.getPackageRoots();
         assertEquals("Has 1 package root", 1, roots.size());
-        assertEquals("root has correct path", "/var/packages", roots.get(0).getPath());
     }
 
     @Test

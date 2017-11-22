@@ -212,8 +212,15 @@ public class JcrPackageRegistry implements PackageRegistry {
      */
     @Nullable
     public Node getPrimaryPackageRoot(boolean autoCreate) throws RepositoryException {
-        if (packRoots[0] == null && autoCreate) {
-            packRoots[0] = JcrUtils.getOrCreateByPath(packRootPaths[0], NodeType.NT_FOLDER, NodeType.NT_FOLDER, session, true);
+        if (packRoots[0] == null) {
+            if (session.nodeExists(packRootPaths[0])) {
+                packRoots[0] = session.getNode(packRootPaths[0]);
+            } else if (autoCreate) {
+                if (session.hasPendingChanges()) {
+                    throw new RepositoryException("Unwilling to create package root folder while session has transient changes.");
+                }
+                packRoots[0] = JcrUtils.getOrCreateByPath(packRootPaths[0], NodeType.NT_FOLDER, NodeType.NT_FOLDER, session, true);
+            }
         }
         return packRoots[0];
     }
