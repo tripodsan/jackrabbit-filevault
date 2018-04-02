@@ -33,24 +33,26 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.sling.jcr.api.SlingRepository;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <code>PackageManagerMBeanImpl</code> provide a MBean that lists all available packages as tabular data.
- * it uses the "com.adobe.granite.packaging" to better fit into the granite hierarchy.
+ * {@code PackageManagerMBeanImpl} provide a MBean that lists all available packages as tabular data.
  */
-@Component()
-@Property(name = "jmx.objectname", value="com.adobe.granite.packaging:type=manager")
-@Service(value = DynamicMBean.class)
+@Component(
+        service = DynamicMBean.class,
+        immediate = true,
+        property = {
+                "service.vendor=The Apache Software Foundation",
+                "jmx.objectname=org.apache.jackrabbit.vault.packaging:type=manager"
+        }
+)
 public class PackageManagerMBeanImpl extends StandardMBean implements PackageManagerMBean {
 
     /**
@@ -58,7 +60,7 @@ public class PackageManagerMBeanImpl extends StandardMBean implements PackageMan
      */
     private static final Logger log = LoggerFactory.getLogger(PackageManagerMBeanImpl.class);
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL)
     private SlingRepository repository;
 
     private static final String[] packageItemNames = {
@@ -103,7 +105,7 @@ public class PackageManagerMBeanImpl extends StandardMBean implements PackageMan
 
     @Override
     protected String getDescription(MBeanAttributeInfo info) {
-        if (info.getName().equals("Packages")) {
+        if ("Packages".equals(info.getName())) {
             return "Available Packages";
         }
         return super.getDescription(info);
@@ -120,7 +122,8 @@ public class PackageManagerMBeanImpl extends StandardMBean implements PackageMan
             Session session = null;
             try {
                 session = repository.loginAdministrative(null);
-                JcrPackageManager pkgMgr = new JcrPackageManagerImpl(session);
+                // todo: find a way to use the sling packaging service instead
+                JcrPackageManager pkgMgr = new JcrPackageManagerImpl(session, new String[0]);
                 for (JcrPackage pkg: pkgMgr.listPackages()) {
                     try {
                         Object[] values = {

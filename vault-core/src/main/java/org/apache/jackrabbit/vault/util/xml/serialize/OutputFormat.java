@@ -28,6 +28,7 @@ package org.apache.jackrabbit.vault.util.xml.serialize;
 
 
 import java.io.UnsupportedEncodingException;
+import java.util.Comparator;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.DocumentType;
@@ -40,14 +41,11 @@ import org.w3c.dom.html.HTMLDocument;
  * XSLT specification for output format, plus additional parameters.
  * Used to select the suitable serializer and determine how the
  * document should be formatted on output.
- * <p/>
+ * <p>
  * The two interesting constructors are:
  * <ul>
- * <li>{@link #OutputFormat(String,String,boolean)} creates a format
- * for the specified method (XML, HTML, Text, etc), encoding and indentation
- * <li>{@link #OutputFormat(Document,String,boolean)} creates a format
- * compatible with the document type (XML, HTML, Text, etc), encoding and
- * indentation
+ * <li>{@link #OutputFormat(String,String,boolean)} creates a format for the specified method (XML, HTML, Text, etc), encoding and indentation
+ * <li>{@link #OutputFormat(Document,String,boolean)} creates a format compatible with the document type (XML, HTML, Text, etc), encoding and indentation
  * </ul>
  *
  * @author <a href="mailto:arkin@intalio.com">Assaf Arkin</a>
@@ -134,7 +132,7 @@ public class OutputFormat {
     private int _indent = 0;
 
     /**
-     * if <code>true</code> each attribute is placed on a new line
+     * if {@code true} each attribute is placed on a new line
      * (added by tripod@apache.org)
      */
     private boolean _breakEachAttribute = false;
@@ -238,6 +236,10 @@ public class OutputFormat {
      * serialized. Defaults to false for backwards compatibility.
      */
     private boolean _preserveEmptyAttributes = false;
+    /**
+     * If set the comparator is used to sort the attributes. If not set the order is preserved as it is.
+     */
+    private Comparator<String> _sortAttributeNamesBy = null;
 
     /**
      * Constructs a new output format with the default values.
@@ -438,7 +440,7 @@ public class OutputFormat {
     }
 
     /**
-     * Sets the encoding for this output method with an <code>EncodingInfo</code>
+     * Sets the encoding for this output method with an {@code EncodingInfo}
      * instance.
      */
     public void setEncoding(EncodingInfo encInfo) {
@@ -447,7 +449,7 @@ public class OutputFormat {
     }
 
     /**
-     * Returns an <code>EncodingInfo<code> instance for the encoding.
+     * Returns an {@code EncodingInfo{@code  instance for the encoding.
      *
      * @see #setEncoding
      */
@@ -796,6 +798,24 @@ public class OutputFormat {
      */
     public void setPreserveEmptyAttributes(boolean preserve) {
         _preserveEmptyAttributes = preserve;
+    }
+
+    /**
+     * Returns the {@link Comparator} used to apply an order to attribute names.
+     *
+     * @return
+     */
+    public Comparator<String> getSortAttributeNamesBy() {
+        return _sortAttributeNamesBy;
+    }
+
+    /**
+     * Sets the comparator to use for applying an order to attribute names. If set to null, the original order is preserved.
+     *
+     * @param sortAttributeNamesBy
+     */
+    public void setSortAttributeNamesBy(Comparator<String> sortAttributeNamesBy) {
+        this._sortAttributeNamesBy = sortAttributeNamesBy;
     }
 
     /**

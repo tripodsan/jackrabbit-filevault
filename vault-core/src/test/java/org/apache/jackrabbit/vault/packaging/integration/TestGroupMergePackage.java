@@ -22,20 +22,24 @@ import java.io.IOException;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.vault.fs.api.ImportMode;
+import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
+import org.apache.jackrabbit.vault.fs.config.DefaultWorkspaceFilter;
+import org.apache.jackrabbit.vault.fs.io.ImportOptions;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.junit.Test;
 
+import static junit.framework.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * <code>TestEmptyPackage</code>...
+ * {@code TestEmptyPackage}...
  */
 public class TestGroupMergePackage extends IntegrationTestBase {
 
@@ -49,13 +53,6 @@ public class TestGroupMergePackage extends IntegrationTestBase {
         removeAuthorizable(mgr, "test-user-c");
         admin.save();
         super.tearDown();
-    }
-
-    private void removeAuthorizable(UserManager mgr, String name) throws RepositoryException {
-        Authorizable a = mgr.getAuthorizable(name);
-        if (a != null) {
-            a.remove();
-        }
     }
 
     /**
@@ -99,7 +96,34 @@ public class TestGroupMergePackage extends IntegrationTestBase {
         pack = packMgr.upload(getStream("testpackages/group_with_bc.zip"), false);
         assertNotNull(pack);
         pack.install(getDefaultOptions());
+        assertABC(mgr);
+    }
 
+    /**
+     * Installs 2 packages with "test-group" that contain test-user-a and test-user-b,test-user-c respectively.
+     * since the import mode is merge, the memberships should be merged. this variant uses a renamed authorizable node name
+     */
+    @Test
+    public void installGroupABC_renamed() throws RepositoryException, IOException, PackageException {
+        // ensure that test users don't exist yet (proper setup)
+        UserManager mgr = ((JackrabbitSession) admin).getUserManager();
+        assertNull("test-group must not exist", mgr.getAuthorizable("test-group"));
+        assertNull("test-user-a must not exist", mgr.getAuthorizable("test-user-a"));
+        assertNull("test-user-b must not exist", mgr.getAuthorizable("test-user-b"));
+        assertNull("test-user-c must not exist", mgr.getAuthorizable("test-user-c"));
+
+        JcrPackage pack = packMgr.upload(getStream("testpackages/group_with_bc.zip"), false);
+        assertNotNull(pack);
+        pack.install(getDefaultOptions());
+
+        pack = packMgr.upload(getStream("testpackages/group_with_a_moved.zip"), false);
+        assertNotNull(pack);
+        pack.install(getDefaultOptions());
+        assertABC(mgr);
+    }
+
+
+    private void assertABC(UserManager mgr) throws RepositoryException {
         // check if group exists
         Group grp = (Group) mgr.getAuthorizable("test-group");
         assertNotNull("test-group must exist", grp);
@@ -116,4 +140,63 @@ public class TestGroupMergePackage extends IntegrationTestBase {
     }
 
 
+    /**
+     * Installs a package that contains a "test-group" and a "test-user-a" as member of the group.
+     */
+    @Test
+    public void installGroup101() throws RepositoryException, IOException, PackageException {
+        UserManager mgr = ((JackrabbitSession) admin).getUserManager();
+        assertNull("test-group must not exist", mgr.getAuthorizable("test-group"));
+
+        // check if group exists
+        Group grp = mgr.createGroup("test-group");
+
+        User firstUser = mgr.createUser("test-user-0", "123");
+        grp.addMember(firstUser);
+
+        for (int i=1; i<100; i++) {
+            User user = mgr.createUser("test-user-"+i, "123");
+            grp.addMember(user);
+        }
+
+        User lastUser = mgr.createUser("test-user-101", "123");
+        grp.addMember(lastUser);
+
+        User user1 = (User) mgr.getAuthorizable("test-user-1");
+
+        grp.removeMember(firstUser);
+
+        admin.save();
+
+        assertFalse("test-user-0 is not member of test-group", grp.isMember(firstUser));
+        assertTrue("test-user-1 is member of test-group", grp.isMember(user1));
+        assertTrue("test-user-101 is member of test-group", grp.isMember(lastUser));
+
+        JcrPackage pack = packMgr.create("foo", "test-101-users");
+
+        DefaultWorkspaceFilter filter = new DefaultWorkspaceFilter();
+        filter.add(new PathFilterSet(grp.getPath()));
+        pack.getDefinition().setFilter(filter, true);
+
+        packMgr.assemble(pack, null);
+
+        grp.remove();
+
+        admin.save();
+
+        assertNull("test-group must not exist", mgr.getAuthorizable("test-group"));
+
+        ImportOptions options = new ImportOptions();
+        options.setImportMode(ImportMode.UPDATE);
+        pack.install(options);
+
+        assertNotNull("test-group must exist", mgr.getAuthorizable("test-group"));
+
+        grp = (Group) mgr.getAuthorizable("test-group");
+
+        assertFalse("test-user-0 is not member of test-group", grp.isMember(firstUser));
+        assertTrue("test-user-1 is member of test-group", grp.isMember(user1));
+        assertTrue("test-user-101 is member of test-group", grp.isMember(lastUser));
+
+    }
 }

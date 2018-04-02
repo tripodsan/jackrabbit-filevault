@@ -23,7 +23,7 @@
         <groupId>org.apache.jackrabbit.vault</groupId>
         <artifactId>parent</artifactId>
         <relativePath>parent/pom.xml</relativePath>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.0-SNAPSHOT</version>
     </parent>
 
     <!-- ====================================================================== -->
@@ -62,10 +62,13 @@
     </modules>
 
     <!-- ====================================================================== -->
-    <!-- J A V A D O C   P L U G I N                                            -->
+    <!-- B U I L D                                                              -->
     <!-- ====================================================================== -->
     <build>
         <plugins>
+            <!-- ====================================================================== -->
+            <!-- J A V A D O C   P L U G I N                                            -->
+            <!-- ====================================================================== -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -171,7 +174,12 @@
                                                 <include name="*.zip" />
                                             </fileset>
                                         </checksum>
-                                        <checksum algorithm="SHA1" fileext=".sha">
+                                        <checksum algorithm="SHA1" fileext=".sha1">
+                                            <fileset dir="${basedir}/target/${project.version}">
+                                                <include name="*.zip" />
+                                            </fileset>
+                                        </checksum>
+                                        <checksum algorithm="SHA-512" fileext=".sha512">
                                             <fileset dir="${basedir}/target/${project.version}">
                                                 <include name="*.zip" />
                                             </fileset>
@@ -191,6 +199,9 @@ The release candidate is a zip archive of the sources in:
 https://svn.apache.org/repos/asf/jackrabbit/commons/filevault/tags/jackrabbit-filevault-${project.version}/
 
 The SHA1 checksum of the archive is ${checksum}.
+
+The command for running automated checks against this release candidate is:
+$ sh check-release.sh filevault ${project.version} ${checksum}
 
 A staged Maven repository is available for review at:
 

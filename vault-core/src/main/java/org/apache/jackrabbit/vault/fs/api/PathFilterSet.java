@@ -19,11 +19,14 @@ package org.apache.jackrabbit.vault.fs.api;
 
 import java.util.List;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
  * The path filter set holds a set of path filters each attributes as include
  * or exclude filter. The evaluation of the set allows included paths and
  * rejects excluded paths.
- * <p/>
+ * <p>
  * Additionally it contains a "root" path for which the filters are evaluated.
  * if an item has not the node addressed by the root path as ancestor, it is
  * always excluded.
@@ -50,6 +53,12 @@ public class PathFilterSet extends FilterSet<PathFilter> {
     private boolean onlyRelativePatterns;
 
     /**
+     * specifies the filter type.
+     */
+    @Nullable
+    private String type;
+
+    /**
      * Default constructor. initializes the root path to "/"
      */
     public PathFilterSet() {
@@ -60,22 +69,22 @@ public class PathFilterSet extends FilterSet<PathFilter> {
      * Creates a new path filter set and sets the respective root path
      * @param root path
      */
-    public PathFilterSet(String root) {
+    public PathFilterSet(@Nonnull String root) {
         super(root);
     }
 
     /**
      * Evaluates the filters if this set does {@link #covers(String) cover} the
-     * given item. otherwise <code>false</code> is returned.
+     * given item. otherwise {@code false} is returned.
      * The result of the evaluation is the polarity of the last matched path.
-     * If no filter matches it returns <code>true</code>
+     * If no filter matches it returns {@code true}
      * if the first filter is an exclude filter or if no filter is defined;
-     * <code>false</code> if the first filter is an include filter.
+     * {@code false} if the first filter is an include filter.
      *
      * @param path the path to check
-     * @return <code>true</code> if this set matches the item
+     * @return {@code true} if this set matches the item
      */
-    public boolean contains(String path) {
+    public boolean contains(@Nonnull String path) {
         if (!covers(path)) {
             return false;
         }
@@ -94,6 +103,7 @@ public class PathFilterSet extends FilterSet<PathFilter> {
     }
 
     @Override
+    @Nonnull
     public FilterSet seal() {
         if (!isSealed()) {
             super.seal();
@@ -115,7 +125,8 @@ public class PathFilterSet extends FilterSet<PathFilter> {
      * @return the new filter
      * @since 2.4.10
      */
-    public PathFilterSet translate(PathMapping mapping) {
+    @Nonnull
+    public PathFilterSet translate(@Nullable PathMapping mapping) {
         if (mapping == null) {
             return this;
         }
@@ -136,10 +147,30 @@ public class PathFilterSet extends FilterSet<PathFilter> {
      * Checks if this path filter set only contains entries that are relative
      * include patterns, eg: ".* /foo.*". in this case the aggregator will use a
      * different strategy when providing non matching leave nodes.
-     * @return <code>true</code> if only contains relative patterns
+     * @return {@code true} if only contains relative patterns
      */
     public boolean hasOnlyRelativePatterns() {
         seal();
         return onlyRelativePatterns;
+    }
+
+    /**
+     * Returns the filter type or {@code null}
+     * @return the filter type.
+     */
+    @Nullable
+    public String getType() {
+        return type;
+    }
+
+    /**
+     * Sets the filter type
+     * @param type the type
+     * @return this.
+     */
+    @Nonnull
+    public PathFilterSet setType(@Nullable String type) {
+        this.type = type;
+        return this;
     }
 }

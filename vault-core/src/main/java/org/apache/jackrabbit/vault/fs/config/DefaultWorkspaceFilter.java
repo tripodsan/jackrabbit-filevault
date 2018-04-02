@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.xml.parsers.DocumentBuilder;
@@ -72,7 +73,9 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
      */
     private static final Logger log = LoggerFactory.getLogger(DefaultWorkspaceFilter.class);
 
-    private final List<PathFilterSet> filterSets = new LinkedList<PathFilterSet>();
+    private final List<PathFilterSet> nodesFilterSets = new LinkedList<PathFilterSet>();
+
+    private final List<PathFilterSet> propsFilterSets = new LinkedList<PathFilterSet>();
 
     public static final String ATTR_VERSION = "version";
 
@@ -92,15 +95,57 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
      */
     private ImportMode importMode;
 
+    /**
+     * Add a #PathFilterSet for nodes items.
+     * @param set the set of filters to add.
+     */
     public void add(PathFilterSet set) {
-        filterSets.add(set);
+        nodesFilterSets.add(set);
+        propsFilterSets.add(set);
+    }
+
+    /**
+     * Add a #PathFilterSet for node and property items.
+     * @param nodeFilter the set of filters to add.
+     * @param propFilter the set of filters to add.
+     */
+    public void add(PathFilterSet nodeFilter, PathFilterSet propFilter) {
+        nodesFilterSets.add(nodeFilter);
+        propsFilterSets.add(propFilter);
+    }
+
+    /**
+     * Add a #PathFilterSet for properties items.
+     * @param set the set of filters to add.
+     *
+     * @deprecated use {@link #add(PathFilterSet, PathFilterSet)} instead.
+     */
+    @Deprecated
+    public void addPropertyFilterSet(PathFilterSet set) {
+        // minimal backward compatibility: replace the props filter with the same root
+        Iterator<PathFilterSet> iter = propsFilterSets.iterator();
+        while (iter.hasNext()) {
+            PathFilterSet filterSet = iter.next();
+            if (filterSet.getRoot().equals(set.getRoot())) {
+                iter.remove();
+                break;
+            }
+        }
+        propsFilterSets.add(set);
     }
 
     /**
      * {@inheritDoc}
      */
     public List<PathFilterSet> getFilterSets() {
-        return filterSets;
+        return nodesFilterSets;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public List<PathFilterSet> getPropertyFilterSets() {
+        return propsFilterSets;
     }
 
     /**
@@ -110,7 +155,7 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
         if (isGloballyIgnored(path)) {
             return null;
         }
-        for (PathFilterSet set: filterSets) {
+        for (PathFilterSet set: nodesFilterSets) {
             if (set.covers(path)) {
                 return set;
             }
@@ -140,7 +185,7 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
         if (isGloballyIgnored(path)) {
             return false;
         }
-        for (PathFilterSet set: filterSets) {
+        for (PathFilterSet set: nodesFilterSets) {
             if (set.contains(path)) {
                 return true;
             }
@@ -155,7 +200,7 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
         if (isGloballyIgnored(path)) {
             return false;
         }
-        for (PathFilterSet set: filterSets) {
+        for (PathFilterSet set: nodesFilterSets) {
             if (set.covers(path)) {
                 return true;
             }
@@ -167,7 +212,7 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
      * {@inheritDoc}
      */
     public boolean isAncestor(String path) {
-        for (PathFilterSet set: filterSets) {
+        for (PathFilterSet set: nodesFilterSets) {
             if (set.isAncestor(path)) {
                 return true;
             }
@@ -190,11 +235,15 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
             return this;
         }
         DefaultWorkspaceFilter mapped = new DefaultWorkspaceFilter();
+        mapped.importMode = importMode;
         if (globalIgnored != null) {
             mapped.setGlobalIgnored(globalIgnored.translate(mapping));
         }
-        for (PathFilterSet set: filterSets) {
-            mapped.add(set.translate(mapping));
+        for (PathFilterSet set: nodesFilterSets) {
+            mapped.nodesFilterSets.add(set.translate(mapping));
+        }
+        for (PathFilterSet set: propsFilterSets) {
+            mapped.propsFilterSets.add(set.translate(mapping));
         }
         return mapped;
     }
@@ -251,11 +300,11 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
             builder.setEntityResolver(new RejectingEntityResolver());
             Document document = builder.parse(in);
             Element doc = document.getDocumentElement();
-            if (!doc.getNodeName().equals("workspaceFilter")) {
+            if (!"workspaceFilter".equals(doc.getNodeName())) {
                 throw new ConfigurationException("<workspaceFilter> expected.");
             }
             String v = doc.getAttribute(ATTR_VERSION);
-            if (v == null || v.equals("")) {
+            if (v == null || "".equals(v)) {
                 v = "1.0";
             }
             version = Double.parseDouble(v);
@@ -280,44 +329,68 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
         for (int i=0; i<nl.getLength(); i++) {
             Node child = nl.item(i);
             if (child.getNodeType() == Node.ELEMENT_NODE) {
-                if (!child.getNodeName().equals("filter")) {
+                if (!"filter".equals(child.getNodeName())) {
                     throw new ConfigurationException("<filter> expected.");
                 }
-                PathFilterSet def = readDef((Element) child);
-                filterSets.add(def);
+                readDef((Element) child);
             }
         }
     }
 
-    private PathFilterSet readDef(Element elem) throws ConfigurationException {
+    private void readDef(Element elem) throws ConfigurationException {
         String root = elem.getAttribute("root");
-        PathFilterSet def = new PathFilterSet(root == null || root.length() == 0 ? "/" : root);
+        if (root == null || root.length() == 0) {
+            root = "/";
+        }
+        PathFilterSet nodeFilters = new PathFilterSet(root);
+        PathFilterSet propFilters = new PathFilterSet(root);
         // check for import mode
         String mode = elem.getAttribute("mode");
         if (mode != null && mode.length() > 0) {
-            def.setImportMode(ImportMode.valueOf(mode.toUpperCase()));
+            ImportMode importMode = ImportMode.valueOf(mode.toUpperCase());
+            nodeFilters.setImportMode(importMode);
+            propFilters.setImportMode(importMode);
         }
+        String type = elem.getAttribute("type");
+        if (type != null && type.length() > 0) {
+            nodeFilters.setType(type);
+            propFilters.setType(type);
+        }
+
         // check for filters
         NodeList n1 = elem.getChildNodes();
         for (int i=0; i<n1.getLength(); i++) {
             Node child = n1.item(i);
             if (child.getNodeType() == Node.ELEMENT_NODE) {
-                if (child.getNodeName().equals("include")) {
-                    def.addInclude(readFilter((Element) child));
-                } else if (child.getNodeName().equals("exclude")) {
-                    def.addExclude(readFilter((Element) child));
+                final PathFilter filter = readFilter((Element) child);
+                if ("include".equals(child.getNodeName())) {
+                    propFilters.addInclude(filter);
+                    if (!(filter instanceof DefaultPropertyPathFilter)) {
+                        // also add non property filters to the node filters
+                        nodeFilters.addInclude(filter);
+                    }
+                } else if ("exclude".equals(child.getNodeName())) {
+                    propFilters.addExclude(filter);
+                    if (!(filter instanceof DefaultPropertyPathFilter)) {
+                        // also add non property filters to the node filters
+                        nodeFilters.addExclude(filter);
+                    }
                 } else {
                     throw new ConfigurationException("either <include> or <exclude> expected.");
                 }
             }
         }
-        return def;
+        add(nodeFilters, propFilters);
     }
 
     protected PathFilter readFilter(Element elem) throws ConfigurationException {
         String pattern = elem.getAttribute("pattern");
-        if (pattern == null || pattern.equals("")) {
+        if (pattern == null || "".equals(pattern)) {
             throw new ConfigurationException("Filter pattern must not be empty");
+        }
+        boolean matchProperties = Boolean.valueOf(elem.getAttribute("matchProperties"));
+        if (matchProperties) {
+            return new DefaultPropertyPathFilter(pattern);
         }
         return new DefaultPathFilter(pattern);
     }
@@ -326,7 +399,7 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
      * {@inheritDoc}
      */
     public void dump(DumpContext ctx, boolean isLast) {
-        Iterator<PathFilterSet> iter = filterSets.iterator();
+        Iterator<PathFilterSet> iter = nodesFilterSets.iterator();
         while (iter.hasNext()) {
             PathFilterSet set = iter.next();
             ctx.println(!iter.hasNext(), "ItemFilterSet");
@@ -339,6 +412,7 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
     /**
      * Reset the source content to a null state.
      */
+    @SuppressWarnings("unused")
     public void resetSource() {
         source = null;
     }
@@ -352,11 +426,14 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
             AttributesImpl attrs = new AttributesImpl();
             attrs.addAttribute(null, null, ATTR_VERSION, "CDATA", String.valueOf(version));
             ser.startElement(null, null, "workspaceFilter", attrs);
-            for (PathFilterSet set: filterSets) {
+            for (PathFilterSet set: propsFilterSets) {
                 attrs = new AttributesImpl();
                 attrs.addAttribute(null, null, "root", "CDATA", set.getRoot());
                 if (set.getImportMode() != ImportMode.REPLACE) {
                     attrs.addAttribute(null, null, "mode", "CDATA", set.getImportMode().name().toLowerCase());
+                }
+                if (set.getType() != null) {
+                    attrs.addAttribute(null, null, "type", "CDATA", set.getType());
                 }
                 ser.startElement(null, null, "filter", attrs);
                 for (PathFilterSet.Entry<PathFilter> entry: set.getEntries()) {
@@ -364,8 +441,10 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
                     PathFilter filter = entry.getFilter();
                     if (filter instanceof DefaultPathFilter) {
                         attrs = new AttributesImpl();
-                        attrs.addAttribute(null, null, "pattern", "CDATA",
-                                ((DefaultPathFilter) filter).getPattern());
+                        attrs.addAttribute(null, null, "pattern", "CDATA", ((DefaultPathFilter) filter).getPattern());
+                        if (filter instanceof DefaultPropertyPathFilter) {
+                            attrs.addAttribute(null, null, "matchProperties", "CDATA", "true");
+                        }
                         if (entry.isInclude()) {
                             ser.startElement(null, null, "include", attrs);
                             ser.endElement("include");
@@ -409,17 +488,19 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
         ProgressTracker tracker = new ProgressTracker(listener);
         // get common ancestor
         Tree<PathFilterSet> tree = new Tree<PathFilterSet>();
-        for (PathFilterSet set: filterSets) {
+        for (PathFilterSet set: nodesFilterSets) {
             tree.put(set.getRoot(), set);
         }
         String rootPath = tree.getRootPath();
         javax.jcr.Node rootNode;
-        try {
+        if (session.nodeExists(rootPath)) {
             rootNode = session.getNode(rootPath);
-        } catch (RepositoryException e) {
+        } else if (session.nodeExists("/")) {
             log.warn("Common ancestor {} not found. Using root node", rootPath);
             rootNode = session.getRootNode();
             rootPath = "/";
+        } else {
+            throw new PathNotFoundException("Common ancestor " + rootPath+ " not found.");
         }
         log.debug("Starting coverage dump at {} (skipJcrContent={})", rootPath, skipJcrContent);
         dumpCoverage(rootNode, tracker, skipJcrContent);
@@ -444,5 +525,25 @@ public class DefaultWorkspaceFilter implements Dumpable, WorkspaceFilter {
         }
     }
 
+    /**
+     * internal class to mark the property filter entries. eventually promote to outer class and adjust the 'contains'
+     * code accordingly. But since the filter set are publicly accessible, this would introduce backward compatbility
+     * issues for code that is reading those directly.
+     */
+    private static class DefaultPropertyPathFilter extends DefaultPathFilter {
+
+        private DefaultPropertyPathFilter(String pattern) {
+            super(pattern);
+        }
+
+        @Override
+        public PathFilter translate(PathMapping mapping) {
+            DefaultPathFilter mapped =  (DefaultPathFilter) super.translate(mapping);
+            if (mapped != this) {
+                mapped = new DefaultPropertyPathFilter(mapped.getPattern());
+            }
+            return mapped;
+        }
+    }
 
 }

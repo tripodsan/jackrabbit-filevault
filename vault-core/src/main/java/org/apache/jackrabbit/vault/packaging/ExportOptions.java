@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.vault.packaging;
 
+import java.util.zip.Deflater;
+
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 
@@ -34,6 +36,8 @@ public class ExportOptions {
     private String rootPath;
 
     private String mountPath;
+
+    private int compressionLevel = Deflater.DEFAULT_COMPRESSION;
 
     /**
      * Returns the progress tracker listener.
@@ -121,5 +125,29 @@ public class ExportOptions {
      */
     public void setMountPath(String mountPath) {
         this.mountPath = mountPath;
+    }
+
+    /**
+     * Defines the compression level for the export.
+     * @param compressionLevel the compression level
+     *
+     * @see Deflater#setLevel(int)
+     * @see Deflater#DEFAULT_COMPRESSION
+     * @see Deflater#NO_COMPRESSION
+     */
+    public void setCompressionLevel(int compressionLevel) {
+        this.compressionLevel = compressionLevel;
+    }
+
+    /**
+     * Returns the compression level. Defaults to {@link Deflater#DEFAULT_COMPRESSION}
+     * @return the compression level
+     *
+     * @see Deflater#setLevel(int)
+     * @see Deflater#DEFAULT_COMPRESSION
+     * @see Deflater#NO_COMPRESSION
+     */
+    public int getCompressionLevel() {
+        return compressionLevel;
     }
 }

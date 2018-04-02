@@ -19,7 +19,11 @@ package org.apache.jackrabbit.vault.packaging;
 
 import java.util.Calendar;
 
+import javax.annotation.Nullable;
+
+import org.apache.jackrabbit.vault.fs.api.VaultFsConfig;
 import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * The package properties provide extra/meta information about the package to install. The properties are usually
@@ -27,6 +31,7 @@ import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
  *
  * @since 3.1
  */
+@ProviderType
 public interface PackageProperties {
 
     /**
@@ -129,32 +134,42 @@ public interface PackageProperties {
     String NAME_SUB_PACKAGE_HANDLING = "subPackageHandling";
 
     /**
+     * Name of the flag that configures whether to use binary references instead of actual binary
+     */
+    String NAME_USE_BINARY_REFERENCES = VaultFsConfig.NAME_USE_BINARY_REFERENCES;
+
+    /**
+     * Name of the package-type property
+     */
+    String NAME_PACKAGE_TYPE = "packageType";
+
+    /**
      * the prefix for an install hook property. eg:
      * 'installhook.test1.class = ....'
      */
     String PREFIX_INSTALL_HOOK = "installhook.";
 
     /**
-     * Returns the id of this package or <code>null</code> if the id can't
+     * Returns the id of this package or {@code null} if the id can't
      * be determined.
      * @return the id of this package.
      */
     PackageId getId();
 
     /**
-     * Returns the last modification date or <code>null</code> if n/a.
-     * @return last modification date or <code>null</code>
+     * Returns the last modification date or {@code null} if n/a.
+     * @return last modification date or {@code null}
      */
     Calendar getLastModified();
 
     /**
-     * Returns the user that last modified the package or <code>null</code> if n/a.
-     * @return the user or <code>null</code>
+     * Returns the user that last modified the package or {@code null} if n/a.
+     * @return the user or {@code null}
      */
     String getLastModifiedBy();
 
     /**
-     * Returns the date when this package was built or <code>null</code> if n/a.
+     * Returns the date when this package was built or {@code null} if n/a.
      * @return the creation date
      */
     Calendar getCreated();
@@ -166,7 +181,7 @@ public interface PackageProperties {
     String getCreatedBy();
 
     /**
-     * Returns the date when this package was wrapped or <code>null</code> if n/a.
+     * Returns the date when this package was wrapped or {@code null} if n/a.
      * @return the wrapped date
      * @since 2.2.22
      */
@@ -180,15 +195,15 @@ public interface PackageProperties {
     String getLastWrappedBy();
 
     /**
-     * Returns a description of this package or <code>null</code> if n/a
+     * Returns a description of this package or {@code null} if n/a
      * @return a description
      */
     String getDescription();
 
     /**
-     * Returns <code>true</code> if this package can only be extracted by a
+     * Returns {@code true} if this package can only be extracted by a
      * admin session.
-     * @return <code>true</code> if this package requires an admin session for extraction.
+     * @return {@code true} if this package requires an admin session for extraction.
      */
     boolean requiresRoot();
 
@@ -223,6 +238,12 @@ public interface PackageProperties {
      * @param name the property name
      * @return the property value or {@code null}
      */
-    public String getProperty(String name);
+    String getProperty(String name);
 
+    /**
+     * Returns the package type or {@code null} if not package type was specified for this package.
+     * @return the package type
+     */
+    @Nullable
+    PackageType getPackageType();
 }

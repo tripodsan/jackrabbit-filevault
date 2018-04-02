@@ -25,12 +25,12 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.vault.fs.api.Aggregate;
 import org.apache.jackrabbit.vault.fs.api.SerializationType;
 import org.apache.jackrabbit.vault.fs.impl.AggregateImpl;
+import org.apache.jackrabbit.vault.fs.io.DocViewFormat;
 import org.apache.jackrabbit.vault.fs.io.Serializer;
-import org.apache.jackrabbit.vault.util.xml.serialize.OutputFormat;
 import org.apache.jackrabbit.vault.util.xml.serialize.XMLSerializer;
 
 /**
- * <code>DocViewSerializer</code>...
+ * {@code DocViewSerializer}...
 *
 */
 public class DocViewSerializer implements Serializer {
@@ -53,13 +53,8 @@ public class DocViewSerializer implements Serializer {
      */
     public void writeContent(OutputStream out) throws IOException, RepositoryException {
         // build content handler and add filter in case of original xml files
-        OutputFormat oFmt = new OutputFormat("xml", "UTF-8", true);
-        oFmt.setIndent(4);
-        oFmt.setLineWidth(0);
-        oFmt.setBreakEachAttribute(true);
-        XMLSerializer ser = new XMLSerializer(out, oFmt);
+        XMLSerializer ser = new XMLSerializer(out, new DocViewFormat().getXmlOutputFormat());
         DocViewSAXFormatter fmt = new DocViewSAXFormatter(aggregate, ser);
-        fmt.setUseJcrRoot(true);
         aggregate.walk(fmt);
     }
 

@@ -23,14 +23,14 @@
         <groupId>org.apache.jackrabbit.vault</groupId>
         <artifactId>parent</artifactId>
         <relativePath>../parent/pom.xml</relativePath>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.2.0-SNAPSHOT</version>
     </parent>
 
     <!-- ====================================================================== -->
     <!-- P R O J E C T  D E S C R I P T I O N                                   -->
     <!-- ====================================================================== -->
     <artifactId>org.apache.jackrabbit.vault</artifactId>
-    <version>3.1.3-SNAPSHOT</version>
+    <version>3.2.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>Apache Jackrabbit FileVault Core Bundle</name>
@@ -53,10 +53,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-scr-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>maven-sling-plugin</artifactId>
                 <configuration>
@@ -70,23 +66,6 @@
                 <configuration>
                     <instructions>
                         <Bundle-Build>${buildNumber}</Bundle-Build>
-                        <Bundle-Category>jcr,granite</Bundle-Category>
-                        <Export-Package>
-                            org.apache.jackrabbit.vault.fs;version=2.4.0,
-                            org.apache.jackrabbit.vault.fs.api;version=2.4.0,
-                            org.apache.jackrabbit.vault.fs.spi;version=2.4.0,
-                            org.apache.jackrabbit.vault.fs.config;version=2.4.0,
-                            org.apache.jackrabbit.vault.fs.filter;version=2.4.0,
-                            org.apache.jackrabbit.vault.fs.io;version=2.4.0,
-                            org.apache.jackrabbit.vault.util.*;version=2.4.0,
-                            org.apache.jackrabbit.vault.packaging;version=2.4.0
-                        </Export-Package>
-                        <Private-Package>
-                            org.apache.jackrabbit.vault.fs.impl.*,
-                            org.apache.jackrabbit.vault.fs.spi.impl.*,
-                            org.apache.jackrabbit.vault.packaging.impl.*,
-                            org.apache.jackrabbit.vault.packaging.hotfix.*
-                        </Private-Package>
                         <Import-Package>
                             org.apache.jackrabbit.*;version=!,
                             org.apache.sling.jcr.api;resolution:=optional,
@@ -102,12 +81,37 @@
                             javax.jcr.version,
                             *
                         </Import-Package>
-                        <Embed-Dependency>
-                            jackrabbit-spi-commons,
-                            jackrabbit-spi
-                        </Embed-Dependency>
+                        <!-- to load hook classes through this bundle's classloader -->
+                        <DynamicImport-Package>*</DynamicImport-Package>
                     </instructions>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <excludePackageNames>org.apache.jackrabbit.vault.util.xml.*</excludePackageNames>
+                </configuration>
+            </plugin>
+            <!-- ====================================================================== -->
+            <!-- R A T   P L U G I N                                                    -->
+            <!-- ====================================================================== -->
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <version>0.12</version>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <basedir>${project.basedir}</basedir>
+                            <excludesFile>${project.basedir}/.ratignore</excludesFile>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -156,13 +160,28 @@
             <artifactId>commons-io</artifactId>
             <scope>provided</scope>
         </dependency>
-
-        <!-- osgi stuff -->
         <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.apache.felix.scr.annotations</artifactId>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
             <scope>provided</scope>
         </dependency>
+
+        <!-- OSGi Annotations: @Version -->
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>osgi.annotation</artifactId>
+        </dependency>
+        <!-- Declarative Service Annotations -->
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.service.component.annotations</artifactId>
+        </dependency>
+        <!-- Metatype Annotations -->
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.service.metatype.annotations</artifactId>
+        </dependency>
+
         <dependency>
             <!-- used to retrieve the sling repository for JMX support -->
             <groupId>org.apache.sling</groupId>
@@ -181,7 +200,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>1.5.8</version>
+            <version>${slf4j.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -205,6 +224,12 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-jcr</artifactId>
+            <version>${oak.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-segment</artifactId>
             <version>${oak.version}</version>
             <scope>test</scope>
         </dependency>

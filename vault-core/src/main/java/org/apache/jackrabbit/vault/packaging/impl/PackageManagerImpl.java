@@ -29,27 +29,47 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.vault.fs.Mounter;
+import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
 import org.apache.jackrabbit.vault.fs.api.RepositoryAddress;
 import org.apache.jackrabbit.vault.fs.api.VaultFileSystem;
+import org.apache.jackrabbit.vault.fs.api.VaultFsConfig;
+import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.DefaultMetaInf;
+import org.apache.jackrabbit.vault.fs.config.DefaultWorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
+import org.apache.jackrabbit.vault.fs.impl.AggregateManagerImpl;
 import org.apache.jackrabbit.vault.fs.io.JarExporter;
 import org.apache.jackrabbit.vault.fs.spi.ProgressTracker;
 import org.apache.jackrabbit.vault.packaging.ExportOptions;
+import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.PackageManager;
+import org.apache.jackrabbit.vault.packaging.PackageProperties;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
+import org.apache.jackrabbit.vault.packaging.events.PackageEvent;
+import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcher;
 import org.apache.jackrabbit.vault.util.Constants;
+
+import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.DEFAULT_PACKAGE_ROOT_PATH;
+import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.DEFAULT_PACKAGE_ROOT_PATH_PREFIX;
 
 /**
  * Implements the package manager
  */
 public class PackageManagerImpl implements PackageManager {
+
+    /**
+     * event dispatcher
+     */
+    @Nullable
+    private PackageEventDispatcher dispatcher;
 
     /**
      * {@inheritDoc}
@@ -110,8 +130,16 @@ public class PackageManagerImpl implements PackageManager {
         if (metaInf == null) {
             metaInf = new DefaultMetaInf();
         }
-        VaultFileSystem jcrfs = Mounter.mount(metaInf.getConfig(), metaInf.getFilter(), addr, opts.getRootPath(), s);
-        JarExporter exporter = new JarExporter(out);
+
+        VaultFsConfig config = metaInf.getConfig();
+        if (metaInf.getProperties() != null) {
+            if ("true".equals(metaInf.getProperties().getProperty(PackageProperties.NAME_USE_BINARY_REFERENCES))) {
+                config = AggregateManagerImpl.getDefaultBinaryReferencesConfig();
+            }
+        }
+
+        VaultFileSystem jcrfs = Mounter.mount(config, metaInf.getFilter(), addr, opts.getRootPath(), s);
+        JarExporter exporter = new JarExporter(out, opts.getCompressionLevel());
         exporter.setProperties(metaInf.getProperties());
         if (opts.getListener() != null) {
             exporter.setVerbose(opts.getListener());
@@ -143,7 +171,9 @@ public class PackageManagerImpl implements PackageManager {
             rewrap(opts, src, out);
             IOUtils.closeQuietly(out);
             success = true;
-            return new ZipVaultPackage(file, isTmp);
+            VaultPackage pack =  new ZipVaultPackage(file, isTmp);
+            dispatch(PackageEvent.Type.REWRAPP, pack.getId(), null);
+            return pack;
         } finally {
             IOUtils.closeQuietly(out);
             if (isTmp && !success) {
@@ -161,7 +191,7 @@ public class PackageManagerImpl implements PackageManager {
         if (metaInf == null) {
             metaInf = new DefaultMetaInf();
         }
-        JarExporter exporter = new JarExporter(out);
+        JarExporter exporter = new JarExporter(out, opts.getCompressionLevel());
         exporter.open();
         exporter.setProperties(metaInf.getProperties());
         ProgressTracker tracker = null;
@@ -213,5 +243,22 @@ public class PackageManagerImpl implements PackageManager {
         }
         exporter.close();
     }
+
+    @Nullable
+    PackageEventDispatcher getDispatcher() {
+        return dispatcher;
+    }
+
+    public void setDispatcher(@Nullable PackageEventDispatcher dispatcher) {
+        this.dispatcher = dispatcher;
+    }
+
+    void dispatch(@Nonnull PackageEvent.Type type, @Nonnull PackageId id, @Nullable PackageId[] related) {
+        if (dispatcher == null) {
+            return;
+        }
+        dispatcher.dispatch(type, id, related);
+    }
+
 
 }

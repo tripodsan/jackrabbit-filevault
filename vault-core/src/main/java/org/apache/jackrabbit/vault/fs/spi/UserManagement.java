@@ -19,8 +19,10 @@ package org.apache.jackrabbit.vault.fs.spi;
 
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.vault.util.DocViewNode;
+
 /**
- * <code>UserManagement</code>...
+ * {@code UserManagement}...
  */
 public interface UserManagement {
 
@@ -28,12 +30,12 @@ public interface UserManagement {
      * Checks if the given node type name is used for a User node.
      *
      * @param ntName the node type name
-     * @return <code>true</code> if used for a User node.
+     * @return {@code true} if used for a User node.
      */
     boolean isAuthorizableNodeType(String ntName);
 
     /**
-     * Returns the path of the authorizable or <code>null</code> if not exists.
+     * Returns the path of the authorizable or {@code null} if not exists.
      * @param name the authorizable name
      * @param session the session to access the repository
      * @return path of authorizable
@@ -41,6 +43,17 @@ public interface UserManagement {
      * @since 2.3.26
      */
     String getAuthorizablePath(Session session, String name);
+
+    /**
+     * Returns the id of the authorizable from the specified authorizable node
+     * to be imported.
+     *
+     * @param node the authorizable import node
+     * @return The id of the authorizable to be imported.
+     *
+     * @since 3.1.10
+     */
+    String getAuthorizableId(DocViewNode node);
 
     /**
      * Adds the given memberships to the specified group.

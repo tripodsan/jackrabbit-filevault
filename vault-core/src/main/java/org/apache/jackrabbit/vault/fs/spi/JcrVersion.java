@@ -28,7 +28,7 @@ public enum JcrVersion {
     V10,
 
     /**
-     * Version 2.0 (JCR283)
+     * Version 2.0 (JSR283)
      */
     V20
 }

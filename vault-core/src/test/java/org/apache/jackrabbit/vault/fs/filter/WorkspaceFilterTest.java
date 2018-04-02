@@ -16,18 +16,27 @@
  */
 package org.apache.jackrabbit.vault.fs.filter;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.jackrabbit.vault.fs.api.FilterSet;
+import org.apache.jackrabbit.vault.fs.api.PathFilter;
 import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
 import org.apache.jackrabbit.vault.fs.api.PathMapping;
 import org.apache.jackrabbit.vault.fs.api.SimplePathMapping;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
+import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
 import org.apache.jackrabbit.vault.fs.config.DefaultWorkspaceFilter;
+import org.apache.tika.io.IOUtils;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * <code>WorkspaceFilterTest</code>...
+ * {@code WorkspaceFilterTest}...
  */
 public class WorkspaceFilterTest {
 
@@ -100,5 +109,44 @@ public class WorkspaceFilterTest {
         set3.addInclude(new DefaultPathFilter("/.*/bar/.*"));
         set3.seal();
         assertFalse(set3.hasOnlyRelativePatterns());
+    }
+
+    @Test
+    public void testLoadingWorkspaceFilter()
+            throws IOException, ConfigurationException {
+        DefaultWorkspaceFilter filter = new DefaultWorkspaceFilter();
+        filter.load(getClass().getResourceAsStream("workspacefilters/items.xml"));
+
+        List<PathFilterSet> nodeFilterSets = filter.getFilterSets();
+        assertNotNull(nodeFilterSets);
+        assertEquals(1, nodeFilterSets.size());
+        PathFilterSet nodeFilterSet = nodeFilterSets.get(0);
+        assertEquals("/var/foo/bar", nodeFilterSet.getRoot());
+        List<FilterSet.Entry<PathFilter>> nodeFilters = nodeFilterSet.getEntries();
+        assertEquals(1, nodeFilters.size());
+        FilterSet.Entry<PathFilter> nodeFilter = nodeFilters.get(0);
+        assertFalse(nodeFilter.isInclude());
+
+        List<PathFilterSet> propertyFilterSets = filter.getPropertyFilterSets();
+        assertNotNull(propertyFilterSets);
+        assertEquals(1, propertyFilterSets.size());
+        PathFilterSet propertyFilterSet = propertyFilterSets.get(0);
+        assertEquals("/var/foo/bar", propertyFilterSet.getRoot());
+        List<FilterSet.Entry<PathFilter>> propertyFilters = propertyFilterSet.getEntries();
+        assertEquals(2, propertyFilters.size());
+        FilterSet.Entry<PathFilter> propertyFilter = propertyFilters.get(0);
+        assertFalse(propertyFilter.isInclude());
+    }
+
+    @Test
+    public void testToSource() throws IOException, ConfigurationException {
+
+        DefaultWorkspaceFilter filter = new DefaultWorkspaceFilter();
+        filter.load(getClass().getResourceAsStream("workspacefilters/complex.xml"));
+        filter.resetSource();
+
+        String expected = IOUtils.toString(getClass().getResourceAsStream("workspacefilters/complex-expected.xml"));
+
+        assertEquals("Filter source", expected, filter.getSourceAsString());
     }
 }

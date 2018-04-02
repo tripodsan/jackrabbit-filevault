@@ -73,6 +73,12 @@ public class AggregateManagerImpl implements AggregateManager {
             "org/apache/jackrabbit/vault/fs/config/defaultConfig-1.1.xml";
 
     /**
+     * the name of the (internal) default config
+     */
+    private static final String DEFAULT_BINARY_REFERENCES_CONFIG =
+            "org/apache/jackrabbit/vault/fs/config/defaultConfig-1.1-binaryless.xml";
+
+    /**
      * the name of the (internal) default workspace filter
      */
     private static final String DEFAULT_WSP_FILTER = "" +
@@ -150,7 +156,6 @@ public class AggregateManagerImpl implements AggregateManager {
                                          RepositoryAddress mountpoint,
                                          Session session)
             throws RepositoryException {
-        assert mountpoint.getWorkspace().equals(session.getWorkspace().getName());
         if (config == null) {
             config = getDefaultConfig();
         }
@@ -214,6 +219,25 @@ public class AggregateManagerImpl implements AggregateManager {
                 throw new InternalError("Default config not in classpath: " + DEFAULT_CONFIG);
             }
             return AbstractVaultFsConfig.load(in, DEFAULT_CONFIG);
+        } catch (ConfigurationException e) {
+            throw new IllegalArgumentException("Internal error while parsing config.", e);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Internal error while parsing config.", e);
+        }
+    }
+
+    /**
+     * Returns the default config
+     * @return the default config
+     */
+    public static VaultFsConfig getDefaultBinaryReferencesConfig() {
+        try {
+            InputStream in = AggregateManagerImpl.class.getClassLoader()
+                    .getResourceAsStream(DEFAULT_BINARY_REFERENCES_CONFIG);
+            if (in == null) {
+                throw new InternalError("Default config not in classpath: " + DEFAULT_BINARY_REFERENCES_CONFIG);
+            }
+            return AbstractVaultFsConfig.load(in, DEFAULT_BINARY_REFERENCES_CONFIG);
         } catch (ConfigurationException e) {
             throw new IllegalArgumentException("Internal error while parsing config.", e);
         } catch (IOException e) {
@@ -439,7 +463,7 @@ public class AggregateManagerImpl implements AggregateManager {
      * Writes the artifact set back to the repository.
      *
      * @param node the artifact node to write
-     * @param reposName the name of the new node or <code>null</code>
+     * @param reposName the name of the new node or {@code null}
      * @param artifacts the artifact to write
      * @return infos about the modifications
      * @throws RepositoryException if an error occurs.
@@ -575,7 +599,7 @@ public class AggregateManagerImpl implements AggregateManager {
                         .append(numPrepared).append(" of ")
                         .append(numCreated).append(" prepared, ")
                         .append(numCollected).append(" collected").toString();
-                log.debug("- {}", str);
+                log.trace("- {}", str);
                 if (tracker != null) {
                     tracker.onMessage(ProgressTrackerListener.Mode.TEXT, "-", str);
                 }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.vault.rcp.impl;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -40,7 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <code>RcpTask</code>...
+ * {@code RcpTask}...
  */
 public class RcpTask implements Runnable {
 
@@ -53,6 +52,7 @@ public class RcpTask implements Runnable {
         NEW,
         RUNNING,
         ENDED,
+        STOPPING,
         STOPPED
     }
     private final RcpTaskManagerImpl mgr;
@@ -63,13 +63,15 @@ public class RcpTask implements Runnable {
 
     private final RepositoryAddress src;
 
+    private final Credentials srcCreds;
+
     private final String dst;
 
     private boolean recursive;
 
-    private File logFile;
-
     private volatile STATE state = STATE.NEW;
+
+    private Exception error = null;
 
     private List<String> excludes = new ArrayList<String>();
 
@@ -79,10 +81,11 @@ public class RcpTask implements Runnable {
 
     private Session dstSession;
 
-    public RcpTask(RcpTaskManagerImpl mgr, RepositoryAddress src, String dst, String id) {
+    public RcpTask(RcpTaskManagerImpl mgr, RepositoryAddress src, Credentials srcCreds, String dst, String id) {
         this.mgr = mgr;
         this.src = src;
         this.dst = dst;
+        this.srcCreds = srcCreds;
         this.id = id == null || id.length() == 0
                 ? UUID.randomUUID().toString()
                 : id;
@@ -107,20 +110,24 @@ public class RcpTask implements Runnable {
 
     public boolean stop() {
         // wait for thread
-        if (state != STATE.STOPPED) {
-            if (state == STATE.RUNNING) {
-                rcp.abort();
-            }
-            state = STATE.STOPPED;
-            log.info("Stopping task {}...", id);
-            if (thread != null) {
+        if (state != STATE.STOPPED && state != STATE.STOPPING) {
+            rcp.abort();
+            int cnt = 3;
+            while (thread != null && thread.isAlive() && cnt-- > 0) {
+                state = STATE.STOPPING;
+                log.info("Stopping task {}...", id);
                 try {
-                    thread.join();
+                    thread.join(10000);
                 } catch (InterruptedException e) {
                     log.error("Error while waiting for thread: " + thread.getName(), e);
                 }
-                thread = null;
+                if (thread.isAlive()) {
+                    // try to interrupt the thread
+                    thread.interrupt();
+                }
             }
+            state = STATE.STOPPED;
+            thread = null;
             if (srcSession != null) {
                 srcSession.logout();
                 srcSession = null;
@@ -171,7 +178,6 @@ public class RcpTask implements Runnable {
             throw e;
         }
         try {
-            Credentials srcCreds = src.getCredentials();
             String wsp = src.getWorkspace();
             if (wsp == null) {
                 return srcRepo.login(srcCreds);
@@ -189,8 +195,14 @@ public class RcpTask implements Runnable {
         log.info("Starting repository copy task id={}. From {} to {}.", new Object[]{
                 id, src.toString(), dst
         });
-        rcp.copy(srcSession, src.getPath(), dstSession, dst, recursive);
-        state = STATE.ENDED;
+        try {
+            rcp.copy(srcSession, src.getPath(), dstSession, dst, recursive);
+            state = STATE.ENDED;
+        } catch (Exception e) {
+            error = e;
+        } finally {
+            state = STATE.ENDED;
+        }
         // todo: notify manager that we ended.
     }
 
@@ -250,6 +262,7 @@ public class RcpTask implements Runnable {
         w.key("totalSize").value(rcp.getTotalSize());
         w.key("currentSize").value(rcp.getCurrentSize());
         w.key("currentNodes").value(rcp.getCurrentNumNodes());
+        w.key("error").value(error == null ? "" : error.toString());
         w.endObject();
         w.endObject();
     }

@@ -18,11 +18,19 @@
 package org.apache.jackrabbit.vault.packaging.integration;
 
 import java.io.IOException;
+import java.security.Principal;
 
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.core.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
@@ -33,6 +41,7 @@ import org.apache.jackrabbit.vault.fs.io.Importer;
 import org.apache.jackrabbit.vault.fs.io.JcrArchive;
 import org.apache.jackrabbit.vault.fs.io.ZipArchive;
 import org.apache.jackrabbit.vault.packaging.PackageException;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,7 +49,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 /**
- * <code>ImportTests</code>...
+ * {@code ImportTests}...
  */
 public class ImportTests extends IntegrationTestBase {
 
@@ -64,6 +73,24 @@ public class ImportTests extends IntegrationTestBase {
         importer.run(archive, rootNode);
 
         assertNodeExists("/tmp/foo/bar/tobi");
+    }
+
+    @Test
+    public void testReimportLess() throws IOException, RepositoryException, ConfigurationException {
+        ZipArchive archive = new ZipArchive(getTempFile("testpackages/tmp.zip"));
+        archive.open(true);
+        Node rootNode = admin.getRootNode();
+        ImportOptions opts = getDefaultOptions();
+        Importer importer = new Importer(opts);
+        importer.run(archive, rootNode);
+
+        assertNodeExists("/tmp/foo/bar/tobi");
+
+        ZipArchive archive2 = new ZipArchive(getTempFile("testpackages/tmp_less.zip"));
+        archive2.open(true);
+        importer.run(archive2, rootNode);
+
+        assertNodeMissing("/tmp/foo/bar/tobi");
     }
 
     @Test
@@ -248,5 +275,72 @@ public class ImportTests extends IntegrationTestBase {
         assertNodeExists("/tmp/package.zip/jcr:content/vlt:definition/thumbnail.png");
     }
 
+    @Test
+    public void testImportWithoutRootAccess() throws IOException, RepositoryException, ConfigurationException {
+        Assume.assumeTrue(!isOak());
+
+        // Create test user
+        UserManager userManager = ((JackrabbitSession)admin).getUserManager();
+        String userId = "user1";
+        String userPwd = "pwd1";
+        User user1 = userManager.createUser(userId, userPwd);
+        Principal principal1 = user1.getPrincipal();
+
+        // Create /tmp folder
+        admin.getRootNode().addNode("tmp");
+        admin.save();
+
+        // Setup test user ACLs such that the
+        // root node is not accessible
+        AccessControlUtils.addAccessControlEntry(admin, null, principal1, new String[]{"jcr:namespaceManagement","jcr:nodeTypeDefinitionManagement"}, true);
+        AccessControlUtils.addAccessControlEntry(admin, "/", principal1, new String[]{"jcr:all"}, false);
+        AccessControlUtils.addAccessControlEntry(admin, "/tmp", principal1, new String[]{"jcr:all"}, true);
+        admin.save();
+
+        // Import with a session associated to the test user
+        Session session = repository.login(new SimpleCredentials(userId, userPwd.toCharArray()));
+        ZipArchive archive = new ZipArchive(getTempFile("testpackages/tmp.zip"));
+        archive.open(true);
+        ImportOptions opts = getDefaultOptions();
+        Importer importer = new Importer(opts);
+        importer.run(archive, session, "/");
+        session.logout();
+
+        assertNodeExists("/tmp/foo/bar/tobi");
+    }
+
+    @Test
+    public void testImportWithoutRootAndTmpAccess() throws IOException, RepositoryException, ConfigurationException {
+        Assume.assumeTrue(!isOak());
+
+        // Create test user
+        UserManager userManager = ((JackrabbitSession)admin).getUserManager();
+        String userId = "user1";
+        String userPwd = "pwd1";
+        User user1 = userManager.createUser(userId, userPwd);
+        Principal principal1 = user1.getPrincipal();
+
+        // Create /tmp folder
+        admin.getRootNode().addNode("tmp").addNode("foo");
+        admin.save();
+
+        // Setup test user ACLs such that the
+        // root node is not accessible
+        AccessControlUtils.addAccessControlEntry(admin, null, principal1, new String[]{"jcr:namespaceManagement","jcr:nodeTypeDefinitionManagement"}, true);
+        AccessControlUtils.addAccessControlEntry(admin, "/", principal1, new String[]{"jcr:all"}, false);
+        AccessControlUtils.addAccessControlEntry(admin, "/tmp/foo", principal1, new String[]{"jcr:all"}, true);
+        admin.save();
+
+        // Import with a session associated to the test user
+        Session session = repository.login(new SimpleCredentials(userId, userPwd.toCharArray()));
+        ZipArchive archive = new ZipArchive(getTempFile("testpackages/tmp_foo.zip"));
+        archive.open(true);
+        ImportOptions opts = getDefaultOptions();
+        Importer importer = new Importer(opts);
+        importer.run(archive, session, "/");
+        session.logout();
+
+        assertNodeExists("/tmp/foo/bar/tobi");
+    }
 
 }

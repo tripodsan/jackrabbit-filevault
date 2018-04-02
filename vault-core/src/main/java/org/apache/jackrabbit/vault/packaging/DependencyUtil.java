@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.slf4j.Logger;
@@ -41,6 +42,7 @@ public class DependencyUtil {
     /**
      * Sorts the packages by the dependency order
      * @param packages packages to sort
+     * @param <T> Type of the collection.
      * @throws CyclicDependencyException if a cyclic dependency is detected
      */
     public static <T extends VaultPackage> void sort(Collection<T> packages) throws CyclicDependencyException {
@@ -59,6 +61,7 @@ public class DependencyUtil {
     /**
      * Sorts the packages by the dependency order
      * @param packages packages to sort
+     * @param <T> Type of the collection.
      * @throws CyclicDependencyException if a cyclic dependency is detected
      * @throws javax.jcr.RepositoryException if an repository error occurs
      */
@@ -119,6 +122,57 @@ public class DependencyUtil {
                 }
             }
         }
+    }
+
+    /**
+     * Checks if any of the dependencies matches the given id
+     * @param deps the list of dependencies
+     * @param id the id
+     * @return {@code true} if matches
+     */
+    public static boolean matches(@Nonnull Dependency[] deps, @Nonnull PackageId id) {
+        for (Dependency dep: deps) {
+            if (dep.matches(id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Adds an exact dependency to the give package if it is not already contained in the given list.
+     * @param deps the original dependencies
+     * @param id the id to add
+     * @return the new array of dependencies, or {@code deps} if nothing changed.
+     */
+    public static Dependency[] addExact(@Nonnull Dependency[] deps, @Nonnull PackageId id) {
+        if (matches(deps, id)) {
+            return deps;
+        }
+        Dependency[] newDeps = new Dependency[deps.length + 1];
+        System.arraycopy(deps, 0, newDeps, 0, deps.length);
+        newDeps[deps.length] = new Dependency(id);
+        return newDeps;
+    }
+
+    /**
+     * Adds an dependency to the give package if it is not already contained in the given list. version ranges are
+     * current ignored.
+     *
+     * @param deps the original dependencies
+     * @param dep the dependency to add
+     * @return the new array of dependencies, or {@code deps} if nothing changed.
+     */
+    public static Dependency[] add(@Nonnull Dependency[] deps, @Nonnull Dependency dep) {
+        for (Dependency d: deps) {
+            if (d.getName().equals(dep.getName()) && d.getGroup().equals(dep.getGroup())) {
+                return deps;
+            }
+        }
+        Dependency[] newDeps = new Dependency[deps.length + 1];
+        System.arraycopy(deps, 0, newDeps, 0, deps.length);
+        newDeps[deps.length] = dep;
+        return newDeps;
     }
 
 }

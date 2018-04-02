@@ -19,6 +19,7 @@ package org.apache.jackrabbit.vault.packaging.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.PatternSyntaxException;
@@ -49,20 +50,18 @@ public class ZipVaultPackage extends PackagePropertiesImpl implements VaultPacka
 
     private static final Logger log = LoggerFactory.getLogger(ZipVaultPackage.class);
 
-    public static final String UNKNOWN_PATH = "/etc/packages/unknown";
-
     private Archive archive;
 
-    protected ZipVaultPackage(File file, boolean isTmpFile) throws IOException {
+    public ZipVaultPackage(File file, boolean isTmpFile) throws IOException {
         this(file, isTmpFile, false);
     }
 
-    protected ZipVaultPackage(File file, boolean isTmpFile, boolean strict)
+    public ZipVaultPackage(File file, boolean isTmpFile, boolean strict)
             throws IOException {
         this(new ZipArchive(file, isTmpFile), strict);
     }
 
-    protected ZipVaultPackage(Archive archive, boolean strict)
+    public ZipVaultPackage(Archive archive, boolean strict)
             throws IOException {
         this.archive = archive;
         if (strict) {
@@ -122,7 +121,7 @@ public class ZipVaultPackage extends PackagePropertiesImpl implements VaultPacka
 
     /**
      * Returns the file this package is based on.
-     * @return the file of this package or <code>null</code>.
+     * @return the file of this package or {@code null}.
      */
     public File getFile() {
         return (archive instanceof ZipArchive) ? ((ZipArchive) archive).getFile() : null;
@@ -204,7 +203,7 @@ public class ZipVaultPackage extends PackagePropertiesImpl implements VaultPacka
             }
         }
 
-        return new InstallContextImpl(session.getRootNode(), this, importer, hooks);
+        return new InstallContextImpl(session, "/", this, importer, hooks);
     }
 
     /**
@@ -221,15 +220,17 @@ public class ZipVaultPackage extends PackagePropertiesImpl implements VaultPacka
     protected void extract(InstallContextImpl ctx,
                            List<String> subPackages)
             throws RepositoryException, PackageException {
-        log.info("Extracting {}", getId());
+        log.debug("Extracting {}", getId());
         InstallHookProcessor hooks = ctx.getHooks();
         Importer importer = ctx.getImporter();
         try {
             if (!hooks.execute(ctx)) {
+                ctx.setPhase(InstallContext.Phase.PREPARE_FAILED);
+                hooks.execute(ctx);
                 throw new PackageException("Import aborted during prepare phase.");
             }
             try {
-                importer.run(archive, ctx.getImportRoot());
+                importer.run(archive, ctx.getSession(), ctx.getImportRootPath());
             } catch (Exception e) {
                 log.error("Error during install.", e);
                 ctx.setPhase(InstallContext.Phase.INSTALL_FAILED);
@@ -250,7 +251,7 @@ public class ZipVaultPackage extends PackagePropertiesImpl implements VaultPacka
         if (subPackages != null) {
             subPackages.addAll(importer.getSubPackages());
         }
-        log.info("Extracting {} completed.", getId());
+        log.debug("Extracting {} completed.", getId());
     }
 
     @Override

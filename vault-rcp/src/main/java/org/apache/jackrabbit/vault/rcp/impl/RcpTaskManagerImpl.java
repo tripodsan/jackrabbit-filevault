@@ -20,20 +20,23 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
+import javax.jcr.Credentials;
+
 import org.apache.jackrabbit.vault.fs.api.RepositoryAddress;
 import org.apache.sling.commons.classloader.DynamicClassLoaderManager;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <code>RcpTaskManager</code>...
+ * {@code RcpTaskManager}...
  */
-@Component
-@Service(value = RcpTaskManager.class)
+@Component(
+        immediate = true,
+        property = {"service.vendor=The Apache Software Foundation"}
+)
 public class RcpTaskManagerImpl implements RcpTaskManager {
 
     /**
@@ -55,15 +58,19 @@ public class RcpTaskManagerImpl implements RcpTaskManager {
         log.info("RcpTaskManager deactivated. Stopping running tasks...done.");
     }
 
+    public RcpTask getTask(String taskId) {
+        return tasks.get(taskId);
+    }
+
     public Map<String, RcpTask> getTasks() {
         return Collections.unmodifiableMap(tasks);
     }
 
-    public RcpTask addTask(RepositoryAddress src, String dst, String id) {
+    public RcpTask addTask(RepositoryAddress src, Credentials srcCreds, String dst, String id) {
         if (id != null && id.length() > 0 && tasks.containsKey(id)) {
             throw new IllegalArgumentException("Task with id " + id + " already exists.");
         }
-        RcpTask task = new RcpTask(this, src, dst, id);
+        RcpTask task = new RcpTask(this, src, srcCreds, dst, id);
         tasks.put(task.getId(), task);
         return task;
     }

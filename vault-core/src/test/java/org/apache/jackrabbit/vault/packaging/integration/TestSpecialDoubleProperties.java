@@ -42,7 +42,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 /**
- * <code>TestEmptyPackage</code>...
+ * {@code TestEmptyPackage}...
  */
 public class TestSpecialDoubleProperties extends IntegrationTestBase {
 
@@ -62,7 +62,7 @@ public class TestSpecialDoubleProperties extends IntegrationTestBase {
         filter.add(set1);
         inf.setFilter(filter);
         Properties props = new Properties();
-        props.setProperty(VaultPackage.NAME_GROUP, "adobe/test");
+        props.setProperty(VaultPackage.NAME_GROUP, "apache/test");
         props.setProperty(VaultPackage.NAME_NAME, "test-package");
         inf.setProperties(props);
 

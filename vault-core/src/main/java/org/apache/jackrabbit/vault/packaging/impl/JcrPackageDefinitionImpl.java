@@ -19,16 +19,21 @@ package org.apache.jackrabbit.vault.packaging.impl;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.vault.fs.Mounter;
@@ -68,21 +73,24 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
     /**
      * underlying node
      */
+    @Nonnull
     private Node defNode;
 
+    @Nullable
     private String userId;
 
     /**
      * Creates a new definition base on the underlying node.
      * @param definitionNode the definition node
      */
-    public JcrPackageDefinitionImpl(Node definitionNode) {
+    public JcrPackageDefinitionImpl(@Nonnull Node definitionNode) {
         this.defNode = definitionNode;
     }
 
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     public Node getNode() {
         return defNode;
     }
@@ -101,6 +109,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
                 log.warn("Unable to calculate installation path. setting to 'unknown'");
                 path = "unknown";
             }
+            //noinspection deprecation
             return new PackageId(path, version);
         } else {
             return new PackageId(group, name, version);
@@ -110,7 +119,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
     /**
      * Writes the properties derived from the package id to the content
      * @param id the package id
-     * @param autoSave if <code>true</code> the changes are saved automatically.
+     * @param autoSave if {@code true} the changes are saved automatically.
      */
     public void setId(PackageId id, boolean autoSave) {
         set(PN_GROUP, id.getGroup(), false);
@@ -122,7 +131,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
      * Returns the installation path. If the path is not defined in the definition,
      * the grand-parent of the underlying node is returned. if the path would end
      * with .zip or .jar, the extension is truncated.
-     * @return the installation path or <code>null</code> if it cannot be determined.
+     * @return the installation path or {@code null} if it cannot be determined.
      */
     private String getInstallationPath() {
         try {
@@ -134,7 +143,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
             int idx = path.lastIndexOf('.');
             if (idx > 0) {
                 String ext = path.substring(idx);
-                if (ext.equalsIgnoreCase(".zip") || ext.equalsIgnoreCase(".jar")) {
+                if (".zip".equalsIgnoreCase(ext) || ".jar".equalsIgnoreCase(ext)) {
                     path = path.substring(0, idx);
                 }
             }
@@ -204,7 +213,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
         if (!force && isUnwrapped()) {
             return;
         }
-        log.info("unwrapping package {}", pack == null ? "(unknown)" : pack.getId());
+        log.debug("unwrapping package {}", pack == null ? "(unknown)" : pack.getId());
         long now = System.currentTimeMillis();
         unwrap(pack == null ? null : pack.getArchive(), autoSave);
         if (log.isDebugEnabled()) {
@@ -221,31 +230,30 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
             MetaInf inf = archive.getMetaInf();
             // explode definition if present
             if (inf.hasDefinition()) {
-                extractDefinition(archive, false);
+                extractDefinition(archive);
             }
             if (inf.getFilter() != null) {
-                writeFilter(inf.getFilter(), false);
+                JcrWorkspaceFilter.saveFilter(inf.getFilter(), defNode, false);
             }
             if (inf.getProperties() != null) {
-                writeProperties(inf.getProperties(), false);
+                writeProperties(inf.getProperties());
             }
         }
         defNode.setProperty("unwrapped", (Value) null);
         defNode.setProperty(PN_LAST_UNWRAPPED, Calendar.getInstance());
         if (autoSave) {
-            defNode.save();
+            defNode.getSession().save();
         }
     }
 
     /**
-     * Extracts the content represenatation of a definition store the given
+     * Extracts the content representation of a definition store the given
      * package to this node.
      *
      * @param packArchive the archive of the package
-     * @param autoSave saves changed automatically if <code>true</code>
      * @throws RepositoryException if an error occurs
      */
-    private void extractDefinition(Archive packArchive, boolean autoSave)
+    private void extractDefinition(Archive packArchive)
             throws RepositoryException {
         Archive archive = null;
         try {
@@ -273,17 +281,14 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
         filter.add(new PathFilterSet(rootPath));
 
         try {
-            Node rootNode = session.getNode(rootPath);
-            String defPath = defNode.getPath().substring(1);
-
             Importer importer = new Importer();
             // disable saving
             importer.getOptions().setAutoSaveThreshold(Integer.MAX_VALUE);
             importer.getOptions().setFilter(filter);
-            importer.run(archive, rootNode);
+            importer.run(archive, session, rootPath);
 
             // refresh defNode if it was replaced during unwrap
-            defNode = session.getRootNode().getNode(defPath);
+            defNode = session.getNode(rootPath);
 
             // set props again
             if (lastUnpacked != null) {
@@ -291,9 +296,6 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
             }
             if (lastUnpackedBy != null) {
                 defNode.setProperty(PN_LAST_UNPACKED_BY, lastUnpackedBy);
-            }
-            if (autoSave) {
-                defNode.save();
             }
         } catch (Exception e) {
             log.error("Unable to extract definition: {}", e.toString());
@@ -307,13 +309,19 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
         try {
             if (defNode.hasProperty(PN_DEPENDENCIES)) {
                 Property p = defNode.getProperty(PN_DEPENDENCIES);
-                List<Dependency> deps = new LinkedList<Dependency>();
+                List<Dependency> deps = new LinkedList<>();
                 if (p.getDefinition().isMultiple()) {
                     for (Value v: p.getValues()) {
-                        deps.add(Dependency.fromString(v.getString()));
+                        Dependency dep = Dependency.fromString(v.getString());
+                        if (dep != null) {
+                            deps.add(dep);
+                        }
                     }
                 } else {
-                    deps.add(Dependency.fromString(p.getString()));
+                    Dependency dep = Dependency.fromString(p.getString());
+                    if (dep != null) {
+                        deps.add(dep);
+                    }
                 }
                 return deps.toArray(new Dependency[deps.size()]);
             }
@@ -324,10 +332,31 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public void setDependencies(@Nonnull Dependency[] dependencies, boolean autoSave) {
+        try {
+            final List<Value> values = new ArrayList<>(dependencies.length);
+            final ValueFactory fac = defNode.getSession().getValueFactory();
+            for (Dependency d: dependencies) {
+                if (d != null) {
+                    values.add(fac.createValue(d.toString()));
+                }
+            }
+            defNode.setProperty(PN_DEPENDENCIES, values.toArray(new Value[values.size()]));
+            if (autoSave) {
+                defNode.getSession().save();
+            }
+        } catch (RepositoryException e) {
+            log.error("Error during setDependencies()", e);
+        }
+    }
+
+    /**
      * Load the given properties from the content
      * @param props the properties to load
      */
-    protected void loadProperties(Properties props) {
+    private void loadProperties(Properties props) {
         PackageId id = getId();
         setProperty(props, VaultPackage.NAME_VERSION, id.getVersionString());
         setProperty(props, VaultPackage.NAME_NAME, id.getName());
@@ -378,9 +407,8 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
     /**
      * Writes the given properties to the content.
      * @param props the properties
-     * @param autoSave saves the changes automatically if <code>true</code>
      */
-    protected void writeProperties(Properties props, boolean autoSave) {
+    private void writeProperties(Properties props) {
         try {
             // sanitize lastModBy property due to former bug that used the
             // lastMod value
@@ -404,12 +432,13 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
                 defNode.getProperty(PN_DEPENDENCIES).remove();
             }
             if (deps != null) {
-                Dependency[] d = Dependency.parse(deps);
-                String[] ds = new String[d.length];
-                for (int i=0; i<ds.length; i++) {
-                    ds[i] = d[i].toString();
+                List<String> ds = new ArrayList<>();
+                for (Dependency d: Dependency.parse(deps)) {
+                    if (d != null) {
+                        ds.add(d.toString());
+                    }
                 }
-                defNode.setProperty(PN_DEPENDENCIES, ds);
+                defNode.setProperty(PN_DEPENDENCIES, ds.toArray(new String[ds.size()]));
             }
             defNode.setProperty(PN_DESCRIPTION, props.getProperty(VaultPackage.NAME_DESCRIPTION));
             defNode.setProperty(PN_REQUIRES_ROOT, Boolean.valueOf(props.getProperty(VaultPackage.NAME_REQUIRES_ROOT, "false")));
@@ -423,9 +452,6 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
             defNode.setProperty(PN_AC_HANDLING, props.getProperty(VaultPackage.NAME_AC_HANDLING));
             defNode.setProperty(PN_CND_PATTERN, props.getProperty(VaultPackage.NAME_CND_PATTERN));
             defNode.setProperty(PN_DISABLE_INTERMEDIATE_SAVE, props.getProperty(VaultPackage.NAME_DISABLE_INTERMEDIATE_SAVE));
-            if (autoSave) {
-                defNode.save();
-            }
         } catch (RepositoryException e) {
             log.error("error while saving properties.", e);
         }
@@ -434,7 +460,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
     /**
      * Internal method that converts a ISO date to a calendar.
      * @param iso the iso8601 formatted date
-     * @return the calendar or <code>null</code>
+     * @return the calendar or {@code null}
      */
     private static Calendar getDate(String iso) {
         if (iso == null) {
@@ -457,7 +483,9 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
     public void dumpCoverage(ProgressTrackerListener listener)
             throws RepositoryException {
         WorkspaceFilter filter = getMetaInf().getFilter();
-        filter.dumpCoverage(defNode.getSession(), listener, false);
+        if (filter != null) {
+            filter.dumpCoverage(defNode.getSession(), listener, false);
+        }
     }
 
     /**
@@ -547,7 +575,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
                     now == null ? Calendar.getInstance() : now);
             defNode.setProperty(PN_LASTMODIFIED_BY, getUserId());
             if (autoSave) {
-                defNode.save();
+                defNode.getSession().save();
             }
         } catch (RepositoryException e) {
             log.error("Error during touch()", e);
@@ -573,15 +601,14 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
      * - updates the lastUnwrapped(by) properties
      * - clears the unwrapped property
      *
-     * @param now the date or <code>null</code>
-     * @param autoSave saves the changes automatically if <code>true</code>
+     * @param now the date or {@code null}
      */
-    public void sealForAssembly(Calendar now, boolean autoSave) {
+    void sealForAssembly(Calendar now) {
         try {
             if (now == null) {
                 now = Calendar.getInstance();
             }
-            set(PN_BUILD_COUNT, String.valueOf(getBuildCount() + 1), autoSave);
+            defNode.setProperty(PN_BUILD_COUNT, String.valueOf(getBuildCount() + 1));
             defNode.setProperty(PN_CREATED, now);
             defNode.setProperty(PN_CREATED_BY, getUserId());
             defNode.setProperty(PN_LAST_WRAPPED, now);
@@ -589,7 +616,8 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
             defNode.setProperty(PN_LAST_UNWRAPPED, now);
             defNode.setProperty(PN_LAST_UNWRAPPED_BY, getUserId());
             defNode.setProperty("unwrapped", (Value) null);
-            touch(now, autoSave);
+            touch(now, false);
+            defNode.getSession().save();
         } catch (RepositoryException e) {
             log.error("Error during sealForAssembly()", e);
         }
@@ -602,10 +630,9 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
      * - updates the lastUnwrapped(by) properties
      * - clears the unwrapped property
      *
-     * @param now the date or <code>null</code>
-     * @param autoSave saves the changes automatically if <code>true</code>
+     * @param now the date or {@code null}
      */
-    public void sealForRewrap(Calendar now, boolean autoSave) {
+    void sealForRewrap(Calendar now) {
         try {
             if (now == null) {
                 now = Calendar.getInstance();
@@ -621,9 +648,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
             defNode.setProperty(PN_LAST_UNWRAPPED_BY, getUserId());
             defNode.setProperty("unwrapped", (Value) null);
             touch(now, false);
-            if (autoSave) {
-                defNode.save();
-            }
+            defNode.getSession().save();
         } catch (RepositoryException e) {
             log.error("Error during sealForRewrap()", e);
         }
@@ -631,17 +656,12 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
 
     /**
      * Touches the lastUnpacked (i.e. installed) properties.
-     * @param now the date or <code>null</code>
-     * @param autoSave saves the changes automatically if <code>true</code>
      */
-    public void touchLastUnpacked(Calendar now, boolean autoSave) {
+    void touchLastUnpacked() {
         try {
-            defNode.setProperty(PN_LAST_UNPACKED,
-                    now == null ? Calendar.getInstance() : now);
+            defNode.setProperty(PN_LAST_UNPACKED, Calendar.getInstance());
             defNode.setProperty(PN_LAST_UNPACKED_BY, getUserId());
-            if (autoSave) {
-                defNode.save();
-            }
+            defNode.getSession().save();
         } catch (RepositoryException e) {
             log.error("Error during touchLastUnpacked()", e);
         }
@@ -649,9 +669,9 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
 
     /**
      * Clears the last unpacked properties.
-     * @param autoSave saves the changes automatically if <code>true</code>
+     * @param autoSave saves the changes automatically if {@code true}
      */
-    public void clearLastUnpacked(boolean autoSave) {
+    void clearLastUnpacked(boolean autoSave) {
         try {
             if (defNode.hasProperty(PN_LAST_UNPACKED)) {
                 defNode.getProperty(PN_LAST_UNPACKED).remove();
@@ -660,7 +680,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
                 defNode.getProperty(PN_LAST_UNPACKED_BY).remove();
             }
             if (autoSave) {
-                defNode.save();
+                defNode.getSession().save();
             }
         } catch (RepositoryException e) {
             log.error("Error during clearLastUnpacked()", e);
@@ -792,7 +812,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
      */
     public MetaInf getMetaInf() throws RepositoryException {
         DefaultMetaInf inf = new DefaultMetaInf();
-        inf.setFilter(readFilter());
+        inf.setFilter(JcrWorkspaceFilter.loadFilter(defNode));
 
         // add properties
         Properties props = new Properties();
@@ -803,45 +823,23 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
     }
 
     /**
-     * Loads the workspace filter from the definition
-     * @return the workspace filter
-     * @throws RepositoryException if an error occurs
-     */
-    public WorkspaceFilter readFilter() throws RepositoryException {
-        return JcrWorkspaceFilter.loadFilter(defNode);
-    }
-
-    /**
-     * Writes the workspace filter to the definition
-     * @param filter the filter
-     * @param save automatically save the changes if <code>true</code>
-     * @throws RepositoryException if an error occurs
-     */
-    public void writeFilter(WorkspaceFilter filter, boolean save)
-            throws RepositoryException {
-        JcrWorkspaceFilter.saveFilter(filter, defNode, save);
-    }
-
-    /**
-     * Returns a export processor that add the inlines definition package to
+     * Returns a export processor that adds the inline definition package to
      * the exporter.
      * @return the export processor for this definition
      */
-    public ExportPostProcessor getInjectProcessor() {
+    ExportPostProcessor getInjectProcessor() {
         return new InjectProcessor(defNode);
     }
 
     /**
      * Returns the user id of the current session. if the userid provided by
-     * the session is <code>null</code>, "system" is returned.
+     * the session is {@code null}, "system" is returned.
      * @return the user id
      */
     private String getUserId() {
         if (userId == null) {
             try {
-                if (defNode != null) {
-                    userId = defNode.getSession().getUserID();
-                }
+                userId = defNode.getSession().getUserID();
             } catch (RepositoryException e) {
                 // ignore
             }
@@ -853,10 +851,41 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
     }
 
     /**
+     * Returns the list of sub packages set on the definition node via the {@link #PN_SUB_PACKAGES} property.
+     * @return the list of sub package ids
+     * @throws RepositoryException if an error occurs.
+     */
+    List<PackageId> getSubPackages() throws RepositoryException {
+        LinkedList<PackageId> subPackages = new LinkedList<>();
+        if (defNode.hasProperty(PN_SUB_PACKAGES)) {
+            Value[] subIds = defNode.getProperty(PN_SUB_PACKAGES).getValues();
+            for (Value v : subIds) {
+                // reverse installation order
+                subPackages.add(PackageId.fromString(v.getString()));
+            }
+        }
+        return subPackages;
+    }
+
+    /**
+     * Sets the package Ids to the definition node
+     * @param subPackageIds the package Ids
+     * @throws RepositoryException if an error occurs
+     */
+    void setSubPackages(Collection<PackageId> subPackageIds) throws RepositoryException {
+        String[] subIds = new String[subPackageIds.size()];
+        int i =0;
+        for (PackageId subId: subPackageIds) {
+            subIds[i++] = subId.toString();
+        }
+        defNode.setProperty(PN_SUB_PACKAGES, subIds);
+    }
+
+    /**
      * Returns a new state object that can be used to save modification information.
      * @return a new state object.
      */
-    protected State getState() {
+    public State getState() {
         return new State().load(this);
     }
 
@@ -864,11 +893,11 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
      * Sets the information stored in the state object back to this definition.
      * @param state the sate
      */
-    protected void setState(State state) {
+    public void setState(State state) {
         state.save(this);
     }
 
-    protected static class State {
+    public static class State {
 
         private final String[] PROPERTY_NAMES = {
                 PN_LAST_UNPACKED,    PN_LAST_UNWRAPPED,    PN_LASTMODIFIED,    PN_LAST_WRAPPED,
@@ -891,7 +920,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
             return this;
         }
 
-        private State save(JcrPackageDefinitionImpl def) {
+        private void save(JcrPackageDefinitionImpl def) {
             for (int i=0; i<PROPERTY_NAMES.length; i++) {
                 if (values[i] != null) {
                     try {
@@ -901,7 +930,6 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
                     }
                 }
             }
-            return this;
         }
     }
 
@@ -945,7 +973,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
             } finally {
                 try {
                     // revert removed properties
-                    defNode.refresh(false);
+                    defNode.getSession().refresh(false);
                 } catch (RepositoryException e) {
                     // ignore
                 }

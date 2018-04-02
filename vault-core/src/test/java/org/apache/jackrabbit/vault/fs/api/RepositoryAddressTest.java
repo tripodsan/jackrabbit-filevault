@@ -17,10 +17,14 @@
 
 package org.apache.jackrabbit.vault.fs.api;
 
+import javax.jcr.SimpleCredentials;
+
+import org.apache.jackrabbit.vault.util.Text;
+
 import junit.framework.TestCase;
 
 /**
- * <code>RepAddrTest</code>...
+ * {@code RepAddrTest}...
  *
  */
 public class RepositoryAddressTest extends TestCase {
@@ -364,4 +368,37 @@ public class RepositoryAddressTest extends TestCase {
         assertEquals("toString", "/-/jcr:root/foo/bar", ra.toString());
     }
 
+    public void testCopyIsSame() throws Exception {
+        String uri = "http://admin:admin@localhost:4502/crx/server/-/jcr:root/content/dam/my-site";
+        RepositoryAddress ra = new RepositoryAddress(uri);
+        RepositoryAddress ra1 = new RepositoryAddress(ra.getURI());
+        assertEquals("uri", uri, ra1.getURI().toString());
+    }
+
+    public void testToStringHttpWithUserInfo() throws Exception {
+        String creds = "foo:bar";
+        RepositoryAddress ra = new RepositoryAddress("http://" + creds + "@localhost:8080/-/jcr:root");
+
+        String toString = ra.toString();
+        assertFalse("toString should not contain credentials [" + toString + "]", toString.contains(creds));
+    }
+
+    public void testToStringHttpWithUserInfoEscaped() throws Exception {
+        String creds = "my-user:" + Text.escape("p!@#$%^&*ass");
+        RepositoryAddress ra = new RepositoryAddress("http://" + creds + "@localhost:8080/-/jcr:root");
+
+        String toString = ra.toString();
+        assertFalse("toString should not contain credentials [" + toString + "]", toString.contains(creds));
+    }
+
+    public void testGetCredentials() throws Exception {
+        String user = "my-user";
+        String password = "p!@#$%^&*ass";
+        String creds = Text.escape(user + ":" + password);
+        RepositoryAddress ra = new RepositoryAddress("http://" + creds + "@localhost:8080/-/jcr:root");
+
+        SimpleCredentials sc = (SimpleCredentials) ra.getCredentials();
+        assertEquals("userId", user, sc.getUserID());
+        assertEquals("password", password, new String(sc.getPassword()));
+    }
 }

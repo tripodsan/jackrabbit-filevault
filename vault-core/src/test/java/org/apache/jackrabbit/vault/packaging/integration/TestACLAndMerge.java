@@ -18,37 +18,26 @@
 package org.apache.jackrabbit.vault.packaging.integration;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.core.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.fs.io.ImportOptions;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * AC Handling and import mode tests
@@ -92,17 +81,13 @@ public class TestACLAndMerge extends IntegrationTestBase {
     public void testACAndMerge() throws RepositoryException, IOException, PackageException {
         assertNodeMissing("/testroot");
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/mode_ac_test_a.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_a.zip");
 
         // test if nodes and ACLs of first package exist
         assertNodeExists("/testroot/node_a");
         assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
 
-        pack = packMgr.upload(getStream("testpackages/mode_ac_test_b.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_b.zip");
 
         // test if nodes and ACLs of 2nd package exist
         assertNodeExists("/testroot/node_a");
@@ -120,23 +105,64 @@ public class TestACLAndMerge extends IntegrationTestBase {
     public void testACMerge() throws RepositoryException, IOException, PackageException {
         assertNodeMissing("/testroot");
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/mode_ac_test_a.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_a.zip");
 
         // test if nodes and ACLs of first package exist
         assertNodeExists("/testroot/node_a");
         assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
 
-        pack = packMgr.upload(getStream("testpackages/mode_ac_test_b_merge.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_b_merge.zip");
 
         // test if nodes and ACLs of 2nd package exist
         assertNodeExists("/testroot/node_a");
         assertNodeExists("/testroot/node_b");
         assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
         assertPermission("/testroot/secured", true, new String[]{"jcr:read"}, "everyone", "*/foo/*");
+    }
+
+    /**
+     * Installs 2 packages with the same ACL. the later packages has a sub package with a different AC handling.
+     * See JCRVLT-107.
+     */
+    @Test
+    public void testACMergeSubpackage() throws RepositoryException, IOException, PackageException {
+        assertNodeMissing("/testroot");
+
+        extractVaultPackage("testpackages/mode_ac_test_a.zip");
+
+        // test if nodes and ACLs of first package exist
+        assertNodeExists("/testroot/node_a");
+        assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
+
+        installPackage("testpackages/mode_ac_subpackage.zip");
+
+        // test if nodes and ACLs of 2nd package exist
+        assertNodeExists("/testroot/node_a");
+        assertNodeExists("/testroot/node_b");
+        assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
+        assertPermission("/testroot/secured", true, new String[]{"jcr:read"}, "everyone", "*/foo/*");
+    }
+
+    /**
+     * Installs 2 packages with the same ACE. the later packages has AC Handling MERGE and should overwrite the
+     * existing ACL.
+     */
+    @Test
+    public void testACMerge4() throws RepositoryException, IOException, PackageException {
+        assertNodeMissing("/testroot");
+
+        extractVaultPackage("testpackages/mode_ac_test_b2_merge.zip");
+
+        // test if nodes and ACLs of first package exist
+        assertNodeExists("/testroot/node_a");
+        assertPermission("/testroot/secured", true, new String[]{"jcr:read", "jcr:write"}, "everyone", null);
+
+        extractVaultPackage("testpackages/mode_ac_test_b3_merge.zip");
+
+        // test if nodes and ACLs of 2nd package exist
+        assertNodeExists("/testroot/node_a");
+        assertNodeExists("/testroot/node_b");
+        assertPermission("/testroot/secured", true, new String[]{"jcr:read", "jcr:versionManagement"}, "everyone", null);
     }
 
     /**
@@ -147,17 +173,13 @@ public class TestACLAndMerge extends IntegrationTestBase {
     public void testACMerge2() throws RepositoryException, IOException, PackageException {
         assertNodeMissing("/testroot");
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/mode_ac_test_a.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_a.zip");
 
         // test if nodes and ACLs of first package exist
         assertNodeExists("/testroot/node_a");
         assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
 
-        pack = packMgr.upload(getStream("testpackages/mode_ac_test_c_merge.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_c_merge.zip");
 
         // test if nodes and ACLs of 2nd package exist
         assertNodeExists("/testroot/node_a");
@@ -174,17 +196,13 @@ public class TestACLAndMerge extends IntegrationTestBase {
     public void testACMerge3() throws RepositoryException, IOException, PackageException {
         assertNodeMissing("/testroot");
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/mode_ac_test_a.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_a.zip");
 
         // test if nodes and ACLs of first package exist
         assertNodeExists("/testroot/node_a");
         assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
 
-        pack = packMgr.upload(getStream("testpackages/mode_ac_test_d.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_d.zip");
 
         // test if nodes and ACLs of 2nd package exist
         assertNodeExists("/testroot/node_a");
@@ -201,19 +219,15 @@ public class TestACLAndMerge extends IntegrationTestBase {
     public void testACMergePreserve2() throws RepositoryException, IOException, PackageException {
         assertNodeMissing("/testroot");
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/mode_ac_test_a.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_a.zip");
 
         // test if nodes and ACLs of first package exist
         assertNodeExists("/testroot/node_a");
         assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
 
-        pack = packMgr.upload(getStream("testpackages/mode_ac_test_d.zip"), false);
-        assertNotNull(pack);
         ImportOptions opts = getDefaultOptions();
         opts.setAccessControlHandling(AccessControlHandling.MERGE_PRESERVE);
-        pack.install(opts);
+        extractVaultPackage("testpackages/mode_ac_test_d.zip", opts);
 
         // test if nodes and ACLs of 2nd package exist
         assertNodeExists("/testroot/node_a");
@@ -232,17 +246,13 @@ public class TestACLAndMerge extends IntegrationTestBase {
     public void testACMergePreserve() throws RepositoryException, IOException, PackageException {
         assertNodeMissing("/testroot");
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/mode_ac_test_a.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_a.zip");
 
         // test if nodes and ACLs of first package exist
         assertNodeExists("/testroot/node_a");
         assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
 
-        pack = packMgr.upload(getStream("testpackages/mode_ac_test_b_preserve.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_b_preserve.zip");
 
         // test if nodes and ACLs of 2nd package exist
         assertNodeExists("/testroot/node_a");
@@ -250,6 +260,53 @@ public class TestACLAndMerge extends IntegrationTestBase {
         assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
         assertPermissionMissing("/testroot/secured", true, new String[]{"jcr:read"}, "everyone", "*/foo/*");
 
+    }
+
+    /**
+     * Installs a second package with removed mix:accesscontrolable and different nodetype but with ac merge_preserve.
+     */
+    @Test
+    public void testACMergePreserveNodeType() throws RepositoryException, IOException, PackageException {
+        assertNodeMissing("/testroot");
+
+        extractVaultPackage("testpackages/mode_ac_test_a.zip");
+
+        // test if nodes and ACLs of first package exist
+        assertNodeExists("/testroot/node_a");
+        assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
+        assertProperty("/testroot/secured/jcr:primaryType", "nt:folder");
+
+        extractVaultPackage("testpackages/mode_ac_test_unsecured_nodetype.zip");
+
+        // test if permissions remain and pt changed
+        assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
+        assertProperty("/testroot/secured/jcr:primaryType", "sling:Folder");
+    }
+
+    /**
+     * Installs a second package with removed mix:accesscontrolable and different uuid but with ac merge_preserve.
+     */
+    @Test
+    @Ignore("JCRVLT-127")
+    public void testACMergePreserveUUID() throws RepositoryException, IOException, PackageException {
+        assertNodeMissing("/testroot");
+
+        JcrPackage pack = packMgr.upload(getStream("testpackages/mode_ac_test_a_uuid.zip"), false);
+        assertNotNull(pack);
+        pack.install(getDefaultOptions());
+
+        // test if nodes and ACLs of first package exist
+        assertNodeExists("/testroot/node_a");
+        assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
+        assertProperty("/testroot/secured/jcr:uuid", "88292ab3-40da-44aa-aba2-0be0019cddc1");
+
+        pack = packMgr.upload(getStream("testpackages/mode_ac_test_unsecured_uuid.zip"), false);
+        assertNotNull(pack);
+        pack.install(getDefaultOptions());
+
+        // test if permissions remain and uuid changed
+        assertPermission("/testroot/secured", false, new String[]{"jcr:all"}, "everyone", null);
+        assertProperty("/testroot/secured/jcr:uuid", "98292ab3-40da-44aa-aba2-0be0019cddc2");
     }
 
     /**
@@ -282,11 +339,9 @@ public class TestACLAndMerge extends IntegrationTestBase {
     }
 
     private void doOrderTest(AccessControlHandling ac) throws Exception {
-        JcrPackage pack = packMgr.upload(getStream("testpackages/mode_ac_test_e.zip"), true);
-        assertNotNull(pack);
         ImportOptions opts = getDefaultOptions();
         opts.setAccessControlHandling(ac);
-        pack.install(opts);
+        extractVaultPackage("testpackages/mode_ac_test_e.zip", opts);
 
         // test if nodes and ACLs of first package exist
         assertNodeExists("/testroot/node_e");
@@ -307,9 +362,7 @@ public class TestACLAndMerge extends IntegrationTestBase {
         Assume.assumeTrue(isOak());
         assertNodeMissing("/testroot");
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/oak_ac_content_test.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/oak_ac_content_test.zip");
 
         // test if nodes and ACLs of first package exist
         assertNodeExists("/testroot/node_a");
@@ -330,9 +383,7 @@ public class TestACLAndMerge extends IntegrationTestBase {
     public void testMissingUser() throws RepositoryException, IOException, PackageException {
         assertNodeMissing("/testroot");
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/mode_ac_test_lateuser.zip"), false);
-        assertNotNull(pack);
-        pack.install(getDefaultOptions());
+        extractVaultPackage("testpackages/mode_ac_test_lateuser.zip");
 
         // test if nodes and ACLs of first package exist
         assertNodeExists("/testroot/node_d");
@@ -347,21 +398,17 @@ public class TestACLAndMerge extends IntegrationTestBase {
     public void testRepoACL() throws RepositoryException, IOException, PackageException {
         removeRepoACL();
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/repo_policy.zip"), false);
-        assertNotNull(pack);
         ImportOptions opts = getDefaultOptions();
         opts.setAccessControlHandling(AccessControlHandling.OVERWRITE);
-        pack.install(opts);
+        extractVaultPackage("testpackages/repo_policy.zip", opts);
 
         // test if nodes and ACLs of first package exist
         assertPermission(null, false, new String[]{"jcr:all"}, "everyone", null);
         assertPermission(null, false, new String[]{"jcr:all"}, "testuser", null);
 
-        pack = packMgr.upload(getStream("testpackages/repo_no_policy.zip"), true);
-        assertNotNull(pack);
         opts = getDefaultOptions();
         opts.setAccessControlHandling(AccessControlHandling.OVERWRITE);
-        pack.install(opts);
+        extractVaultPackage("testpackages/repo_no_policy.zip", opts);
 
         assertPermissionMissing(null, false, new String[]{"jcr:all"}, "everyone", null);
         assertPermissionMissing(null, false, new String[]{"jcr:all"}, "testuser", null);
@@ -379,11 +426,9 @@ public class TestACLAndMerge extends IntegrationTestBase {
         addACL(null, true, new String[]{"jcr:all"}, "testuser1");
         assertPermission(null, true, new String[]{"jcr:all"}, "testuser1", null);
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/repo_policy.zip"), false);
-        assertNotNull(pack);
         ImportOptions opts = getDefaultOptions();
         opts.setAccessControlHandling(AccessControlHandling.MERGE);
-        pack.install(opts);
+        extractVaultPackage("testpackages/repo_policy.zip", opts);
 
         // test if nodes and ACLs of first package exist
         assertPermission(null, false, new String[]{"jcr:all"}, "everyone", null);
@@ -402,11 +447,9 @@ public class TestACLAndMerge extends IntegrationTestBase {
         addACL(null, true, new String[]{"jcr:all"}, "testuser1");
         assertPermission(null, true, new String[]{"jcr:all"}, "testuser1", null);
 
-        JcrPackage pack = packMgr.upload(getStream("testpackages/repo_policy.zip"), false);
-        assertNotNull(pack);
         ImportOptions opts = getDefaultOptions();
         opts.setAccessControlHandling(AccessControlHandling.MERGE_PRESERVE);
-        pack.install(opts);
+        extractVaultPackage("testpackages/repo_policy.zip", opts);
 
         // test if nodes and ACLs of first package exist
         assertPermission(null, false, new String[]{"jcr:all"}, "everyone", null);
@@ -414,132 +457,16 @@ public class TestACLAndMerge extends IntegrationTestBase {
         assertPermission(null, true, new String[]{"jcr:all"}, "testuser1", null);
     }
 
+    /**
+     * Installs a package a the root level (JCRVLT-75)
+     */
+    @Test
+    public void testRootACL() throws RepositoryException, IOException, PackageException {
+        ImportOptions opts = getDefaultOptions();
+        opts.setAccessControlHandling(AccessControlHandling.OVERWRITE);
+        extractVaultPackage("testpackages/root_policy.zip", opts);
 
-    protected void assertPermissionMissing(String path, boolean allow, String[] privs, String name, String globRest)
-            throws RepositoryException {
-        Map<String, String[]> restrictions = new HashMap<String, String[]>();
-        if (globRest != null) {
-            restrictions.put("rep:glob", new String[]{globRest});
-        }
-        if (hasPermission(path, allow, privs, name, restrictions) >= 0) {
-            fail("Expected permission should not exist on path " + path);
-        }
-    }
-
-    protected void assertPermission(String path, boolean allow, String[] privs, String name, String globRest)
-            throws RepositoryException {
-        Map<String, String[]> restrictions = new HashMap<String, String[]>();
-        if (globRest != null) {
-            restrictions.put("rep:glob", new String[]{globRest});
-        }
-        if (hasPermission(path, allow, privs, name, restrictions) < 0) {
-            fail("Expected permission missing on path " + path);
-        }
-    }
-
-    protected int hasPermission(String path, boolean allow, String[] privs, String name, Map<String, String[]> restrictions)
-            throws RepositoryException {
-        AccessControlPolicy[] ap = admin.getAccessControlManager().getPolicies(path);
-        int idx = 0;
-        for (AccessControlPolicy p: ap) {
-            if (p instanceof JackrabbitAccessControlList) {
-                JackrabbitAccessControlList acl = (JackrabbitAccessControlList) p;
-                for (AccessControlEntry ac: acl.getAccessControlEntries()) {
-                    if (ac instanceof JackrabbitAccessControlEntry) {
-                        idx++;
-                        JackrabbitAccessControlEntry ace = (JackrabbitAccessControlEntry) ac;
-                        if (ace.isAllow() != allow) {
-                            continue;
-                        }
-                        if (!ace.getPrincipal().getName().equals(name)) {
-                            continue;
-                        }
-                        Set<String> expectedPrivs = new HashSet<String>(Arrays.asList(privs));
-                        for (Privilege priv: ace.getPrivileges()) {
-                            if (!expectedPrivs.remove(priv.getName())) {
-                                expectedPrivs.add("dummy");
-                                break;
-                            }
-                        }
-                        if (!expectedPrivs.isEmpty()) {
-                            continue;
-                        }
-                        Map<String, String[]> rests = new HashMap<String, String[]>(restrictions);
-                        boolean restrictionExpected = true;
-                        for (String restName: ace.getRestrictionNames()) {
-                            String[] expected = rests.remove(restName);
-                            if (expected == null) {
-                                continue;
-                            }
-                            Value[] values;
-                            if ("rep:glob".equals(restName)) {
-                                values = new Value[]{ace.getRestriction(restName)};
-                            } else {
-                                values = ace.getRestrictions(restName);
-                            }
-                            String[] actual = new String[values.length];
-                            for (int i=0; i<actual.length; i++) {
-                                actual[i] = values[i].getString();
-                            }
-                            Arrays.sort(expected);
-                            Arrays.sort(actual);
-                            if (!Arrays.equals(expected, actual)) {
-                                restrictionExpected = false;
-                                break;
-                            }
-                        }
-                        if (!restrictionExpected || !rests.isEmpty()) {
-                            continue;
-                        }
-                        return idx-1;
-                    }
-                }
-            }
-        }
-        return -1;
-    }
-
-    protected void removeRepoACL() throws RepositoryException {
-        AccessControlPolicy[] ap = admin.getAccessControlManager().getPolicies(null);
-        for (AccessControlPolicy p: ap) {
-            if (p instanceof JackrabbitAccessControlList) {
-                JackrabbitAccessControlList acl = (JackrabbitAccessControlList) p;
-                for (AccessControlEntry ac: acl.getAccessControlEntries()) {
-                    if (ac instanceof JackrabbitAccessControlEntry) {
-                        acl.removeAccessControlEntry(ac);
-                    }
-                }
-            }
-        }
-        admin.save();
-    }
-
-    protected void addACL(String path, boolean allow, String[] privs, String principal) throws RepositoryException {
-        JackrabbitAccessControlList acl = null;
-        for (AccessControlPolicy p: admin.getAccessControlManager().getPolicies(path)) {
-            if (p instanceof JackrabbitAccessControlList) {
-                acl = (JackrabbitAccessControlList) p;
-                break;
-            }
-        }
-        if (acl == null) {
-            AccessControlPolicyIterator iter =  admin.getAccessControlManager().getApplicablePolicies(path);
-            while (iter.hasNext()) {
-                AccessControlPolicy p = iter.nextAccessControlPolicy();
-                if (p instanceof JackrabbitAccessControlList) {
-                    acl = (JackrabbitAccessControlList) p;
-                    break;
-                }
-            }
-        }
-        assertNotNull(acl);
-
-        Privilege[] ps = new Privilege[privs.length];
-        for (int i=0; i<privs.length; i++) {
-            ps[i] = admin.getAccessControlManager().privilegeFromName(privs[i]);
-        }
-        acl.addEntry(new PrincipalImpl(principal), ps, allow);
-        admin.getAccessControlManager().setPolicy(path, acl);
-        admin.save();
+        // test if nodes and ACLs of first package exist
+        assertPermission("/", true, new String[]{"jcr:all"}, "everyone", null);
     }
 }

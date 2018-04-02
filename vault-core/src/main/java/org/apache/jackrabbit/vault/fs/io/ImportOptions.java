@@ -23,8 +23,10 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import org.apache.jackrabbit.vault.fs.api.ImportMode;
+import org.apache.jackrabbit.vault.fs.api.PathMapping;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
+import org.apache.jackrabbit.vault.packaging.DependencyHandling;
 
 /**
  * Option that control the package import.
@@ -57,6 +59,13 @@ public class ImportOptions {
 
     private ClassLoader hookClassLoader;
 
+    private PathMapping pathMapping = null;
+
+    private DependencyHandling dependencyHandling = null;
+
+    /**
+     * Default constructor.
+     */
     public ImportOptions() {
         // default constructor.
     }
@@ -81,9 +90,15 @@ public class ImportOptions {
             cndPattern = base.cndPattern;
             filter = base.filter;
             hookClassLoader = base.hookClassLoader;
+            pathMapping = base.pathMapping;
+            dependencyHandling = base.dependencyHandling;
         }
     }
 
+    /**
+     * Creates a copy of this import options.
+     * @return a copy of this.
+     */
     public ImportOptions copy() {
         ImportOptions ret = new ImportOptions();
         ret.strict = strict;
@@ -99,55 +114,107 @@ public class ImportOptions {
         ret.cndPattern = cndPattern;
         ret.filter = filter;
         ret.hookClassLoader = hookClassLoader;
+        ret.pathMapping = pathMapping;
+        ret.dependencyHandling = dependencyHandling;
         return ret;
     }
 
+    /**
+     * Returns the 'strict' flag.
+     * @return the 'strict' flag.
+     */
     public boolean isStrict() {
         return strict;
     }
 
+    /**
+     * Sets the 'strict' flag.
+     * @param strict the flag
+     */
     public void setStrict(boolean strict) {
         this.strict = strict;
     }
 
+    /**
+     * Returns the progress tracker listener.
+     * @return the progress tracker listener.
+     */
     public ProgressTrackerListener getListener() {
         return listener;
     }
 
+    /**
+     * Sets the progress tracker listener that receives messages during package installation.
+     * @param listener The listener
+     */
     public void setListener(ProgressTrackerListener listener) {
         this.listener = listener;
     }
 
+    /**
+     * Returns the patch parent path
+     * @return the patch parent path
+     */
     public String getPatchParentPath() {
         return patchParentPath;
     }
 
+    /**
+     * Sets the parent path of the patch node.
+     * @param patchParentPath the path
+     */
     public void setPatchParentPath(String patchParentPath) {
         this.patchParentPath = patchParentPath;
     }
 
+    /**
+     * Returns the patch directory
+     * @return the patch directory
+     */
     public File getPatchDirectory() {
         return patchDirectory;
     }
 
+    /**
+     * Sets the patch directory. The nt:file nodes that are placed below the {@link #getPatchParentPath()} will be
+     * copied into this directory during extraction.
+     * @param patchDirectory The directory
+     * @throws IOException if an i/o error occurrs during obtaining the canonical file of this directory.
+     */
     public void setPatchDirectory(File patchDirectory) throws IOException {
         this.patchDirectory = patchDirectory == null
                 ? null
                 : patchDirectory.getCanonicalFile();
     }
 
+    /**
+     * Returns the 'patch-keep-in-repo' flag.
+     * @return the 'patch-keep-in-repo' flag.
+     */
     public boolean isPatchKeepInRepo() {
         return patchKeepInRepo;
     }
 
+    /**
+     * Sets the flag if patches should be kept in the repository after there were copied to the disk.
+     * @param patchKeepInRepo the flag
+     */
     public void setPatchKeepInRepo(boolean patchKeepInRepo) {
         this.patchKeepInRepo = patchKeepInRepo;
     }
 
+    /**
+     * Returns the default access control handling.
+     * @return the default access control handling.
+     */
     public AccessControlHandling getAccessControlHandling() {
         return acHandling;
     }
 
+    /**
+     * Sets the access control handling.
+     * @param acHandling the ACL handling.
+     */
     public void setAccessControlHandling(AccessControlHandling acHandling) {
         this.acHandling = acHandling;
     }
@@ -164,21 +231,34 @@ public class ImportOptions {
     }
 
     /**
+     * Sets the flag to ignore sub packages.
+     * @param nonRecursive {@code true} to set non recursive
      * @see #isNonRecursive()
      */
     public void setNonRecursive(boolean nonRecursive) {
         this.nonRecursive = nonRecursive;
     }
 
+    /**
+     * Returns the CND pattern
+     * @return the CND pattern
+     */
     public Pattern getCndPattern() {
         return cndPattern;
     }
 
+    /**
+     * Sets the CND file pattern.
+     * @param cndPattern the cnd pattern
+     * @throws PatternSyntaxException If the pattern is not valid
+     */
     public void setCndPattern(String cndPattern) throws PatternSyntaxException {
         this.cndPattern = Pattern.compile(cndPattern);
     }
 
     /**
+     * Returns the dry run flag.
+     * @return the dry run flag.
      * @since 2.2.14
      */
     public boolean isDryRun() {
@@ -186,6 +266,8 @@ public class ImportOptions {
     }
 
     /**
+     * Sets the dry run flag.
+     * @param dryRun the dry run flag.
      * @since 2.2.14
      */
     public void setDryRun(boolean dryRun) {
@@ -193,6 +275,8 @@ public class ImportOptions {
     }
 
     /**
+     * Sets the auto-save threshold. See {@link AutoSave}
+     * @param threshold the threshold in number of nodes.
      * @since 2.2.16
      */
     public void setAutoSaveThreshold(int threshold) {
@@ -200,6 +284,8 @@ public class ImportOptions {
     }
 
     /**
+     * Returns the auto-save threshold.
+     * @return the auto-save threshold.
      * @since 2.2.16
      */
     public int getAutoSaveThreshold() {
@@ -207,6 +293,8 @@ public class ImportOptions {
     }
 
     /**
+     * Returns the import mode.
+     * @return the import mode.
      * @since 2.3
      */
     public ImportMode getImportMode() {
@@ -214,6 +302,8 @@ public class ImportOptions {
     }
 
     /**
+     * Sets the default import mode.
+     * @param importMode The import mode.
      * @since 2.3
      */
     public void setImportMode(ImportMode importMode) {
@@ -221,6 +311,8 @@ public class ImportOptions {
     }
 
     /**
+     * Returns the default workspace filter.
+     * @return the default workspace filter.
      * @since 2.3.20
      */
     public WorkspaceFilter getFilter() {
@@ -228,6 +320,8 @@ public class ImportOptions {
     }
 
     /**
+     * Sets the default workspace filter.
+     * @param filter the filter
      * @since 2.3.20
      */
     public void setFilter(WorkspaceFilter filter) {
@@ -235,6 +329,8 @@ public class ImportOptions {
     }
 
     /**
+     * Returns the hook class loader.
+     * @return the hook class loader.
      * @since 2.3.22
      */
     public ClassLoader getHookClassLoader() {
@@ -242,9 +338,49 @@ public class ImportOptions {
     }
 
     /**
+     * Sets the hook class loader.
+     * @param hookClassLoader the class loader
      * @since 2.3.22
      */
     public void setHookClassLoader(ClassLoader hookClassLoader) {
         this.hookClassLoader = hookClassLoader;
+    }
+
+    /**
+     * Defines a path mapping that is applied to the incoming package paths and filter when installing the package.
+     *
+     * @since 3.1.14
+     * @return {@code null} if no path mapping is defined.
+     */
+    public PathMapping getPathMapping() {
+        return pathMapping;
+    }
+
+    /**
+     * Sets the path mapping
+     * @param pathMapping The path mapping
+     * @see #getPathMapping()
+     * @since 3.1.14
+     */
+    public void setPathMapping(PathMapping pathMapping) {
+        this.pathMapping = pathMapping;
+    }
+
+    /**
+     * Defines how package dependencies affect package installation and un-installation.
+     * @return the dependency handling.
+     */
+    public DependencyHandling getDependencyHandling() {
+        return dependencyHandling;
+    }
+
+    /**
+     * Sets the dependency handling.
+     * @param dependencyHandling the dependency handling.
+     * @see #getDependencyHandling()
+     * @since 3.1.32
+     */
+    public void setDependencyHandling(DependencyHandling dependencyHandling) {
+        this.dependencyHandling = dependencyHandling;
     }
 }

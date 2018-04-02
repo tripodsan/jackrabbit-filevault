@@ -16,30 +16,74 @@
  */
 package org.apache.jackrabbit.vault.packaging.impl;
 
+import java.util.Arrays;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageManager;
 import org.apache.jackrabbit.vault.packaging.Packaging;
-import org.apache.jackrabbit.vault.util.JcrConstants;
+import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcher;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * <code>PackagingImpl</code>...
+ * {@code PackagingImpl}...
  */
-@Component(metatype = false, immediate = true)
-@Service(value = Packaging.class)
+@Component(
+        service = Packaging.class,
+        immediate = true,
+        property = {"service.vendor=The Apache Software Foundation"}
+)
+@Designate(ocd = PackagingImpl.Config.class)
 public class PackagingImpl implements Packaging {
+
+    /**
+     * default logger
+     */
+    private static final Logger log = LoggerFactory.getLogger(PackagingImpl.class);
+
+    @Reference
+    private PackageEventDispatcher eventDispatcher;
 
     /**
      * package manager is a singleton
      */
-    private final PackageManager pkgManager = new PackageManagerImpl();
+    private final PackageManagerImpl pkgManager = new PackageManagerImpl();
+
+    private String[] packageRoots = new String[0];
+
+    public PackagingImpl() {
+        pkgManager.setDispatcher(eventDispatcher);
+    }
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Packaging Service"
+    )
+    @interface Config {
+
+        /**
+         * Defines the package roots of the package manager
+         */
+        @AttributeDefinition
+        String[] packageRoots() default {"/etc/packages"};
+    }
+
+    @Activate
+    private void activate(Config config) {
+        this.packageRoots = config.packageRoots();
+        log.info("Jackrabbit Filevault Packaging initialized with roots {}", Arrays.toString(packageRoots));
+    }
 
     /**
      * {@inheritDoc}
@@ -52,7 +96,9 @@ public class PackagingImpl implements Packaging {
      * {@inheritDoc}
      */
     public JcrPackageManager getPackageManager(Session session) {
-        return new JcrPackageManagerImpl(session);
+        JcrPackageManagerImpl mgr = new JcrPackageManagerImpl(session, packageRoots);
+        mgr.setDispatcher(eventDispatcher);
+        return mgr;
     }
 
     /**
@@ -66,15 +112,7 @@ public class PackagingImpl implements Packaging {
      * {@inheritDoc}
      */
     public JcrPackage open(Node node, boolean allowInvalid) throws RepositoryException {
-        JcrPackage pack = new JcrPackageImpl(node);
-        if (pack.isValid()) {
-            return pack;
-        } else if (allowInvalid
-                && node.isNodeType(JcrConstants.NT_HIERARCHYNODE)
-                && node.hasProperty(JcrConstants.JCR_CONTENT + "/" + JcrConstants.JCR_DATA)) {
-            return pack;
-        } else {
-            return null;
-        }
+        JcrPackageManager pMgr = getPackageManager(node.getSession());
+        return pMgr.open(node, allowInvalid);
     }
 }

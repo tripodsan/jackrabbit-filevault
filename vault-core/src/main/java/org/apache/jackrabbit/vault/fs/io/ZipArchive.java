@@ -17,35 +17,33 @@
 
 package org.apache.jackrabbit.vault.fs.io;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.input.CloseShieldInputStream;
 import org.apache.jackrabbit.vault.fs.api.VaultInputSource;
 import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
 import org.apache.jackrabbit.vault.fs.config.DefaultMetaInf;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.config.VaultSettings;
-import org.apache.jackrabbit.vault.fs.spi.CNDReader;
-import org.apache.jackrabbit.vault.fs.spi.ServiceProviderFactory;
 import org.apache.jackrabbit.vault.util.Constants;
+import org.apache.jackrabbit.vault.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The zip archive implements bridge between the ZipStreamArchive and the
- * ZipFileArchive. the former is needed due to a bug in ZipFile of jdk1.5 that
- * causes problems with zip files with a lot of entries.
+ * Implements an archive that is based on a zip file.
  */
 public class ZipArchive extends AbstractArchive {
 
@@ -54,147 +52,188 @@ public class ZipArchive extends AbstractArchive {
      */
     private static final Logger log = LoggerFactory.getLogger(ZipArchive.class);
 
-    private DefaultMetaInf inf;
+    /**
+     * the zip file
+     */
+    private final File file;
 
-    private int numEntries;
-
-    private Archive base;
-
-    private File zipFile;
-
+    /**
+     * {@code true} if file is temporary and can be deleted after this archive is closed.
+     */
     private final boolean isTempFile;
 
-    public ZipArchive(File zipFile) {
+    /**
+     * The (loaded) meta info
+     */
+    private DefaultMetaInf inf;
+
+    /**
+     * the jar file that is created upon {@link #open(boolean)}
+     */
+    private JarFile jar;
+
+    /**
+     * the root entry of this archive
+     */
+    private EntryImpl root;
+
+    /**
+     * Creates a new archive that is based on the given zip file.
+     * @param zipFile the zip file
+     */
+    public ZipArchive(@Nonnull File zipFile) {
         this(zipFile, false);
     }
 
-    public ZipArchive(File zipFile, boolean isTempFile) {
-        this.zipFile = zipFile;
+    /**
+     * Creates a new archive that is based on the given zip file.
+     * @param zipFile the zip file
+     * @param isTempFile if {@code true} if the file is considered temporary and can be deleted after this archive is closed.
+     */
+    public ZipArchive(@Nonnull File zipFile, boolean isTempFile) {
+        this.file = zipFile;
         this.isTempFile = isTempFile;
     }
 
+    @Override
     public void open(boolean strict) throws IOException {
-        if (inf != null) {
+        if (jar != null) {
             return;
         }
-        // first load the meta info and count the entries
-        ZipInputStream zin = new ZipInputStream(
-                new BufferedInputStream(
-                        new FileInputStream(zipFile)
-                )
-        );
-        numEntries = 0;
+        jar = new JarFile(file);
+        root = new EntryImpl("", true);
         inf = new DefaultMetaInf();
+
+        Enumeration e = jar.entries();
+        while (e.hasMoreElements()) {
+            ZipEntry entry = (ZipEntry) e.nextElement();
+            String path = entry.getName();
+            // check for meta inf
+            if (path.startsWith(Constants.META_DIR + "/")) {
+                try {
+                    inf.load(jar.getInputStream(entry), file.getPath() + ":" + path);
+                } catch (ConfigurationException e1) {
+                    throw new IOException(e1);
+                }
+            }
+            String[] names = Text.explode(path, '/');
+            if (names.length > 0) {
+                EntryImpl je = root;
+                for (int i=0; i<names.length; i++) {
+                    if (i == names.length -1) {
+                        je = je.add(names[i], entry.isDirectory());
+                    } else {
+                        je = je.add(names[i], true);
+                    }
+                }
+                je.zipEntryName = entry.getName();
+                log.debug("scanning jar: {}", je.zipEntryName);
+            }
+        }
+        if (inf.getFilter() == null) {
+            log.debug("Zip {} does not contain filter definition.", file.getPath());
+        }
+        if (inf.getConfig() == null) {
+            log.debug("Zip {} does not contain vault config.", file.getPath());
+        }
+        if (inf.getSettings() == null) {
+            log.debug("Zip {} does not contain vault settings. using default.", file.getPath());
+            VaultSettings settings = new VaultSettings();
+            settings.getIgnoredNames().add(".svn");
+            inf.setSettings(settings);
+        }
+        if (inf.getProperties() == null) {
+            log.debug("Zip {} does not contain properties.", file.getPath());
+        }
+        if (inf.getNodeTypes().isEmpty()) {
+            log.debug("Zip {} does not contain nodetypes.", file.getPath());
+        }
+    }
+
+    @Override
+    @Nullable
+    public InputStream openInputStream(@Nullable Entry entry) throws IOException {
+        EntryImpl e = (EntryImpl) entry;
+        if (e == null || e.zipEntryName == null) {
+            return null;
+        }
+        ZipEntry ze = jar.getEntry(e.zipEntryName);
+        if (ze == null) {
+            throw new IOException("ZipEntry could not be found: " + e.zipEntryName);
+        }
+        return jar.getInputStream(ze);
+    }
+
+    @Override
+    @Nullable
+    public VaultInputSource getInputSource(@Nullable Entry entry) throws IOException {
+        EntryImpl e = (EntryImpl) entry;
+        if (e == null || e.zipEntryName == null) {
+            return null;
+        }
+        final ZipEntry ze = jar.getEntry(e.zipEntryName);
+        if (ze == null) {
+            throw new IOException("ZipEntry could not be found: " + e.zipEntryName);
+        }
+        return new VaultInputSource() {
+
+            {
+                setSystemId(ze.getName());
+            }
+
+            public InputStream getByteStream() {
+                try {
+                    return jar.getInputStream(ze);
+                } catch (IOException e1) {
+                    return null;
+                }
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            public long getContentLength() {
+                return ze.getSize();
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            public long getLastModified() {
+                try {
+                    return ze.getTime();
+                } catch (Exception e1) {
+                    // see: http://bugs.java.com/view_bug.do?bug_id=JDK-8184940
+                    return 0;
+                }
+            }
+
+        };
+    }
+
+    @Override
+    public void close() {
         try {
-            ZipEntry entry;
-            while ((entry = zin.getNextEntry()) != null) {
-                numEntries++;
-                String name = entry.getName();
-
-                // check for meta inf
-                if (!name.startsWith(Constants.META_DIR + "/")) {
-                    continue;
-                }
-                String path = zipFile.getPath() + ":" + name;
-                name = name.substring((Constants.META_DIR + "/").length());
-                if (name.equals(Constants.FILTER_XML)) {
-                    // load filter
-                    inf.loadFilter(new CloseShieldInputStream(zin), path);
-                } else if (name.equals(Constants.CONFIG_XML)) {
-                    // load config
-                    inf.loadConfig(new CloseShieldInputStream(zin), path);
-                } else if (name.equals(Constants.SETTINGS_XML)) {
-                    // load settings
-                    inf.loadSettings(new CloseShieldInputStream(zin), path);
-                } else if (name.equals(Constants.PROPERTIES_XML)) {
-                    // load properties
-                    inf.loadProperties(new CloseShieldInputStream(zin), path);
-                } else if (name.equals(Constants.PRIVILEGES_XML)) {
-                    // load privileges
-                    inf.loadPrivileges(new CloseShieldInputStream(zin), path);
-                } else if (name.equals(Constants.PACKAGE_DEFINITION_XML)) {
-                    inf.setHasDefinition(true);
-                    log.debug("Contains package definition {}.", path);
-                } else if (name.endsWith(".cnd")) {
-                    try {
-                        Reader r = new InputStreamReader(new CloseShieldInputStream(zin), "utf8");
-                        CNDReader reader = ServiceProviderFactory.getProvider().getCNDReader();
-                        reader.read(r, entry.getName(), null);
-                        inf.getNodeTypes().add(reader);
-                        log.debug("Loaded nodetypes from {}.", path);
-                    } catch (IOException e1) {
-                        log.error("Error while reading CND: {}", e1.toString());
-                        if (strict) {
-                            throw e1;
-                        }
-                    }
-                }
+            if (jar != null) {
+                jar.close();
+                jar = null;
             }
-            if (inf.getFilter() == null) {
-                log.debug("Zip {} does not contain filter definition.", zipFile.getPath());
+            if (file != null && isTempFile) {
+                FileUtils.deleteQuietly(file);
             }
-            if (inf.getConfig() == null) {
-                log.debug("Zip {} does not contain vault config.", zipFile.getPath());
-            }
-            if (inf.getSettings() == null) {
-                log.debug("Zip {} does not contain vault settings. using default.", zipFile.getPath());
-                VaultSettings settings = new VaultSettings();
-                settings.getIgnoredNames().add(".svn");
-                inf.setSettings(settings);
-            }
-            if (inf.getProperties() == null) {
-                log.debug("Zip {} does not contain properties.", zipFile.getPath());
-            }
-            if (inf.getNodeTypes().isEmpty()) {
-                log.debug("Zip {} does not contain nodetypes.", zipFile.getPath());
-            }
-
         } catch (IOException e) {
-            log.error("Error while loading zip {}.", zipFile.getPath());
-            throw e;
-        } catch (ConfigurationException e) {
-            log.error("Error while loading zip {}.", zipFile.getPath());
-            IOException io = new IOException(e.toString());
-            io.initCause(e);
-            throw io;
-        } finally {
-            IOUtils.closeQuietly(zin);
+            log.warn("Error during close.", e);
         }
-
     }
 
-    private Archive getBase() throws IOException {
-        if (inf == null) {
-            throw new IOException("Archive not open.");
-        }
-        if (base == null) {
-            // zip file only supports sizes up to 2GB
-            if (zipFile.length() > (long) Integer.MAX_VALUE) {
-                log.warn("ZipFile is larger than 2GB. Fallback to streaming archive.");
-            } else {
-                // check if the zip file provides the correct size (# entries)
-                ZipFile zip = new ZipFile(zipFile, ZipFile.OPEN_READ);
-                if (zip.size() != numEntries) {
-                    log.warn("ZipFile reports {} entries, but stream counts {} entries. " +
-                            "Fallback to streaming archive.",
-                            String.valueOf(zip.size()), String.valueOf(numEntries));
-                    try {
-                        zip.close();
-                    } catch (IOException e) {
-                        // ignore
-                    }
-                } else {
-                    base = new ZipFileArchive(zip);
-                }
-            }
-            if (base == null) {
-                base = new ZipStreamArchive(zipFile);
-            }
-            base.open(false);
-        }
-        return base;
+    @Override
+    @Nonnull
+    public Entry getRoot() throws IOException {
+        return root;
     }
 
+    @Override
+    @Nonnull
     public MetaInf getMetaInf() {
         if (inf == null) {
             throw new IllegalStateException("Archive not open.");
@@ -202,41 +241,90 @@ public class ZipArchive extends AbstractArchive {
         return inf;
     }
 
-    public InputStream openInputStream(Entry entry) throws IOException {
-        return getBase().openInputStream(entry);
-    }
-
-    public VaultInputSource getInputSource(Entry entry) throws IOException {
-        return getBase().getInputSource(entry);
-    }
-
-    public Entry getRoot() throws IOException {
-        return getBase().getRoot();
-    }
-
-    public void close() {
-        if (base != null) {
-            base.close();
-            base = null;
-        }
-        inf = null;
-        if (zipFile != null && isTempFile) {
-            FileUtils.deleteQuietly(zipFile);
-        }
-        zipFile = null;
-
-    }
-
+    /**
+     * Returns the underlying file or {@code null} if it does not exist.
+     * @return the file or null.
+     */
+    @Nullable
     public File getFile() {
-        return zipFile;
+        return file.exists() ? file : null;
     }
 
+    /**
+     * Returns the size of the underlying file or -1 if it does not exist.
+     * @return the file size
+     */
     public long getFileSize() {
-        return zipFile == null ? -1 : zipFile.length();
+        return file.length();
     }
 
     @Override
     public String toString() {
-        return zipFile.getPath();
+        return file.getPath();
+    }
+
+    /**
+     * Implements the entry for this archive
+     */
+    private static class EntryImpl implements Entry {
+
+        private final String name;
+
+        private String zipEntryName;
+
+        private final boolean isDirectory;
+
+        private Map<String, EntryImpl> children;
+
+        private EntryImpl(@Nonnull String name, boolean directory) {
+            this.name = name;
+            isDirectory = directory;
+        }
+
+        @Nonnull
+        private EntryImpl add(@Nonnull EntryImpl e) {
+            if (children == null) {
+                children = new LinkedHashMap<String, EntryImpl>();
+            }
+            children.put(e.getName(), e);
+            return e;
+        }
+
+        @Nonnull
+        public EntryImpl add(@Nonnull String name, boolean isDirectory) {
+            if (children != null) {
+                EntryImpl ret = children.get(name);
+                if (ret != null) {
+                    return ret;
+                }
+            }
+            return add(new EntryImpl(name, isDirectory));
+        }
+
+        @Override
+        @Nonnull
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public boolean isDirectory() {
+            return isDirectory;
+        }
+
+        @Override
+        @Nonnull
+        public Collection<? extends Entry> getChildren() {
+            return children == null
+                    ? Collections.<EntryImpl>emptyList()
+                    : children.values();
+        }
+
+        @Override
+        @Nullable
+        public Entry getChild(@Nonnull String name) {
+            return children == null ? null : children.get(name);
+        }
+
     }
 }

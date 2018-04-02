@@ -17,6 +17,9 @@
 
 package org.apache.jackrabbit.vault.fs.api;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
  * The item filter is used to include or exclude a set of paths.
  * It is usually part of a {@link PathFilterSet}.
@@ -27,10 +30,10 @@ public interface PathFilter extends Filter {
     /**
      * The "Catch all" item filter.
      */
-    public static final PathFilter ALL = new PathFilter() {
+    PathFilter ALL = new PathFilter() {
 
         /**
-         * Returns always <code>true</code>
+         * Returns always {@code true}
          */
         public boolean matches(String path) {
             return true;
@@ -61,10 +64,10 @@ public interface PathFilter extends Filter {
     /**
      * The "Miss all" item filter.
      */
-    public static final PathFilter NONE = new PathFilter() {
+    PathFilter NONE = new PathFilter() {
 
         /**
-         * Returns always <code>false</code>
+         * Returns always {@code false}
          */
         public boolean matches(String path) {
             return false;
@@ -96,14 +99,14 @@ public interface PathFilter extends Filter {
      * Checks if the given path matches this filters criteria.
      *
      * @param path the path to check
-     * @return <code>true</code> if this filter matches the criteria;
-     *         <code>false</code> otherwise.
+     * @return {@code true} if this filter matches the criteria;
+     *         {@code false} otherwise.
      */
-    boolean matches(String path);
+    boolean matches(@Nonnull String path);
 
     /**
      * Checks if the pattern is absolute, i.e. does not start with a wildcard.
-     * @return <code>true</code> if pattern is absolute
+     * @return {@code true} if pattern is absolute
      */
     boolean isAbsolute();
 
@@ -113,5 +116,6 @@ public interface PathFilter extends Filter {
      * @return the new filter
      * @since 2.4.10
      */
-    PathFilter translate(PathMapping mapping);
+    @Nonnull
+    PathFilter translate(@Nullable PathMapping mapping);
 }

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.vault.fs.spi.impl.jcr20;
 
 import java.util.UUID;
 
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -27,13 +28,14 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.vault.fs.spi.UserManagement;
+import org.apache.jackrabbit.vault.util.DocViewNode;
+import org.apache.jackrabbit.vault.util.DocViewProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <code>JackrabbitUserManagement</code>...
+ * {@code JackrabbitUserManagement}...
  */
 public class JackrabbitUserManagement implements UserManagement {
 
@@ -67,19 +69,34 @@ public class JackrabbitUserManagement implements UserManagement {
     /**
      * {@inheritDoc}
      */
+    public String getAuthorizableId(DocViewNode node) {
+        // try Oak way of storing the id first:
+        DocViewProperty idProp = node.props.get("rep:authorizableId");
+        if (idProp == null || idProp.isMulti) {
+            // jackrabbit 2.x or Oak with migrated Jackrabbit 2.x content
+            return org.apache.jackrabbit.util.Text.unescapeIllegalJcrChars(node.name);
+        } else {
+            // oak 1.x
+            return idProp.values[0];
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public void addMembers(Session session, String id, String[] membersUUID) {
         if (!(session instanceof JackrabbitSession)) {
             log.warn("Unable to update membership. no jackrabbit session.");
             return;
         }
-        UserManager uMgr = null;
+        UserManager uMgr;
         try {
             uMgr = ((JackrabbitSession) session).getUserManager();
         } catch (RepositoryException e) {
             log.warn("Unable to update membership of {}. Error while retrieving user manager.", id, e);
             return;
         }
-        Authorizable auth = null;
+        Authorizable auth;
         try {
             auth = uMgr.getAuthorizable(id);
         } catch (RepositoryException e) {
@@ -96,26 +113,29 @@ public class JackrabbitUserManagement implements UserManagement {
         }
         Group grp = (Group) auth;
         for (String uuid: membersUUID) {
-            String authId = null;
             try {
                 Node authNode = session.getNodeByIdentifier(uuid);
-                // rely on implementation that nodename == userid.
-                authId = Text.unescapeIllegalJcrChars(authNode.getName());
-                auth = uMgr.getAuthorizable(authId);
-            } catch (RepositoryException e) {
-                log.warn("unable to add authorizable '{}' to group '{}'. No such node.", uuid, id);
-            }
-            try {
-                if (auth == null) {
-                    log.warn("unable to add authorizable '{}' to group '{}'. No such authorizable.", authId, id);
-                } else if (grp.isDeclaredMember(auth)) {
-                    log.info("ignoring to add authorizable '{}' to group '{}'. Already member.", authId, id);
+                String authPath = authNode.getPath();
+                Authorizable member = uMgr.getAuthorizableByPath(authPath);
+                if (member == null) {
+                    log.warn("unable to add authorizable '{}' to group '{}'. Node at {} is not an authorizable.", uuid, authPath);
                 } else {
-                    grp.addMember(auth);
-                    log.info("added authorizable '{}' to group '{}'.", authId, id);
+                    String memberId = member.getID();
+                    try {
+                        if (grp.isDeclaredMember(member)) {
+                            log.debug("ignoring to add authorizable '{}' to group '{}'. Already member.", memberId, id);
+                        } else {
+                            grp.addMember(member);
+                            log.debug("added authorizable '{}' to group '{}'.", memberId, id);
+                        }
+                    } catch (RepositoryException e) {
+                        log.error("Error while adding authorizable '{}' to group '{}': {}", new Object[]{memberId, id, e});
+                    }
                 }
+            } catch (ItemNotFoundException e) {
+                log.warn("unable to add authorizable '{}' to group '{}'. No such node.", uuid, id);
             } catch (RepositoryException e) {
-                log.error("Error while adding authorizable '{}' to group '{}': {}", new Object[]{authId, id, e});
+                log.warn("unable to add authorizable '{}' to group '{}'. Internal Error: {}", new Object[]{uuid, id, e});
             }
         }
     }

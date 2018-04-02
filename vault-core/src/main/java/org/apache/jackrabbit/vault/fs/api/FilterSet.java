@@ -22,11 +22,14 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
  * The item filter set holds a set of item filters each attributed as include
  * or exclude filter. The evaluation of the set allows included items and
  * rejects excluded items.
- * <p/>
+ * <p>
  * Additionally it contains a "root" path for which the filters are evaluated.
  * if an item has not the node addressed by the root path as ancestor, it is
  * always excluded.
@@ -36,16 +39,19 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
     /**
      * root path of this definition
      */
+    @Nonnull
     private String root;
 
     /**
      * root patten to check for inclusion
      */
+    @Nonnull
     private String rootPattern;
 
     /**
      * filter entries
      */
+    @Nullable
     private List<Entry<E>> entries;
 
     /**
@@ -56,6 +62,7 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
     /**
      * import mode. defaults to {@link ImportMode#REPLACE}.
      */
+    @Nonnull
     private ImportMode mode = ImportMode.REPLACE;
 
     /**
@@ -77,15 +84,16 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
      * Returns the root path
      * @return root path
      */
+    @Nonnull
     public String getRoot() {
-        return root.equals("") ? "/" : root;
+        return "".equals(root) ? "/" : root;
     }
 
     /**
      * Sets the root path
      * @param path root path
      */
-    public void setRoot(String path) {
+    public void setRoot(@Nonnull String path) {
         if (sealed) {
             throw new UnsupportedOperationException("FilterSet is sealed.");
         }
@@ -104,6 +112,7 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
      *
      * @return the import mode.
      */
+    @Nonnull
     public ImportMode getImportMode() {
         return mode;
     }
@@ -112,7 +121,7 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
      * Sets the import mode.
      * @param mode import mode
      */
-    public void setImportMode(ImportMode mode) {
+    public void setImportMode(@Nonnull ImportMode mode) {
         if (sealed) {
             throw new UnsupportedOperationException("FilterSet is sealed.");
         }
@@ -123,6 +132,7 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
      * Seals this list, i.e. makes it unmodifiable.
      * @return this list
      */
+    @Nonnull
     public FilterSet seal() {
         if (!sealed) {
             if (entries == null) {
@@ -137,7 +147,7 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
 
     /**
      * Checks if this filter set is sealed.
-     * @return <code>true</code> if sealed.
+     * @return {@code true} if sealed.
      */
     public boolean isSealed() {
         return sealed;
@@ -146,17 +156,16 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
     /**
      * Adds (replaces) all entries from the given set to this one.
      * @param set the set of entries
-     * @return <code>this</code> suitable for chaining.
+     * @return {@code this} suitable for chaining.
      */
-    public FilterSet addAll(FilterSet<E> set) {
+    @Nonnull
+    public FilterSet addAll(@Nonnull FilterSet<E> set) {
         if (sealed) {
             throw new UnsupportedOperationException("FilterSet is sealed.");
         }
-        if (entries == null) {
-            entries = new LinkedList<Entry<E>>(set.entries);
-        } else {
-            entries.clear();
-            entries.addAll(set.entries);
+        entries = null;
+        if (set.entries != null) {
+            entries = new LinkedList<>(set.entries);
         }
         return this;
     }
@@ -164,20 +173,22 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
     /**
      * Adds a new item filter as included entry.
      * @param filter the filter
-     * @return <code>this</code> suitable for chaining.
+     * @return {@code this} suitable for chaining.
      */
-    public FilterSet addInclude(E filter) {
-        addEntry(new Entry<E>(filter, true));
+    @Nonnull
+    public FilterSet addInclude(@Nonnull E filter) {
+        addEntry(new Entry<>(filter, true));
         return this;
     }
 
     /**
      * Adds a new item filter as excluded entry.
      * @param filter the filter
-     * @return <code>this</code> suitable for chaining.
+     * @return {@code this} suitable for chaining.
      */
-    public FilterSet addExclude(E filter) {
-        addEntry(new Entry<E>(filter, false));
+    @Nonnull
+    public FilterSet addExclude(@Nonnull E filter) {
+        addEntry(new Entry<>(filter, false));
         return this;
     }
 
@@ -185,12 +196,12 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
      * Internally adds a new entry to the list
      * @param e the entry
      */
-    private void addEntry(Entry<E> e) {
+    private void addEntry(@Nonnull Entry<E> e) {
         if (sealed) {
             throw new UnsupportedOperationException("FilterSet is sealed.");
         }
         if (entries == null) {
-            entries = new LinkedList<Entry<E>>();
+            entries = new LinkedList<>();
         }
         entries.add(e);
     }
@@ -199,14 +210,16 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
      * Returns the list of entries
      * @return the list of entries
      */
+    @Nonnull
     public List<Entry<E>> getEntries() {
         seal();
+        //noinspection ConstantConditions
         return entries;
     }
 
     /**
      * Checks if this filter set has any entries defined.
-     * @return <code>true</code> if empty
+     * @return {@code true} if empty
      */
     public boolean isEmpty() {
         return entries == null || entries.isEmpty();
@@ -214,28 +227,29 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
 
     /**
      * Checks if the given item is covered by this filter set. I.e. if the node
-     * addressed by the <code>root</code> path is an ancestor of the given item.
+     * addressed by the {@code root} path is an ancestor of the given item.
      *
      * @param path path of the item
-     * @return <code>true</code> if this set covers the given item
+     * @return {@code true} if this set covers the given item
      */
-    public boolean covers(String path) {
+    public boolean covers(@Nonnull String path) {
         return path.equals(root) || path.startsWith(rootPattern);
     }
 
     /**
      * Checks if the given item is an ancestor of the root node.
      * @param path path of the item to check
-     * @return <code>true</code> if the given item is an ancestor
+     * @return {@code true} if the given item is an ancestor
      */
-    public boolean isAncestor(String path) {
-        return path.equals(root) || root.startsWith(path + "/") || path.equals("/");
+    public boolean isAncestor(@Nonnull String path) {
+        return path.equals(root) || root.startsWith(path + "/") || "/".equals(path);
     }
 
     /**
      * {@inheritDoc}
      */
-    public void dump(DumpContext ctx, boolean isLast) {
+    @Override
+    public void dump(@Nonnull DumpContext ctx, boolean isLast) {
         ctx.printf(false, "root: %s", getRoot());
         if (entries != null) {
             Iterator<Entry<E>> iter = entries.iterator();
@@ -249,21 +263,25 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
     /**
      * {@inheritDoc}
      */
+    @Override
     public int hashCode() {
-        return 0;
+        int result = root.hashCode();
+        result = 31 * result + (entries != null ? entries.hashCode() : 0);
+        return result;
     }
 
     /**
      * {@inheritDoc}
      */
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj instanceof FilterSet) {
-            return entries.equals(((FilterSet) obj).entries);
-        }
-        return false;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof FilterSet)) return false;
+
+        FilterSet filterSet = (FilterSet) o;
+        if (entries != null ? !entries.equals(filterSet.entries) : filterSet.entries != null) return false;
+        return root.equals(filterSet.root);
+
     }
 
     /**
@@ -274,6 +292,7 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
         /**
          * The item filter
          */
+        @Nonnull
         protected final E filter;
 
         /**
@@ -286,7 +305,7 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
          * @param filter the filter
          * @param include the include flag
          */
-        public Entry(E filter, boolean include) {
+        public Entry(@Nonnull E filter, boolean include) {
             this.filter = filter;
             this.include = include;
         }
@@ -295,6 +314,7 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
          * Returns the filter of this entry
          * @return the filter
          */
+        @Nonnull
         public E getFilter() {
             return filter;
         }
@@ -310,7 +330,8 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
         /**
          * {@inheritDoc}
          */
-        public void dump(DumpContext ctx, boolean isLast) {
+        @Override
+        public void dump(@Nonnull DumpContext ctx, boolean isLast) {
             if (include) {
                 ctx.println(isLast, "include");
             } else {
@@ -324,21 +345,23 @@ public abstract class FilterSet<E extends Filter> implements Dumpable {
         /**
          * {@inheritDoc}
          */
+        @Override
         public int hashCode() {
-            return 0;
+            int result = filter.hashCode();
+            result = 31 * result + (include ? 1 : 0);
+            return result;
         }
 
         /**
          * {@inheritDoc}
          */
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj instanceof Entry) {
-                return ((Entry) obj).include == include && ((Entry) obj).filter.equals(filter);
-            }
-            return false;
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Entry)) return false;
+            Entry entry = (Entry) o;
+            return include == entry.include && filter.equals(entry.filter);
         }
+
     }
 }
