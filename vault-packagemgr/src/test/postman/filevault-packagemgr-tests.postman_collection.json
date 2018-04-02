@@ -12,17 +12,26 @@
 				{
 					"listen": "test",
 					"script": {
-						"id": "2329c0a4-9d9f-483c-ba80-4b490cc9a729",
+						"id": "a147de98-c223-4504-95cc-b57f6b386ec5",
 						"type": "text/javascript",
 						"exec": [
+							"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+							"const REL_PACKAGES = \"http://jackrabbit.apache.org/filevault/rels/packages\";",
+							"",
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
 							"});",
 							"",
-							"pm.test(\"Self links is value\", function () {",
-							"    var expected = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+							"pm.test(\"rel=self is correct\", function () {",
 							"    var jsonData = pm.response.json();",
 							"    var href = jsonData.links.find(l => l.rel.indexOf('self') >= 0).href;",
+							"    pm.expect(href).to.eql(API_BASE_URL);",
+							"});",
+							"",
+							"pm.test(\"rel=packages is correct\", function () {",
+							"    var expected = API_BASE_URL + '/packages';",
+							"    var jsonData = pm.response.json();",
+							"    var href = jsonData.links.find(l => l.rel.indexOf(REL_PACKAGES) >= 0).href;",
 							"    pm.expect(href).to.eql(expected);",
 							"});",
 							"",
@@ -53,7 +62,7 @@
 			},
 			"response": [
 				{
-					"id": "eed3e1c8-3bf5-452e-8155-32cb208adf20",
+					"id": "c3ccf5a0-1838-42b4-80b2-fc0d500ba5de",
 					"name": "Example request",
 					"originalRequest": {
 						"method": "GET",
@@ -99,6 +108,61 @@
 					"body": "{\"class\":[\"filevault\"],\"properties\":{\"api-version\":\"1.0\",\"version\":\"3.2.0\"},\"links\":[{\"rel\":[\"self\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault\"},{\"rel\":[\"http://jackrabbit.apache.org/filevault/rels/packages\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages\"}]}"
 				}
 			]
+		},
+		{
+			"name": "Packages List",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c1017006-1dd4-4807-9b8d-57e797bbe043",
+						"type": "text/javascript",
+						"exec": [
+							"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+							"const REL_PACKAGES = \"http://jackrabbit.apache.org/filevault/rels/packages\";",
+							"",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"class is correct\", function () {",
+							"    var cls = pm.response.json()['class'];",
+							"    pm.expect(cls).to.eql(['packages']);",
+							"});",
+							"",
+							"pm.test(\"rel=self is correct\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    var href = jsonData.links.find(l => l.rel.indexOf('self') >= 0).href;",
+							"    pm.expect(href).to.eql(API_BASE_URL + '/packages');",
+							"});",
+							"",
+							"",
+							"",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{HOST}}/{{API_BASE}}/packages",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"{{API_BASE}}",
+						"packages"
+					]
+				},
+				"description": "Discovery request to the filevault API"
+			},
+			"response": []
 		}
 	],
 	"auth": {
@@ -140,16 +204,23 @@
 	],
 	"variable": [
 		{
-			"id": "fa174c6e-2c62-4818-9779-b6794e7af457",
+			"id": "7295c96f-7b00-42e8-baaf-ec8fd5972932",
 			"key": "HOST",
 			"value": "http://localhost:8080",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "dc9c69b0-2ab7-4370-bcbb-1051ccc49685",
+			"id": "b2d8fb09-12fc-4aa7-a683-1fb950781b13",
 			"key": "API_BASE",
 			"value": "/system/jackrabbit/filevault",
+			"type": "string",
+			"description": ""
+		},
+		{
+			"id": "7388670a-9945-47bc-aa7a-051fdcfc0d27",
+			"key": "REL_PACKAGES",
+			"value": "http://jackrabbit.apache.org/filevault/rels/packages",
 			"type": "string",
 			"description": ""
 		}
