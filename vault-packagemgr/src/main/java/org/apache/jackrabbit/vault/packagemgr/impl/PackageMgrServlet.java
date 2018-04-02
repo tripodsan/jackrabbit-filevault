@@ -29,11 +29,13 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.servlet.Servlet;
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.sling.SlingServlet;
 import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
@@ -44,19 +46,27 @@ import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.commons.json.JSONException;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  */
-@SlingServlet(paths = {
-        "/system/jackrabbit/filevault"
-})
-public class PackageMgrServlet extends SlingAllMethodsServlet {
+@Component(
+        service = Servlet.class,
+        immediate = true,
+        property = {
+                "service.vendor=Apache Software Foundation",
+                HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_PATTERN + "=/*",
+                HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_SELECT + "=(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + HttpContext.CONTEXT_NAME + ")"
+        }
+)
+public class PackageMgrServlet extends HttpServlet {
 
     private static final long serialVersionUID = -4571680968447024900L;
     public static final String PARAM_SRC = "src";
@@ -82,35 +92,40 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
     private Packaging packaging;
 
     @Override
-    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response)
-            throws ServletException, IOException {
-
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        final ResourceResolver resolver = (ResourceResolver) request.getAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_RESOLVER);
+        if (resolver == null) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         response.setContentType("application/json");
         response.setCharacterEncoding("utf-8");
 
         try {
-            String ext = request.getRequestPathInfo().getExtension();
-            String baseRef = request.getRequestPathInfo().getResourcePath() + "." + ext;
-            String suffix = request.getRequestPathInfo().getSuffix();
+            String relPath = request.getPathInfo();
+            if (relPath == null || "/".equals(relPath)) {
+                relPath = "";
+            }
+            String baseRef = request.getScheme() + "://" + request.getHeader("host") + request.getContextPath();
             Entity root = null;
-            if (suffix == null || suffix.length() == 0) {
+            if (relPath.length() == 0) {
                 root = new EntityBuilder()
                         .addClass("filevault")
-                        .addProperty("version", "3.1.0")
+                        .addProperty("version", "3.2.0")
                         .addProperty("api-version", "1.0")
                         .addLink(Rels.SELF, baseRef)
                         .addLink(Rels.REL_VLT_PACKAGES, baseRef + "/packages")
                         .build();
-            } else if ("/packages".equals(suffix)) {
-                Session session = request.getResourceResolver().adaptTo(Session.class);
+            } else if ("/packages".equals(relPath)) {
+                Session session = resolver.adaptTo(Session.class);
                 JcrPackageManager mgr = packaging.getPackageManager(session);
                 root = getPackagesEntity(mgr, baseRef + "/packages");
 
-            } else if (suffix.startsWith("/packages/")) {
+            } else if (relPath.startsWith("/packages/")) {
                 String format = request.getParameter("format");
-                String path = suffix.substring("/packages".length());
+                String path = relPath.substring("/packages".length());
                 Route r = new Route(path);
-                Session session = request.getResourceResolver().adaptTo(Session.class);
+                Session session = resolver.adaptTo(Session.class);
                 JcrPackageManager mgr = packaging.getPackageManager(session);
                 JcrPackage pkg = mgr.open(r.getPackageId());
                 if (pkg == null) {
@@ -149,14 +164,12 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
             }
             SirenJsonWriter out = new SirenJsonWriter(response.getWriter());
             out.write(root);
-        } catch (RepositoryException e) {
-            throw new IOException(e);
-        } catch (JSONException e) {
+        } catch (RepositoryException | JSONException e) {
             throw new IOException(e);
         }
     }
 
-    private void sendFile(SlingHttpServletRequest request, SlingHttpServletResponse response, Node file)
+    private void sendFile(HttpServletRequest request, HttpServletResponse response, Node file)
             throws IOException, RepositoryException {
         Binary bin = file.getProperty("jcr:content/jcr:data").getBinary();
         response.setContentType(file.getProperty("jcr:content/jcr:mimeType").getString());
@@ -235,7 +248,6 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
         }
         Node defNode = def.getNode();
         b
-                .addProperty("path", pkg.getNode().getPath())
                 .addProperty("description", def.getDescription())
                 .addProperty("buildCount", def.getBuildCount())
                 .addProperty("lastModifiedBy", def.getLastModifiedBy())
@@ -277,10 +289,6 @@ public class PackageMgrServlet extends SlingAllMethodsServlet {
 //    }
 //
 
-    @Override
-    protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response)
-            throws ServletException, IOException {
-    }
 
     protected static class Route {
 

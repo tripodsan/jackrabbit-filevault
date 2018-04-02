@@ -1,3 +1,20 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+  
 Vault Package Manager
 ======================
 The vault package manager provides a very simple RESTful package management that an be controlled via a json/http interface.
@@ -208,7 +225,6 @@ The _package_ provides the following properties:
 | X | group    | Group name  | foo/group1
 | X | version  | Version | 1.0 |
 |   | build count | Value of build counter | 13 |
-|   | path     | JCR path where the package is stored | /etc/packages/foo/group1/package1-1.0
 | X | downloadName | Filename | package1-1.0.zip |
 | X | downloadSize | Size in bytes | 8124 |
 |   | description | Package description | This package contains a hot fix.... |                
