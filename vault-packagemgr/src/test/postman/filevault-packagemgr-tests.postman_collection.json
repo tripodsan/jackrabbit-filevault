@@ -1,0 +1,157 @@
+{
+	"info": {
+		"_postman_id": "2c0bcd84-dcbc-4401-80e7-459ce7b099d0",
+		"name": "filevault-packagemgr-tests",
+		"description": "1. install sling: https://sling.apache.org/documentation/getting-started/discover-sling-in-15-minutes.html\n2. run the sling server: `java -jar org.apache.sling.starter-10.jar`\n3. run the tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Filevault API Home",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2329c0a4-9d9f-483c-ba80-4b490cc9a729",
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Self links is value\", function () {",
+							"    var expected = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+							"    var jsonData = pm.response.json();",
+							"    var href = jsonData.links.find(l => l.rel.indexOf('self') >= 0).href;",
+							"    pm.expect(href).to.eql(expected);",
+							"});",
+							"",
+							"",
+							"",
+							""
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{HOST}}/{{API_BASE}}",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"{{API_BASE}}"
+					]
+				},
+				"description": "Discovery request to the filevault API"
+			},
+			"response": [
+				{
+					"id": "eed3e1c8-3bf5-452e-8155-32cb208adf20",
+					"name": "Example request",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Length",
+							"value": "295",
+							"name": "Content-Length",
+							"description": "The length of the response body in octets (8-bit bytes)"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json;charset=utf-8",
+							"name": "Content-Type",
+							"description": "The mime type of this content"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 02 Apr 2018 08:55:06 GMT",
+							"name": "Date",
+							"description": "The date and time that the message was sent"
+						}
+					],
+					"cookie": [],
+					"body": "{\"class\":[\"filevault\"],\"properties\":{\"api-version\":\"1.0\",\"version\":\"3.2.0\"},\"links\":[{\"rel\":[\"self\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault\"},{\"rel\":[\"http://jackrabbit.apache.org/filevault/rels/packages\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages\"}]}"
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "password",
+				"value": "admin",
+				"type": "string"
+			},
+			{
+				"key": "username",
+				"value": "admin",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "35b2cee9-0da4-4996-a68d-2dd30add9170",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "290577ef-7dca-4271-b837-f0e3519c5574",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "fa174c6e-2c62-4818-9779-b6794e7af457",
+			"key": "HOST",
+			"value": "http://localhost:8080",
+			"type": "string",
+			"description": ""
+		},
+		{
+			"id": "dc9c69b0-2ab7-4370-bcbb-1051ccc49685",
+			"key": "API_BASE",
+			"value": "/system/jackrabbit/filevault",
+			"type": "string",
+			"description": ""
+		}
+	]
+}

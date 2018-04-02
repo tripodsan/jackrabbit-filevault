@@ -19,6 +19,16 @@ Vault Package Manager
 ======================
 The vault package manager provides a very simple RESTful package management that an be controlled via a json/http interface.
 
+Testing
+-------
+
+An experimental [postman](https://www.getpostman.com/) collection resides in `src/test/postman` which can be execute via `newman`:
+
+1. Install and run [sling start](https://sling.apache.org/documentation/getting-started.html#sling-download)
+2. get newman: `npm install`
+3. run tests: `npm test`
+
+
 Usage
 -----
 The REST API is described briefly and is inspired by the [vnd.siren+json](https://github.com/kevinswiber/siren) notation.
