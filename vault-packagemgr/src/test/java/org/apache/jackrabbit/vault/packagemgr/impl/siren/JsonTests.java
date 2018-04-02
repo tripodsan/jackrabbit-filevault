@@ -18,9 +18,10 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 
 import java.io.StringWriter;
 
+import javax.json.JsonException;
+
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.LinkBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
-import org.apache.sling.commons.json.JSONException;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -32,7 +33,7 @@ import static org.junit.Assert.assertEquals;
 public class JsonTests {
 
     @Test
-    public void testLink() throws JSONException {
+    public void testLink() throws JsonException {
         Link link = new LinkBuilder()
                 .setHref("/foo/bar")
                 .setTitle("Hello")
@@ -47,14 +48,15 @@ public class JsonTests {
 
         expected = expected.replace('\'', '"');
         StringWriter out = new StringWriter();
-        SirenJsonWriter w = new SirenJsonWriter(out);
-        w.write(link);
+        try (SirenJsonWriter w = new SirenJsonWriter(out)) {
+            w.write(link);
+        }
         assertEquals(expected, out.toString());
     }
 
     @Test
     @Ignore
-    public void testLinkEmpty() throws JSONException {
+    public void testLinkEmpty() throws JsonException {
         Link link = new LinkBuilder();
         StringWriter out = new StringWriter();
         SirenJsonWriter w = new SirenJsonWriter(out);

@@ -29,6 +29,7 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.json.JsonException;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -48,7 +49,6 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
-import org.apache.sling.commons.json.JSONException;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
@@ -162,9 +162,10 @@ public class PackageMgrServlet extends HttpServlet {
                 }
                 root = getPackageEntity(pkg, baseRef + "/packages", "brief".equals(format));
             }
-            SirenJsonWriter out = new SirenJsonWriter(response.getWriter());
-            out.write(root);
-        } catch (RepositoryException | JSONException e) {
+            try (SirenJsonWriter out = new SirenJsonWriter(response.getWriter())) {
+                out.write(root);
+            }
+        } catch (RepositoryException | JsonException e) {
             throw new IOException(e);
         }
     }

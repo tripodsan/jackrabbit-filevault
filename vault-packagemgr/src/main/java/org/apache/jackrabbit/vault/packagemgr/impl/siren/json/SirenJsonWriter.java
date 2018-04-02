@@ -20,6 +20,10 @@ import java.io.Writer;
 import java.util.Map;
 import java.util.Set;
 
+import javax.json.Json;
+import javax.json.JsonException;
+import javax.json.stream.JsonGenerator;
+
 import org.apache.jackrabbit.vault.fs.api.FilterSet;
 import org.apache.jackrabbit.vault.fs.api.PathFilter;
 import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
@@ -27,98 +31,97 @@ import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.filter.DefaultPathFilter;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
-import org.apache.sling.commons.json.JSONException;
-import org.apache.sling.commons.json.io.JSONWriter;
 
 /**
  * {@code SirenJsonWriter}...
  */
-public class SirenJsonWriter {
+public class SirenJsonWriter implements AutoCloseable {
 
-    private JSONWriter w;
+    private JsonGenerator w;
 
-    public SirenJsonWriter(JSONWriter writer) {
+    public SirenJsonWriter(JsonGenerator writer) {
         this.w = writer;
     }
 
     public SirenJsonWriter(Writer writer) {
-        this.w = new JSONWriter(writer);
+        this.w = Json.createGenerator(writer);
     }
 
-    public void write(Link link) throws JSONException {
-        w.object();
+    public void write(Link link) throws JsonException {
+        w.writeStartObject();
         write("rel", link.getRels());
         writeIfNotNull("href", link.getHref());
         writeIfNotEmpty("title", link.getTitle());
-        w.endObject();
+        w.writeEnd();
     }
 
-    public void write(Entity e) throws JSONException {
-        w.object();
+    public void write(Entity e) throws JsonException {
+        w.writeStartObject();
         write("class", e.getClasses());
         write("rel", e.getRels());
         writeIfNotEmpty("href", e.getHref());
         if (!e.getProperties().isEmpty()) {
-            w.key("properties");
-            write(e.getProperties());
+            write("properties", e.getProperties());
         }
-        w.key("links");
-        w.array();
+        w.writeStartArray("links");
         for (Link link : e.getLinks()) {
             write(link);
         }
-        w.endArray();
+        w.writeEnd();
         boolean hasEntities = false;
         for (Entity sub: e.getEntities()) {
             if (!hasEntities) {
-                w.key("entities").array();
+                w.writeStartArray("entities");
                 hasEntities = true;
             }
             write(sub);
         }
         if (hasEntities) {
-            w.endArray();
+            w.writeEnd();
         }
 
-        w.endObject();
+        w.writeEnd();
     }
 
-    public void write(Map<String, Object> props) throws JSONException {
-        w.object();
+    public void close() {
+        w.close();
+    }
+
+    private void write(String key, Map<String, Object> props) throws JsonException {
+        w.writeStartObject(key);
         for (Map.Entry<String, Object> e: props.entrySet()) {
             Object v = e.getValue();
             if (v instanceof String[]) {
-                w.key(e.getKey()).array();
+                w.writeStartArray(e.getKey());
                 for (String s : (String[]) v) {
-                    w.value(s);
+                    w.write(s);
                 }
-                w.endArray();
+                w.writeEnd();
             } else if (v instanceof WorkspaceFilter) {
                 write(e.getKey(), (WorkspaceFilter) v);
             } else {
-                w.key(e.getKey()).value(v);
+                w.write(e.getKey(), v.toString());
             }
         }
-        w.endObject();
+        w.writeEnd();
     }
 
-    private void write(String key, WorkspaceFilter filter) throws JSONException {
+    private void write(String key, WorkspaceFilter filter) throws JsonException {
         if (filter != null) {
-            w.key(key);
-            w.object();
-            w.key("filters").array();
+            w.writeStartObject(key);
+            w.writeStartArray("filters");
             for (PathFilterSet set : filter.getFilterSets()) {
-                w.object();
-                w.key("root").value(set.getRoot());
-                w.key("mode").value(set.getImportMode().name().toLowerCase());
+                w.writeStartObject();
+                w.write("root", set.getRoot());
+                w.write("mode", set.getImportMode().name().toLowerCase());
                 Boolean defaultAllow = null;
                 for (FilterSet.Entry<PathFilter> e: set.getEntries()) {
                     if (defaultAllow == null) {
-                        w.key("rules").array();
+                        w.writeStartArray("rules");
                         defaultAllow = !e.isInclude();
                     }
-                    w.object();
-                    w.key("type").value(e.isInclude() ? "include" : "exclude");
+                    w.writeStartObject();
+                    w.write("type", e.isInclude() ? "include" : "exclude");
                     PathFilter f = e.getFilter();
                     String pattern;
                     if (f instanceof DefaultPathFilter) {
@@ -126,41 +129,40 @@ public class SirenJsonWriter {
                     } else {
                         pattern = e.toString();
                     }
-                    w.key("pattern").value(pattern);
-                    w.endObject();
+                    w.write("pattern", pattern);
+                    w.writeEnd();
                 }
                 if (defaultAllow == null) {
                     defaultAllow = true;
                 } else {
-                    w.endArray();
+                    w.writeEnd();
                 }
-                w.key("default").value(defaultAllow ? "include" : "exclude");
-                w.endObject();
+                w.write("default", defaultAllow ? "include" : "exclude");
+                w.writeEnd();
             }
-            w.endArray();
-            w.endObject();
+            w.writeEnd();
+            w.writeEnd();
         }
     }
-    private void write(String key, Set<String> strings) throws JSONException {
+    private void write(String key, Set<String> strings) throws JsonException {
         if (!strings.isEmpty()) {
-            w.key(key);
-            w.array();
+            w.writeStartArray(key);
             for (String s: strings) {
-                w.value(s);
+                w.write(s);
             }
-            w.endArray();
+            w.writeEnd();
         }
     }
 
-    private void writeIfNotNull(String key, Object value) throws JSONException {
+    private void writeIfNotNull(String key, Object value) throws JsonException {
         if (value != null) {
-            w.key(key).value(value);
+            w.write(key, value.toString());
         }
     }
 
-    private void writeIfNotEmpty(String key, String value) throws JSONException {
+    private void writeIfNotEmpty(String key, String value) throws JsonException {
         if (value != null && value.length() > 0) {
-            w.key(key).value(value);
+            w.write(key, value);
         }
     }
 
