@@ -47,9 +47,9 @@ $ mvn clean install -Pit
 
 ### Testing with Postman
 
-The [postman collection](src/main/test/postman/filevault-packagemgr-tests.postman_collection.json) can be imported with
+The [postman collection](src/test/postman/filevault-packagemgr-tests.postman_collection.json) can be imported with
 postman. be sure you define the `HOST` environment variable with `http://localhost:8080` or similar. Alternatively the
-[localhost-8080](src/main/test/postman/localhost-8080.postman_environment.json) can be imported.
+[localhost-8080](src/test/postman/localhost-8080.postman_environment.json) can be imported.
 
 
 Usage
