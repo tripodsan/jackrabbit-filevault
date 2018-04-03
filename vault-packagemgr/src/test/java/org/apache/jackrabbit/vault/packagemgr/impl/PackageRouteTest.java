@@ -22,9 +22,9 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 /**
- * {@code PackageMgrServletTest}...
+ * {@code PackageRouteTest}...
  */
-public class PackageMgrServletTest {
+public class PackageRouteTest {
 
     @Test
     public void testRoutesSingleName() {
@@ -53,8 +53,6 @@ public class PackageMgrServletTest {
 
     private void testRouteEquals(String pfx, String packageId) {
         assertRouteEquals(pfx, packageId, null, null);
-        assertRouteEquals(pfx + "/install", packageId, "install", null);
-        assertRouteEquals(pfx + "/uninstall", packageId, "uninstall", null);
         assertRouteEquals(pfx + "/thumbnail.png", packageId, "thumbnail", "thumbnail.png");
         assertRouteEquals(pfx + "/screenshot/1.png", packageId, "screenshot", "1.png");
         String downloadName = PackageId.fromString(packageId).getDownloadName();
@@ -62,7 +60,7 @@ public class PackageMgrServletTest {
     }
 
     private void assertRouteEquals(String path, String packageId, String command, String file) {
-        PackageMgrServlet.Route r = new PackageMgrServlet.Route(path);
+        PackageRoute r = new PackageRoute(path);
         assertEquals(packageId, r.getPackageId() == null ? null : r.getPackageId().toString());
         assertEquals(command, r.getCommand());
         assertEquals(file, r.getFile());

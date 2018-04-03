@@ -14,20 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 
-import java.util.Map;
+package org.apache.jackrabbit.vault.packagemgr.impl.models;
 
-/**
- * {@code Entity}...
- */
-public interface Entity extends Link {
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
 
-    Map<String, Object> getProperties();
+public class Filevault extends Base {
 
-    Iterable<Link> getLinks();
+    public static String CLASS = "filevault";
 
-    Iterable<Entity> getEntities();
-
-    Iterable<Action> getActions();
+    @Override
+    public Entity buildEntity() {
+        return new EntityBuilder()
+                .addClass(CLASS)
+                .addProperty("version", "3.2.0")
+                .addProperty("api-version", "1.0")
+                .addLink(Rels.SELF, baseHref)
+                .addLink(Rels.REL_VLT_PACKAGES, baseHref + "/packages");
+    }
 }

@@ -181,4 +181,84 @@
 
     </dependencies>
 
+    <!-- ====================================================================== -->
+    <!-- P R O F I L E S                                                        -->
+    <!-- ====================================================================== -->
+    <profiles>
+        <profile>
+            <id>it</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>reserve-network-port</id>
+                                <goals>
+                                    <!-- pre-integration-test is too late -->
+                                    <goal>reserve-network-port</goal>
+                                </goals>
+                                <phase>process-resources</phase>
+                                <configuration>
+                                    <portNames>
+                                        <portName>http.port</portName>
+                                        <portName>sling.control.port</portName>
+                                    </portNames>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- ====================================================================== -->
+                    <!-- Frontend Maven Plugin                                                  -->
+                    <!-- ====================================================================== -->
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>install node and yarn</id>
+                                <goals>
+                                    <goal>install-node-and-yarn</goal>
+                                </goals>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <nodeVersion>v6.9.1</nodeVersion>
+                                    <yarnVersion>v0.16.1</yarnVersion>
+                                    <installDirectory>${project.build.directory}/node</installDirectory>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>yarn install</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>yarn</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>install</arguments>
+                                    <installDirectory>${project.build.directory}/node</installDirectory>
+                                </configuration>
+                            </execution>
+                            <!-- TODO: Autostart and stop sling -->
+                            <execution>
+                                <id>yarn test</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>yarn</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>test</arguments>
+                                    <installDirectory>${project.build.directory}/node</installDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+
+
+            </build>
+        </profile>
+    </profiles>
 </project>

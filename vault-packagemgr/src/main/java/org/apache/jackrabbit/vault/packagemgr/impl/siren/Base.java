@@ -14,20 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 
-import java.util.Map;
+import java.util.Set;
 
-/**
- * {@code Entity}...
- */
-public interface Entity extends Link {
+public interface Base {
 
-    Map<String, Object> getProperties();
+    Set<String> getClasses();
 
-    Iterable<Link> getLinks();
+    String getName();
 
-    Iterable<Entity> getEntities();
+    String getType();
 
-    Iterable<Action> getActions();
+    String getTitle();
+
 }

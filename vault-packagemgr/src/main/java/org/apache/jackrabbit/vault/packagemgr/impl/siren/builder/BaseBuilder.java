@@ -16,22 +16,52 @@
  */
 package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
+import java.util.Set;
+import java.util.TreeSet;
 
-/**
- * {@code FieldBuilder}...
- */
-public class FieldBuilder extends BaseBuilder implements Field {
+public class BaseBuilder {
 
-    private String value;
+    private TreeSet<String> classes = new TreeSet<String>();
 
-    public FieldBuilder withValue(String value) {
-        this.value = value;
+    private String name;
+
+    private String type;
+
+    private String title;
+
+    public BaseBuilder addClass(String className) {
+        classes.add(className);
         return this;
     }
 
-    public String getValue() {
-        return value;
+    public BaseBuilder withName(String name) {
+        this.name = name;
+        return this;
     }
 
+    public BaseBuilder withType(String type) {
+        this.type = type;
+        return this;
+    }
+
+    public BaseBuilder withTitle(String title) {
+        this.title = title;
+        return this;
+    }
+
+    public Set<String> getClasses() {
+        return classes;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getTitle() {
+        return title;
+    }
 }

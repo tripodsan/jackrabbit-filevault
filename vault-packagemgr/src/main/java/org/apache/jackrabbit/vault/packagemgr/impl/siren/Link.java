@@ -21,11 +21,9 @@ import java.util.Set;
 /**
  * {@code Link}...
  */
-public interface Link extends Comparable<Link> {
+public interface Link extends Comparable<Link>, Base {
 
     Set<String> getRels();
 
     String getHref();
-
-    String getTitle();
 }

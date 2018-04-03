@@ -19,13 +19,11 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 /**
  * {@code Action}...
  */
-public interface Action extends Link {
+public interface Action extends Base {
 
-    String getName();
+    String getHref();
 
     String getMethod();
-
-    String getType();
 
     Iterable<Field> getFields();
 }

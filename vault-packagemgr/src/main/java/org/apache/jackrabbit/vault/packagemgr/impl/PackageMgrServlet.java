@@ -18,15 +18,9 @@
 package org.apache.jackrabbit.vault.packagemgr.impl;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import javax.jcr.Binary;
 import javax.jcr.Node;
-import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.json.JsonException;
@@ -37,15 +31,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.util.Text;
+import org.apache.jackrabbit.vault.packagemgr.impl.models.Filevault;
+import org.apache.jackrabbit.vault.packagemgr.impl.models.PackageModel;
+import org.apache.jackrabbit.vault.packagemgr.impl.models.Packages;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
-import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
@@ -109,22 +102,20 @@ public class PackageMgrServlet extends HttpServlet {
             String baseRef = request.getScheme() + "://" + request.getHeader("host") + request.getContextPath();
             Entity root = null;
             if (relPath.length() == 0) {
-                root = new EntityBuilder()
-                        .addClass("filevault")
-                        .addProperty("version", "3.2.0")
-                        .addProperty("api-version", "1.0")
-                        .addLink(Rels.SELF, baseRef)
-                        .addLink(Rels.REL_VLT_PACKAGES, baseRef + "/packages")
-                        .build();
+                root = new Filevault()
+                        .withBaseHref(baseRef)
+                        .buildEntity();
+
             } else if ("/packages".equals(relPath)) {
-                Session session = resolver.adaptTo(Session.class);
-                JcrPackageManager mgr = packaging.getPackageManager(session);
-                root = getPackagesEntity(mgr, baseRef + "/packages");
+                root = new Packages()
+                        .withPackageManager(packaging.getPackageManager(resolver.adaptTo(Session.class)))
+                        .withBaseHref(baseRef)
+                        .buildEntity();
 
             } else if (relPath.startsWith("/packages/")) {
                 String format = request.getParameter("format");
                 String path = relPath.substring("/packages".length());
-                Route r = new Route(path);
+                PackageRoute r = new PackageRoute(path);
                 Session session = resolver.adaptTo(Session.class);
                 JcrPackageManager mgr = packaging.getPackageManager(session);
                 JcrPackage pkg = mgr.open(r.getPackageId());
@@ -144,11 +135,13 @@ public class PackageMgrServlet extends HttpServlet {
                 } else if ("download".equals(r.getCommand())) {
                     Node node = pkg.getNode();
                     sendFile(request, response, node);
+                    return;
                 } else if ("screenshot".equals(r.getCommand())) {
                     JcrPackageDefinition def = pkg.getDefinition();
                     Node node = def.getNode();
                     if (!node.hasNode("screenshots/" + r.getFile())) {
                         response.sendError(404);
+                        return;
                     } else {
                         node = node.getNode("screenshots/" + r.getFile());
                         if (node.hasProperty("jcr:content/jcr:data")) {
@@ -158,10 +151,16 @@ public class PackageMgrServlet extends HttpServlet {
                         } else {
                             response.sendError(404);
                         }
+                        return;
                     }
                 }
-                root = getPackageEntity(pkg, baseRef + "/packages", "brief".equals(format));
+                root = new PackageModel()
+                        .withPackage(pkg)
+                        .withBrief("brief".equals(format))
+                        .withBaseHref(baseRef)
+                        .buildEntity();
             }
+
             try (SirenJsonWriter out = new SirenJsonWriter(response.getWriter())) {
                 out.write(root);
             }
@@ -179,189 +178,5 @@ public class PackageMgrServlet extends HttpServlet {
         bin.dispose();
     }
 
-    private Entity getPackagesEntity(JcrPackageManager mgr, String selfRef) throws RepositoryException {
-        List<JcrPackage> packages = mgr.listPackages();
-        EntityBuilder root = new EntityBuilder()
-                .addClass("packages")
-                .addProperty("itemCount", packages.size())
-                .addLink(Rels.SELF, selfRef);
-
-        for (JcrPackage pkg: packages) {
-            root.addEntity(getPackageEntity(pkg, selfRef, true));
-        }
-        return root.build();
-    }
-
-    private Entity getPackageEntity(JcrPackage pkg, String parentRef, boolean brief) throws RepositoryException {
-        JcrPackageDefinition  def = pkg.getDefinition();
-        PackageId id = def.getId();
-        StringBuilder b = new StringBuilder(parentRef).append("/");
-        if (id.getGroup().length() > 0) {
-            b.append(id.getGroup());
-            b.append("/");
-        }
-        b.append(id.getName());
-        if (id.getVersionString().length() > 0) {
-            b.append("/").append(id.getVersionString());
-        }
-        String pkgRef = b.toString();
-        EntityBuilder builder = addPackageProperties(new EntityBuilder(), pkg, brief)
-                .addLink(Rels.REL_VLT_PACKAGE_DOWNLOAD, pkgRef + "/" + id.getDownloadName());
-
-        if (brief) {
-            builder.addClass("package-brief")
-                    .addLink(Rels.SELF, pkgRef + "?format=brief")
-                    .addLink(Rels.REL_VLT_PACKAGE, pkgRef);
-        } else {
-            builder.addClass("package")
-                    .addLink(Rels.SELF, pkgRef)
-                    .addLink(Rels.REL_VLT_PACKAGE_BRIEF, pkgRef + "?format=brief");
-
-            if (def.get("thumbnail.png/jcr:content/jcr:mimeType") != null) {
-                builder.addLink(Rels.REL_VLT_THUMBNAIL, pkgRef + "/thumbnail.png");
-            }
-
-            if (def.getNode().hasNode("screenshots")) {
-                NodeIterator it = def.getNode().getNode("screenshots").getNodes();
-                while (it.hasNext()) {
-                    builder.addLink(Rels.REL_VLT_SCREENSHOT, pkgRef + "/screenshot/" + it.nextNode().getName());
-                }
-            }
-        }
-        return builder.build();
-    }
-
-    private EntityBuilder addPackageProperties(EntityBuilder b, JcrPackage pkg, boolean brief) throws RepositoryException {
-        JcrPackageDefinition  def = pkg.getDefinition();
-        PackageId id = def.getId();
-        b.addProperty("pid", id.toString())
-                .addProperty("name", id.getName())
-                .addProperty("group", id.getGroup())
-                .addProperty("version", id.getVersionString())
-                .addProperty("downloadName", id.getDownloadName())
-                .addProperty("downloadSize", pkg.getSize())
-                .addProperty("lastUnpacked", def.getLastUnpacked())
-                .addProperty("lastModified", def.getLastModified())
-                .addProperty("created", def.getCreated());
-
-        if (brief) {
-            return b;
-        }
-        Node defNode = def.getNode();
-        b
-                .addProperty("description", def.getDescription())
-                .addProperty("buildCount", def.getBuildCount())
-                .addProperty("lastModifiedBy", def.getLastModifiedBy())
-                .addProperty("lastUnpackedBy", def.getLastUnpackedBy())
-                .addProperty("createdBy", def.getCreatedBy())
-                .addProperty("hasSnapshot", pkg.getSnapshot() != null)
-                .addProperty("needsRewrap", needsRewrap(pkg, id))
-                .addProperty("builtWith", def.get("builtWith"))
-                .addProperty("testedWith", def.get("testedWith"))
-                .addProperty("fixedBugs", def.get("fixedBugs"))
-                .addProperty("requiresRoot", def.requiresRoot())
-                .addProperty("requiresRestart", def.requiresRestart())
-                .addProperty("acHandling",
-                        def.getAccessControlHandling() == null
-                                ? ""
-                                : def.getAccessControlHandling().name().toLowerCase())
-                .addProperty("providerName", def.get("providerName"))
-                .addProperty("providerUrl", def.get("providerUrl"))
-                .addProperty("providerLink", def.get("providerLink"))
-                .addProperty("dependencies", defNode, "dependencies")
-                .addProperty("replaces", defNode, "replaces")
-                .addProperty("workspaceFilter", def.getMetaInf().getFilter());
-        return b;
-    }
-
-    private boolean needsRewrap(JcrPackage pack, PackageId id) throws RepositoryException {
-        String groupPath = id.getGroup().equals("") ? id.getGroup() : "/" + id.getGroup();
-        return !pack.getNode().getParent().getPath().equals(PackageId.ETC_PACKAGES + groupPath);
-    }
-
-//    private String getThumbnailUrl(Node defNode, String path) throws RepositoryException {
-//        long ck = System.currentTimeMillis();
-//        try {
-//            ck = defNode.getProperty("thumbnail.png/jcr:content/jcr:lastModified").getLong();
-//        } catch (PathNotFoundException e) {
-//            // ignore
-//        }
-//        return request.getContextPath() + request.getServletPath() + "/thumbnail.jsp?_charset_=utf-8&path=" + Text.escape(path) + "&ck=" + ck;
-//    }
-//
-
-
-    protected static class Route {
-
-        private static final Set<String> commands = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
-                "install", "uninstall"
-        )));
-        private PackageId pkgId;
-
-        private String command;
-
-        private String file;
-
-        protected Route(String path) {
-            String[] segs = Text.explode(path, '/');
-            // empty
-            if (segs.length == 0) {
-                return;
-            }
-
-            // /name
-            if (segs.length == 1) {
-                pkgId = new PackageId("", segs[0], "");
-                return;
-            }
-
-            String last = segs[segs.length-1];
-            if ("thumbnail.png".equals(last)) {
-                pkgId = createPackageId(segs, 0, segs.length - 1);
-                command = "thumbnail";
-                file = last;
-            } else if (segs.length > 2 && "screenshot".equals(segs[segs.length - 2])) {
-                pkgId = createPackageId(segs, 0, segs.length - 2);
-                command = "screenshot";
-                file = last;
-            } else {
-                pkgId = createPackageId(segs, 0, segs.length - 1);
-                if (last.equals(pkgId.getDownloadName())) {
-                    file = last;
-                    command = "download";
-                } else if (commands.contains(last)) {
-                    command = last;
-                } else {
-                    pkgId = createPackageId(segs, 0, segs.length);
-                }
-            }
-        }
-
-        private static PackageId createPackageId(String[] segs, int from, int to) {
-            StringBuilder b = new StringBuilder();
-            while (from < to - 2) {
-                String seg = segs[from++];
-                if (!seg.equals("-")) {
-                    b.append("/").append(seg);
-                }
-            }
-            String group = b.toString();
-            String name = segs[to-2];
-            String version = segs[to-1].equals("-") ? "" : segs[to-1];
-            return new PackageId(group, name, version);
-        }
-
-        public PackageId getPackageId() {
-            return pkgId;
-        }
-
-        public String getCommand() {
-            return command;
-        }
-
-        public String getFile() {
-            return file;
-        }
-    }
 }
 

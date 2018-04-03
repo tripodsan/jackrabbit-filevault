@@ -29,7 +29,10 @@ import org.apache.jackrabbit.vault.fs.api.PathFilter;
 import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.filter.DefaultPathFilter;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Base;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 
 /**
@@ -47,17 +50,9 @@ public class SirenJsonWriter implements AutoCloseable {
         this.w = Json.createGenerator(writer);
     }
 
-    public void write(Link link) throws JsonException {
-        w.writeStartObject();
-        write("rel", link.getRels());
-        writeIfNotNull("href", link.getHref());
-        writeIfNotEmpty("title", link.getTitle());
-        w.writeEnd();
-    }
-
     public void write(Entity e) throws JsonException {
         w.writeStartObject();
-        write("class", e.getClasses());
+        writeBase(e);
         write("rel", e.getRels());
         writeIfNotEmpty("href", e.getHref());
         if (!e.getProperties().isEmpty()) {
@@ -65,7 +60,7 @@ public class SirenJsonWriter implements AutoCloseable {
         }
         w.writeStartArray("links");
         for (Link link : e.getLinks()) {
-            write(link);
+            writeLink(link);
         }
         w.writeEnd();
         boolean hasEntities = false;
@@ -80,8 +75,62 @@ public class SirenJsonWriter implements AutoCloseable {
             w.writeEnd();
         }
 
+        boolean hasActions = false;
+        for (Action action: e.getActions()) {
+            if (!hasActions) {
+                w.writeStartArray("actions");
+                hasActions = true;
+            }
+            write(action);
+        }
+        if (hasActions) {
+            w.writeEnd();
+        }
+
         w.writeEnd();
     }
+
+    public void writeLink(Link link) throws JsonException {
+        w.writeStartObject();
+        write("rel", link.getRels());
+        writeIfNotNull("href", link.getHref());
+        writeIfNotEmpty("title", link.getTitle());
+        w.writeEnd();
+    }
+
+    private void writeBase(Base b) {
+        writeIfNotEmpty("name", b.getName());
+        writeIfNotEmpty("type", b.getType());
+        writeIfNotEmpty("title", b.getTitle());
+        write("class", b.getClasses());
+    }
+
+    private void write(Action a) {
+        w.writeStartObject();
+        writeBase(a);
+        writeIfNotEmpty("method", a.getMethod());
+        writeIfNotEmpty("href", a.getHref());
+        boolean hasFields = false;
+        for (Field f: a.getFields()) {
+            if (!hasFields) {
+                hasFields = true;
+                w.writeStartArray("fields");
+            }
+            write(f);
+        }
+        if (hasFields) {
+            w.writeEnd();
+        }
+        w.writeEnd();
+    }
+
+    private void write(Field f) {
+        w.writeStartObject();
+        writeBase(f);
+        writeIfNotEmpty("value", f.getValue());
+        w.writeEnd();
+    }
+
 
     public void close() {
         w.close();

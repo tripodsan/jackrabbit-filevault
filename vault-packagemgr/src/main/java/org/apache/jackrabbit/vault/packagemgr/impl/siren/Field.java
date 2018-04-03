@@ -19,13 +19,8 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 /**
  * {@code Field}...
  */
-public interface Field {
+public interface Field extends Base {
 
-    String getName();
+    String getValue();
 
-    String getStringValue();
-
-    String getType();
-
-    String getTitle();
 }

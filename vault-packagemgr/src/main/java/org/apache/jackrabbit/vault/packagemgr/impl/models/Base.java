@@ -14,20 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 
-import java.util.Map;
+package org.apache.jackrabbit.vault.packagemgr.impl.models;
 
-/**
- * {@code Entity}...
- */
-public interface Entity extends Link {
+import java.io.IOException;
 
-    Map<String, Object> getProperties();
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 
-    Iterable<Link> getLinks();
+public abstract class Base {
 
-    Iterable<Entity> getEntities();
+    String baseHref;
 
-    Iterable<Action> getActions();
+    public Base withBaseHref(String baseHref) {
+        this.baseHref = baseHref;
+        return this;
+    }
+
+    public abstract Entity buildEntity() throws IOException;
 }

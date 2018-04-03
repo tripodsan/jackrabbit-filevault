@@ -35,8 +35,8 @@ public class JsonTests {
     @Test
     public void testLink() throws JsonException {
         Link link = new LinkBuilder()
-                .setHref("/foo/bar")
-                .setTitle("Hello")
+                .withHref("/foo/bar")
+                .withTitle("Hello")
                 .addRel("self")
                 .addRel("next");
         String expected =
@@ -49,7 +49,7 @@ public class JsonTests {
         expected = expected.replace('\'', '"');
         StringWriter out = new StringWriter();
         try (SirenJsonWriter w = new SirenJsonWriter(out)) {
-            w.write(link);
+            w.writeLink(link);
         }
         assertEquals(expected, out.toString());
     }
@@ -60,7 +60,7 @@ public class JsonTests {
         Link link = new LinkBuilder();
         StringWriter out = new StringWriter();
         SirenJsonWriter w = new SirenJsonWriter(out);
-        w.write(link);
+        w.writeLink(link);
         assertEquals("{}", out.toString());
     }
 

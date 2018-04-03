@@ -25,29 +25,53 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 /**
  * {@code ActionBuilder}...
  */
-public class ActionBuilder extends LinkBuilder implements Action {
+public class ActionBuilder extends BaseBuilder implements Action {
 
-    private String name;
+    private String method = "GET";
 
-    private String method;
-
-    private String type;
+    private String href = "";
 
     private List<Field> fields = new LinkedList<Field>();
 
-    public ActionBuilder setName(String name) {
-        this.name = name;
+    @Override
+    public String getHref() {
+        return href;
+    }
+
+    @Override
+    public ActionBuilder withName(String name) {
+        super.withName(name);
         return this;
     }
 
-    public ActionBuilder setMethod(String method) {
+    public ActionBuilder withHref(String href) {
+        this.href = href;
+        return this;
+    }
+
+    public ActionBuilder withMethod(String method) {
         this.method = method;
         return this;
     }
 
-    public ActionBuilder setType(String type) {
-        this.type = type;
-        return this;
+    public ActionBuilder withGET() {
+        return withMethod("GET");
+    }
+
+    public ActionBuilder withPUT() {
+        return withMethod("PUT");
+    }
+
+    public ActionBuilder withPOST() {
+        return withMethod("POST");
+    }
+
+    public ActionBuilder withDELETE() {
+        return withMethod("DELETE");
+    }
+
+    public ActionBuilder withPATCH() {
+        return withMethod("PATCH");
     }
 
     public ActionBuilder addField(Field field) {
@@ -55,16 +79,8 @@ public class ActionBuilder extends LinkBuilder implements Action {
         return this;
     }
 
-    public String getName() {
-        return name;
-    }
-
     public String getMethod() {
         return method;
-    }
-
-    public String getType() {
-        return type;
     }
 
     public Iterable<Field> getFields() {

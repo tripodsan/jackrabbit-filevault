@@ -40,8 +40,6 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
  */
 public class EntityBuilder extends LinkBuilder implements Entity {
 
-    private TreeSet<String> classes = new TreeSet<String>();
-
     private Map<String, Object> props = new TreeMap<String, Object>();
 
     private TreeSet<Link> links = new TreeSet<Link>();
@@ -50,8 +48,9 @@ public class EntityBuilder extends LinkBuilder implements Entity {
 
     private List<Action> actions = new LinkedList<Action>();
 
+    @Override
     public EntityBuilder addClass(String className) {
-        classes.add(className);
+        super.addClass(className);
         return this;
     }
 
@@ -101,13 +100,14 @@ public class EntityBuilder extends LinkBuilder implements Entity {
         }
         return this;
     }
+
     public EntityBuilder addLink(Link link) {
         links.add(link);
         return this;
     }
 
     public EntityBuilder addLink(String rel, String href) {
-        links.add(new LinkBuilder().addRel(rel).setHref(href));
+        links.add(new LinkBuilder().addRel(rel).withHref(href));
         return this;
     }
 
@@ -123,10 +123,6 @@ public class EntityBuilder extends LinkBuilder implements Entity {
 
     public Entity build() {
         return this;
-    }
-
-    public Set<String> getClasses() {
-        return classes;
     }
 
     public Map<String, Object> getProperties() {

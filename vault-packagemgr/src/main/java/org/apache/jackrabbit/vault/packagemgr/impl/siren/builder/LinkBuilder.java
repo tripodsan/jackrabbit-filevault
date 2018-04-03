@@ -24,11 +24,9 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 /**
  * {@code LinkBuilder}...
  */
-public class LinkBuilder implements Link {
+public class LinkBuilder extends BaseBuilder implements Link {
 
     private String href = "";
-
-    private String title;
 
     private TreeSet<String> rels = new TreeSet<String>();
 
@@ -37,13 +35,14 @@ public class LinkBuilder implements Link {
         return this;
     }
 
-    public LinkBuilder setHref(String href) {
+    public LinkBuilder withHref(String href) {
         this.href = href == null ? "" : href;
         return this;
     }
 
-    public LinkBuilder setTitle(String title) {
-        this.title = title;
+    @Override
+    public LinkBuilder withTitle(String title) {
+        super.withTitle(title);
         return this;
     }
 
@@ -53,10 +52,6 @@ public class LinkBuilder implements Link {
 
     public String getHref() {
         return href;
-    }
-
-    public String getTitle() {
-        return title;
     }
 
     public int compareTo(Link o) {
