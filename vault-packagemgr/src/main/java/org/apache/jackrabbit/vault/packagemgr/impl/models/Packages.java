@@ -22,9 +22,12 @@ import java.util.List;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.FieldBuilder;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 
@@ -42,20 +45,29 @@ public class Packages extends Base {
     @Override
     public Entity buildEntity() throws IOException {
         List<JcrPackage> packages = listPackages();
-        EntityBuilder root = new EntityBuilder()
+        EntityBuilder builder = new EntityBuilder()
                 .addClass(CLASS)
                 .addProperty("itemCount", packages.size())
                 .addLink(Rels.SELF, baseHref + "/packages");
 
         for (JcrPackage pkg: packages) {
-            root.addEntity(new PackageModel()
+            builder.addEntity(new PackageModel()
                     .withPackage(pkg)
                     .withBrief(true)
                     .withBaseHref(baseHref)
                     .buildEntity()
             );
         }
-        return root.build();
+        builder.addAction(new ActionBuilder()
+                .withName("create-package")
+                .withType(Action.TYPE_MULTIPART_FORM_DATA)
+                .withPOST()
+                .addField(new FieldBuilder()
+                    .withName("package")
+                    .withType("file"))
+        );
+
+        return builder.build();
     }
 
     private List<JcrPackage> listPackages() throws IOException {

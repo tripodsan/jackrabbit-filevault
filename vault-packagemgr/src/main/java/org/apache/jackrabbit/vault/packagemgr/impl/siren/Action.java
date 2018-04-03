@@ -21,6 +21,10 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren;
  */
 public interface Action extends Base {
 
+    String TYPE_MULTIPART_FORM_DATA = "multipart/form-data";
+
+    String TYPE_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
+
     String getHref();
 
     String getMethod();

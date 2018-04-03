@@ -44,6 +44,12 @@ public class ActionBuilder extends BaseBuilder implements Action {
         return this;
     }
 
+    @Override
+    public ActionBuilder withType(String type) {
+        super.withType(type);
+        return this;
+    }
+
     public ActionBuilder withHref(String href) {
         this.href = href;
         return this;

@@ -25,6 +25,24 @@ public class FieldBuilder extends BaseBuilder implements Field {
 
     private String value;
 
+    @Override
+    public FieldBuilder withName(String name) {
+        super.withName(name);
+        return this;
+    }
+
+    @Override
+    public FieldBuilder withType(String type) {
+        super.withType(type);
+        return this;
+    }
+
+    @Override
+    public FieldBuilder withTitle(String title) {
+        super.withTitle(title);
+        return this;
+    }
+
     public FieldBuilder withValue(String value) {
         this.value = value;
         return this;
