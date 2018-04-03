@@ -24,7 +24,3 @@
   org.apache.sling/org.apache.sling.launchpad/9/slingstart
   org.apache.jackrabbit.vault/org.apache.jackrabbit.vault/3.1.44
   org.apache.jackrabbit.vault/org.apache.jackrabbit.vault.packagemgr
-
-[configurations]
- org.apache.sling.jcr.repoinit.impl.RepositoryInitializer
-   references="model@repoinit:context:/resources/provisioning/model.txt"

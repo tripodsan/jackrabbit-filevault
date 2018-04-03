@@ -62,7 +62,7 @@
 			},
 			"response": [
 				{
-					"id": "c3ccf5a0-1838-42b4-80b2-fc0d500ba5de",
+					"id": "00cbb513-b402-48a0-a746-96b7a024526c",
 					"name": "Example request",
 					"originalRequest": {
 						"method": "GET",
@@ -204,21 +204,14 @@
 	],
 	"variable": [
 		{
-			"id": "7295c96f-7b00-42e8-baaf-ec8fd5972932",
-			"key": "HOST",
-			"value": "http://localhost:8080",
-			"type": "string",
-			"description": ""
-		},
-		{
-			"id": "b2d8fb09-12fc-4aa7-a683-1fb950781b13",
+			"id": "403a0773-5c1f-4d20-b2f1-d03b1f22b88d",
 			"key": "API_BASE",
 			"value": "/system/jackrabbit/filevault",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "7388670a-9945-47bc-aa7a-051fdcfc0d27",
+			"id": "f9546e94-34b1-463b-bf6f-30699d67d7ae",
 			"key": "REL_PACKAGES",
 			"value": "http://jackrabbit.apache.org/filevault/rels/packages",
 			"type": "string",

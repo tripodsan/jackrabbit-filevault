@@ -28,6 +28,29 @@ An experimental [postman](https://www.getpostman.com/) collection resides in `sr
 2. get newman: `npm install`
 3. run tests: `npm test`
 
+### Using a different port
+
+By default the test run against localhost:8080. the port can be specified by adding it as argument to the test script, eg:
+
+```bash
+$ npm test 4502
+```
+
+### Testing with Maven
+
+The Integration test can be run automatically with the `it` profile. The tests launch a sling, execute the tests and
+stop it again.
+
+```bash
+$ mvn clean install -Pit
+```
+
+### Testing with Postman
+
+The [postman collection](src/main/test/postman/filevault-packagemgr-tests.postman_collection.json) can be imported with
+postman. be sure you define the `HOST` environment variable with `http://localhost:8080` or similar. Alternatively the
+[localhost-8080](src/main/test/postman/localhost-8080.postman_environment.json) can be imported.
+
 
 Usage
 -----

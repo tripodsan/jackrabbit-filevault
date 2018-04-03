@@ -113,6 +113,8 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>jackrabbit-jcr-commons</artifactId>
+            <!-- explicit version needed for sling start -->
+            <version>2.14.4</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -188,31 +190,31 @@
         <profile>
             <id>it</id>
             <properties>
-                <http.port>8080</http.port>
+                <!--<http.port>8080</http.port>-->
                 <http.host>localhost</http.host>
                 <sling.vm.options>-Xmx1024m -XX:MaxPermSize=256m -Djava.awt.headless=true</sling.vm.options>
             </properties>
             <build>
                 <plugins>
-                    <!--<plugin>-->
-                        <!--<groupId>org.codehaus.mojo</groupId>-->
-                        <!--<artifactId>build-helper-maven-plugin</artifactId>-->
-                        <!--<executions>-->
-                            <!--<execution>-->
-                                <!--<id>reserve-network-port</id>-->
-                                <!--<goals>-->
-                                    <!--&lt;!&ndash; pre-integration-test is too late &ndash;&gt;-->
-                                    <!--<goal>reserve-network-port</goal>-->
-                                <!--</goals>-->
-                                <!--<phase>process-resources</phase>-->
-                                <!--<configuration>-->
-                                    <!--<portNames>-->
-                                        <!--<portName>http.port</portName>-->
-                                    <!--</portNames>-->
-                                <!--</configuration>-->
-                            <!--</execution>-->
-                        <!--</executions>-->
-                    <!--</plugin>-->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>reserve-network-port</id>
+                                <goals>
+                                    <!-- pre-integration-test is too late -->
+                                    <goal>reserve-network-port</goal>
+                                </goals>
+                                <phase>process-resources</phase>
+                                <configuration>
+                                    <portNames>
+                                        <portName>http.port</portName>
+                                    </portNames>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <plugin>
                         <!-- the Sling instance is provisioned from the model in src/main/provisioning/model.txt -->
                         <groupId>org.apache.sling</groupId>
@@ -250,7 +252,7 @@
                         <configuration>
                             <usePomDependencies>true</usePomDependencies>
                             <attachArtifact>false</attachArtifact>
-                            <shouldBlockUntilKeyIsPressed>true</shouldBlockUntilKeyIsPressed>
+                            <!--<shouldBlockUntilKeyIsPressed>true</shouldBlockUntilKeyIsPressed>-->
                             <servers>
                                 <server>
                                     <id>singleinstance</id>
@@ -299,7 +301,7 @@
                                     <goal>yarn</goal>
                                 </goals>
                                 <configuration>
-                                    <arguments>test</arguments>
+                                    <arguments>test ${http.port}</arguments>
                                     <installDirectory>${project.build.directory}/node</installDirectory>
                                 </configuration>
                             </execution>
