@@ -7,12 +7,790 @@
 	},
 	"item": [
 		{
+			"name": "packages",
+			"description": "The `/packages` resource lists the packages of the package manager.",
+			"item": [
+				{
+					"name": "delete all packages below /etc",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "{{HOST}}/etc/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"etc",
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "basic tests",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "5871c840-509d-4d9a-a919-5749a268cd42",
+								"type": "text/javascript",
+								"exec": [
+									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+									"const REL_PACKAGES = \"http://jackrabbit.apache.org/filevault/rels/packages\";",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"class is correct\", function () {",
+									"    var cls = pm.response.json()['class'];",
+									"    pm.expect(cls).to.eql(['packages']);",
+									"});",
+									"",
+									"pm.test(\"rel=self is correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var href = jsonData.links.find(l => l.rel.indexOf('self') >= 0).href;",
+									"    pm.expect(href).to.eql(API_BASE_URL + '/packages');",
+									"});",
+									"",
+									"pm.test('item count is 0', function() {",
+									"    var jsonData = pm.response.json();",
+									"    var itemCount = jsonData.properties.itemCount;",
+									"    pm.expect(itemCount).to.eql(0);",
+									"    ",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "not existent package gives 404",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "67d588ed-38bf-4bc9-93f3-139f35455cbc",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages/org/apache/jackrabbit/fullpackage/1.0",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages",
+								"org",
+								"apache",
+								"jackrabbit",
+								"fullpackage",
+								"1.0"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create action exists",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ccf39705-8550-42b5-87f4-ef525cd073df",
+								"type": "text/javascript",
+								"exec": [
+									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+									"const REL_PACKAGES = \"http://jackrabbit.apache.org/filevault/rels/packages\";",
+									"",
+									"pm.test('has create-package action', function() {",
+									"    var jsonData = pm.response.json();",
+									"    var action = jsonData.actions.find(a => a.name === 'create-package');",
+									"    pm.expect(action).to.eql({",
+									"            \"name\": \"create-package\",",
+									"            \"type\": \"multipart/form-data\",",
+									"            \"method\": \"POST\",",
+									"            \"href\": API_BASE_URL + \"/packages\",",
+									"            \"fields\": [",
+									"                {",
+									"                    \"name\": \"package\",",
+									"                    \"type\": \"file\",",
+									"                    \"title\": \"Package File\"",
+									"                },",
+									"                {",
+									"                    \"name\": \"replace\",",
+									"                    \"type\": \"text\",",
+									"                    \"title\": \"Replace existing package\"",
+									"                }",
+									"            ]",
+									"        });",
+									"});",
+									"",
+									"",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create action upload missing param",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "c786e48c-3e01-4211-9832-be5015c71130",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 415\", function () {",
+									"    pm.response.to.have.status(415);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create action upload",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9d08d9d9-23f1-4bb8-a767-50ffbb2f3a7c",
+								"type": "text/javascript",
+								"exec": [
+									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Location headers is correct', function() {",
+									"    pm.response.to.be.header('Location', API_BASE_URL + '/packages/org/apache/jackrabbit/fullpackage/1.0');",
+									"})",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "package",
+									"description": "",
+									"type": "file"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create action 2nd upload fails",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4789b236-0ae9-4256-a84d-c401d57abd4a",
+								"type": "text/javascript",
+								"exec": [
+									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+									"",
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"",
+									"pm.test('Location headers is correct', function() {",
+									"    pm.response.to.be.header('Location', API_BASE_URL + '/packages/org/apache/jackrabbit/fullpackage/1.0');",
+									"})",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "package",
+									"description": "",
+									"type": "file"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create action 2nd upload with replace",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f5620892-6f7b-4dbd-98c0-3b4dc99411d7",
+								"type": "text/javascript",
+								"exec": [
+									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Location headers is correct', function() {",
+									"    pm.response.to.be.header('Location', API_BASE_URL + '/packages/org/apache/jackrabbit/fullpackage/1.0');",
+									"})",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "package",
+									"description": "",
+									"type": "file"
+								},
+								{
+									"key": "replace",
+									"value": "true",
+									"description": "",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "item count is 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "43aadcd6-79e7-4fd3-9bef-ef5565996807",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('item count is 1', function() {",
+									"    var jsonData = pm.response.json();",
+									"    var itemCount = jsonData.properties.itemCount;",
+									"    pm.expect(itemCount).to.eql(1);",
+									"    ",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "test-package full reponse",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "716ba532-ea51-49d5-9d82-e02f7ec766e2",
+								"type": "text/javascript",
+								"exec": [
+									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+									"const REL_PACKAGES = \"http://jackrabbit.apache.org/filevault/rels/packages\";",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"body is correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.eql({",
+									"    \"class\": [",
+									"        \"package\"",
+									"    ],",
+									"    \"properties\": {",
+									"        \"acHandling\": \"clear\",",
+									"        \"buildCount\": 2,",
+									"        \"builtWith\": \"Apache Sling 10\",",
+									"        \"created\": \"2018-04-04T09:29:16.476+09:00\",",
+									"        \"createdBy\": \"admin\",",
+									"        \"dependencies\": [",
+									"            \"org/apache/jackrabbit:test-package:1.0\",",
+									"            \"org/apache/jackrabbit:core-package:2.2\"",
+									"        ],",
+									"        \"description\": \"This is a test package\",",
+									"        \"downloadName\": \"fullpackage-1.0.zip\",",
+									"        \"downloadSize\": 154995,",
+									"        \"fixedBugs\": \"FIX-1 Test Issue\\r\\nFIX-2 Test Issue\",",
+									"        \"group\": \"org/apache/jackrabbit\",",
+									"        \"hasSnapshot\": false,",
+									"        \"lastModified\": \"2018-04-04T09:29:16.462+09:00\",",
+									"        \"lastModifiedBy\": \"admin\",",
+									"        \"name\": \"fullpackage\",",
+									"        \"needsRewrap\": false,",
+									"        \"pid\": \"org/apache/jackrabbit:fullpackage:1.0\",",
+									"        \"providerLink\": \"http://jackrabbit.apache.org/filevault\",",
+									"        \"providerName\": \"Apache Software Foundation\",",
+									"        \"providerUrl\": \"https://www.apache.org/\",",
+									"        \"replaces\": [",
+									"            \"org/apache/jackrabbit:old-package:3.7\"",
+									"        ],",
+									"        \"requiresRestart\": false,",
+									"        \"requiresRoot\": false,",
+									"        \"testedWith\": \"Sling 10\",",
+									"        \"version\": \"1.0\",",
+									"        \"workspaceFilter\": {",
+									"            \"filters\": [",
+									"                {",
+									"                    \"root\": \"/tmp\",",
+									"                    \"mode\": \"replace\",",
+									"                    \"rules\": [",
+									"                        {",
+									"                            \"type\": \"include\",",
+									"                            \"pattern\": \"/tmp/test(/.*)?\"",
+									"                        },",
+									"                        {",
+									"                            \"type\": \"exclude\",",
+									"                            \"pattern\": \"/tmp/ignored\"",
+									"                        }",
+									"                    ],",
+									"                    \"default\": \"exclude\"",
+									"                }",
+									"            ]",
+									"        }",
+									"    },",
+									"    \"links\": [",
+									"        {",
+									"            \"rel\": [",
+									"                \"self\"",
+									"            ],",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0\"",
+									"        },",
+									"        {",
+									"            \"rel\": [",
+									"                \"http://jackrabbit.apache.org/filevault/rels/package-download\"",
+									"            ],",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0/fullpackage-1.0.zip\"",
+									"        },",
+									"        {",
+									"            \"rel\": [",
+									"                \"http://jackrabbit.apache.org/filevault/rels/screenshot\"",
+									"            ],",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0/screenshot/9da109b1-e630-4bbb-bfec-512fc8609c24\"",
+									"        },",
+									"        {",
+									"            \"rel\": [",
+									"                \"http://jackrabbit.apache.org/filevault/rels/screenshot\"",
+									"            ],",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0/screenshot/fc09e393-a708-4454-ab77-ca735373009e\"",
+									"        },",
+									"        {",
+									"            \"rel\": [",
+									"                \"http://jackrabbit.apache.org/filevault/rels/thumbnail\"",
+									"            ],",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0/thumbnail.png\"",
+									"        },",
+									"        {",
+									"            \"rel\": [",
+									"                \"http://jackrabbit.apache.org/filevault/rels/package-brief\"",
+									"            ],",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0?format=brief\"",
+									"        }",
+									"    ],",
+									"    \"actions\": [",
+									"        {",
+									"            \"name\": \"delete-package\",",
+									"            \"method\": \"DELETE\"",
+									"        }",
+									"    ]",
+									"});",
+									"});",
+									"",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages/org/apache/jackrabbit/fullpackage/1.0",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages",
+								"org",
+								"apache",
+								"jackrabbit",
+								"fullpackage",
+								"1.0"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "test-package brief response",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f59ae189-1f5f-485f-98a8-3ebb192b7b55",
+								"type": "text/javascript",
+								"exec": [
+									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+									"const REL_PACKAGES = \"http://jackrabbit.apache.org/filevault/rels/packages\";",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"body is correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.eql(",
+									"{",
+									"    \"class\": [",
+									"        \"package-brief\"",
+									"    ],",
+									"    \"properties\": {",
+									"        \"created\": \"2018-04-04T09:29:16.476+09:00\",",
+									"        \"downloadName\": \"fullpackage-1.0.zip\",",
+									"        \"downloadSize\": 154995,",
+									"        \"group\": \"org/apache/jackrabbit\",",
+									"        \"lastModified\": \"2018-04-04T09:29:16.462+09:00\",",
+									"        \"name\": \"fullpackage\",",
+									"        \"pid\": \"org/apache/jackrabbit:fullpackage:1.0\",",
+									"        \"version\": \"1.0\"",
+									"    },",
+									"    \"links\": [",
+									"        {",
+									"            \"rel\": [",
+									"                \"http://jackrabbit.apache.org/filevault/rels/package\"",
+									"            ],",
+									"            \"href\": \"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0\"",
+									"        },",
+									"        {",
+									"            \"rel\": [",
+									"                \"http://jackrabbit.apache.org/filevault/rels/package-download\"",
+									"            ],",
+									"            \"href\": \"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0/fullpackage-1.0.zip\"",
+									"        },",
+									"        {",
+									"            \"rel\": [",
+									"                \"self\"",
+									"            ],",
+									"            \"href\": \"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0?format=brief\"",
+									"        }",
+									"    ],",
+									"    \"actions\": [",
+									"        {",
+									"            \"name\": \"delete-package\",",
+									"            \"method\": \"DELETE\"",
+									"        }",
+									"    ]",
+									"}",
+									");",
+									"});",
+									"",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages/org/apache/jackrabbit/fullpackage/1.0?format=brief",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages",
+								"org",
+								"apache",
+								"jackrabbit",
+								"fullpackage",
+								"1.0"
+							],
+							"query": [
+								{
+									"key": "format",
+									"value": "brief"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete package",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e8419cac-2323-44ca-a649-557ac5109c12",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages/org/apache/jackrabbit/fullpackage/1.0",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages",
+								"org",
+								"apache",
+								"jackrabbit",
+								"fullpackage",
+								"1.0"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "deleted package is gone",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "67d588ed-38bf-4bc9-93f3-139f35455cbc",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages/org/apache/jackrabbit/fullpackage/1.0",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages",
+								"org",
+								"apache",
+								"jackrabbit",
+								"fullpackage",
+								"1.0"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "deleting inexitent package",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "67d588ed-38bf-4bc9-93f3-139f35455cbc",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages/org/apache/jackrabbit/fullpackage/1.0",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages",
+								"org",
+								"apache",
+								"jackrabbit",
+								"fullpackage",
+								"1.0"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "Filevault API Home",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
-						"id": "a147de98-c223-4504-95cc-b57f6b386ec5",
+						"id": "a111fec2-3089-419d-b4e0-bbcdbbaf8a0d",
 						"type": "text/javascript",
 						"exec": [
 							"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
@@ -20,6 +798,11 @@
 							"",
 							"pm.test(\"Status code is 200\", function () {",
 							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"class is correct\", function () {",
+							"    var cls = pm.response.json()['class'];",
+							"    pm.expect(cls).to.eql(['filevault']);",
 							"});",
 							"",
 							"pm.test(\"rel=self is correct\", function () {",
@@ -62,7 +845,7 @@
 			},
 			"response": [
 				{
-					"id": "00cbb513-b402-48a0-a746-96b7a024526c",
+					"id": "8e8feccf-7cab-4c78-8ee4-8193b41eae72",
 					"name": "Example request",
 					"originalRequest": {
 						"method": "GET",
@@ -108,61 +891,6 @@
 					"body": "{\"class\":[\"filevault\"],\"properties\":{\"api-version\":\"1.0\",\"version\":\"3.2.0\"},\"links\":[{\"rel\":[\"self\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault\"},{\"rel\":[\"http://jackrabbit.apache.org/filevault/rels/packages\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages\"}]}"
 				}
 			]
-		},
-		{
-			"name": "Packages List",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"id": "c1017006-1dd4-4807-9b8d-57e797bbe043",
-						"type": "text/javascript",
-						"exec": [
-							"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
-							"const REL_PACKAGES = \"http://jackrabbit.apache.org/filevault/rels/packages\";",
-							"",
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"});",
-							"",
-							"pm.test(\"class is correct\", function () {",
-							"    var cls = pm.response.json()['class'];",
-							"    pm.expect(cls).to.eql(['packages']);",
-							"});",
-							"",
-							"pm.test(\"rel=self is correct\", function () {",
-							"    var jsonData = pm.response.json();",
-							"    var href = jsonData.links.find(l => l.rel.indexOf('self') >= 0).href;",
-							"    pm.expect(href).to.eql(API_BASE_URL + '/packages');",
-							"});",
-							"",
-							"",
-							"",
-							""
-						]
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": ""
-				},
-				"url": {
-					"raw": "{{HOST}}/{{API_BASE}}/packages",
-					"host": [
-						"{{HOST}}"
-					],
-					"path": [
-						"{{API_BASE}}",
-						"packages"
-					]
-				},
-				"description": "Discovery request to the filevault API"
-			},
-			"response": []
 		}
 	],
 	"auth": {
@@ -204,14 +932,14 @@
 	],
 	"variable": [
 		{
-			"id": "403a0773-5c1f-4d20-b2f1-d03b1f22b88d",
+			"id": "40778a88-b06a-4131-9ae3-eaebb0832f4f",
 			"key": "API_BASE",
 			"value": "/system/jackrabbit/filevault",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "f9546e94-34b1-463b-bf6f-30699d67d7ae",
+			"id": "9dc22ddf-e243-41a9-b5ad-35635aa75821",
 			"key": "REL_PACKAGES",
 			"value": "http://jackrabbit.apache.org/filevault/rels/packages",
 			"type": "string",

@@ -15,11 +15,32 @@
  * limitations under the License.
  */
 const newman = require('newman'); // require newman in your project
+const path = require('path');
 
 const port = process.argv[2] || '8080';
 
+const collection = require('./filevault-packagemgr-tests.postman_collection.json');
+
+// need to set the package file source correctly.
+// maybe use the collection sdk....
+function setPackageFile(col) {
+    if (col.item) {
+        col.item.forEach(setPackageFile);
+    }
+    else if (col.request.method === 'POST' && col.request.body && col.request.body) {
+        if (col.request.body.formdata) {
+            col.request.body.formdata.forEach(field => {
+                if (field.key === 'package' && field.type === 'file') {
+                    field.src = path.join(__dirname, 'testfiles', 'fullpackage-1.0.zip');
+                }
+            });
+        }
+    }
+}
+setPackageFile(collection);
+
 newman.run({
-    collection: require('./filevault-packagemgr-tests.postman_collection.json'),
+    collection: collection,
     environment: {
         'name': 'test-env',
         'values': [

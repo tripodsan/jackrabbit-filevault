@@ -67,6 +67,11 @@
                     <instructions>
                         <Bundle-Build>${buildNumber}</Bundle-Build>
                         <Bundle-Category>jcr,jackrabbit</Bundle-Category>
+                        <Import-Package>
+                            !javax.portlet,
+                            *
+                        </Import-Package>
+                        <Embed-Dependency>commons-fileupload</Embed-Dependency>
                     </instructions>
                 </configuration>
             </plugin>
@@ -120,6 +125,12 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>1.3.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

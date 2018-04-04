@@ -28,6 +28,19 @@ public class PackageRoute {
 
     private String file;
 
+    public static String getPackageAPIPath(String baseHref, PackageId id) {
+        StringBuilder b = new StringBuilder(baseHref).append("/packages/");
+        if (id.getGroup().length() > 0) {
+            b.append(id.getGroup());
+            b.append("/");
+        }
+        b.append(id.getName());
+        if (id.getVersionString().length() > 0) {
+            b.append("/").append(id.getVersionString());
+        }
+        return b.toString();
+    }
+
     public PackageRoute(String path) {
         String[] segs = Text.explode(path, '/');
         // empty

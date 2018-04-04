@@ -31,6 +31,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.models.Base;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Filevault;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.PackageModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Packages;
@@ -84,99 +85,90 @@ public class PackageMgrServlet extends HttpServlet {
     @Reference
     private Packaging packaging;
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private Base resolve(HttpServletRequest request, HttpServletResponse response)
+            throws IOException, RepositoryException {
         final ResourceResolver resolver = (ResourceResolver) request.getAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_RESOLVER);
         if (resolver == null) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+            return null;
         }
-        response.setContentType("application/json");
-        response.setCharacterEncoding("utf-8");
+        final JcrPackageManager mgr = packaging.getPackageManager(resolver.adaptTo(Session.class));
 
+        String relPath = request.getPathInfo();
+        if (relPath == null || "/".equals(relPath)) {
+            relPath = "";
+        }
+        String baseRef = request.getScheme() + "://" + request.getHeader("host") + request.getContextPath();
+
+        if (relPath.length() == 0) {
+            return new Filevault()
+                    .withBaseHref(baseRef);
+
+        } else if ("/packages".equals(relPath)) {
+            return new Packages()
+                    .withPackageManager(mgr)
+                    .withBaseHref(baseRef);
+
+        } else if (relPath.startsWith("/packages/")) {
+            String format = request.getParameter("format");
+            String path = relPath.substring("/packages".length());
+            PackageRoute r = new PackageRoute(path);
+            JcrPackage pkg = mgr.open(r.getPackageId());
+            if (pkg == null) {
+                return null;
+            }
+            return new PackageModel()
+                    .withPackageManager(mgr)
+                    .withPackage(pkg)
+                    .withBrief("brief".equals(format))
+                    .withRoute(r)
+                    .withBaseHref(baseRef);
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return null;
+        }
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-            String relPath = request.getPathInfo();
-            if (relPath == null || "/".equals(relPath)) {
-                relPath = "";
+            Base model = resolve(request, response);
+            if (model == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
             }
-            String baseRef = request.getScheme() + "://" + request.getHeader("host") + request.getContextPath();
-            Entity root = null;
-            if (relPath.length() == 0) {
-                root = new Filevault()
-                        .withBaseHref(baseRef)
-                        .buildEntity();
-
-            } else if ("/packages".equals(relPath)) {
-                root = new Packages()
-                        .withPackageManager(packaging.getPackageManager(resolver.adaptTo(Session.class)))
-                        .withBaseHref(baseRef)
-                        .buildEntity();
-
-            } else if (relPath.startsWith("/packages/")) {
-                String format = request.getParameter("format");
-                String path = relPath.substring("/packages".length());
-                PackageRoute r = new PackageRoute(path);
-                Session session = resolver.adaptTo(Session.class);
-                JcrPackageManager mgr = packaging.getPackageManager(session);
-                JcrPackage pkg = mgr.open(r.getPackageId());
-                if (pkg == null) {
-                    response.sendError(404);
-                    return;
-                }
-                if ("thumbnail".equals(r.getCommand())) {
-                    JcrPackageDefinition def = pkg.getDefinition();
-                    if (def.getNode().hasNode("thumbnail.png")) {
-                        Node node = def.getNode().getNode("thumbnail.png");
-                        sendFile(request, response, node);
-                    } else {
-                        response.sendError(404);
-                    }
-                    return;
-                } else if ("download".equals(r.getCommand())) {
-                    Node node = pkg.getNode();
-                    sendFile(request, response, node);
-                    return;
-                } else if ("screenshot".equals(r.getCommand())) {
-                    JcrPackageDefinition def = pkg.getDefinition();
-                    Node node = def.getNode();
-                    if (!node.hasNode("screenshots/" + r.getFile())) {
-                        response.sendError(404);
-                        return;
-                    } else {
-                        node = node.getNode("screenshots/" + r.getFile());
-                        if (node.hasProperty("jcr:content/jcr:data")) {
-                            sendFile(request, response, node);
-                        } else if (node.hasNode("file")) {
-                            sendFile(request, response, node.getNode("file"));
-                        } else {
-                            response.sendError(404);
-                        }
-                        return;
-                    }
-                }
-                root = new PackageModel()
-                        .withPackage(pkg)
-                        .withBrief("brief".equals(format))
-                        .withBaseHref(baseRef)
-                        .buildEntity();
-            }
-
-            try (SirenJsonWriter out = new SirenJsonWriter(response.getWriter())) {
-                out.write(root);
-            }
+            model.doGet(request, response);
         } catch (RepositoryException | JsonException e) {
             throw new IOException(e);
         }
     }
 
-    private void sendFile(HttpServletRequest request, HttpServletResponse response, Node file)
-            throws IOException, RepositoryException {
-        Binary bin = file.getProperty("jcr:content/jcr:data").getBinary();
-        response.setContentType(file.getProperty("jcr:content/jcr:mimeType").getString());
-        response.setContentLength((int) bin.getSize());
-        IOUtils.copy(bin.getStream(), response.getOutputStream());
-        bin.dispose();
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            Base model = resolve(request, response);
+            if (model == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+            model.doPost(request, response);
+        } catch (RepositoryException | JsonException e) {
+            throw new IOException(e);
+        }
     }
 
+    @Override
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            Base model = resolve(request, response);
+            if (model == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+            model.doDelete(request, response);
+        } catch (RepositoryException | JsonException e) {
+            throw new IOException(e);
+        }
+    }
 }
 

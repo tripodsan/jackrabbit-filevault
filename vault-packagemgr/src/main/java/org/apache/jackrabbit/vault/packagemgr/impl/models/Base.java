@@ -19,7 +19,16 @@ package org.apache.jackrabbit.vault.packagemgr.impl.models;
 
 import java.io.IOException;
 
+import javax.jcr.Binary;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 
 public abstract class Base {
 
@@ -31,4 +40,31 @@ public abstract class Base {
     }
 
     public abstract Entity buildEntity() throws IOException;
+
+    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("utf-8");
+
+        Entity entity = buildEntity();
+        try (SirenJsonWriter out = new SirenJsonWriter(response.getWriter())) {
+            out.write(entity);
+        }
+    }
+
+    public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+    }
+
+    public void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+    }
+
+    public void sendFile(HttpServletRequest request, HttpServletResponse response, Node file)
+            throws IOException, RepositoryException {
+        Binary bin = file.getProperty("jcr:content/jcr:data").getBinary();
+        response.setContentType(file.getProperty("jcr:content/jcr:mimeType").getString());
+        response.setContentLength((int) bin.getSize());
+        IOUtils.copy(bin.getStream(), response.getOutputStream());
+        bin.dispose();
+    }
 }

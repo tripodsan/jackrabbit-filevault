@@ -22,13 +22,17 @@ import java.io.IOException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
+import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
 public class PackageModel extends Base {
@@ -39,15 +43,29 @@ public class PackageModel extends Base {
 
     private boolean brief;
 
+    private PackageRoute route;
+
     private JcrPackage pkg;
+
+    private JcrPackageManager mgr;
 
     public PackageModel withBrief(boolean brief) {
         this.brief = brief;
         return this;
     }
 
+    public PackageModel withPackageManager(JcrPackageManager mgr) {
+        this.mgr = mgr;
+        return this;
+    }
+
     public PackageModel withPackage(JcrPackage pkg) {
         this.pkg = pkg;
+        return this;
+    }
+
+    public PackageModel withRoute(PackageRoute route) {
+        this.route = route;
         return this;
     }
 
@@ -60,19 +78,64 @@ public class PackageModel extends Base {
         }
     }
 
+    private boolean handleCommand(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            if ("thumbnail".equals(route.getCommand())) {
+                JcrPackageDefinition def = pkg.getDefinition();
+                if (def.getNode().hasNode("thumbnail.png")) {
+                    Node node = def.getNode().getNode("thumbnail.png");
+                    sendFile(request, response, node);
+                } else {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                }
+            } else if ("download".equals(route.getCommand())) {
+                Node node = pkg.getNode();
+                sendFile(request, response, node);
+            } else if ("screenshot".equals(route.getCommand())) {
+                JcrPackageDefinition def = pkg.getDefinition();
+                Node node = def.getNode();
+                if (!node.hasNode("screenshots/" + route.getFile())) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                } else {
+                    node = node.getNode("screenshots/" + route.getFile());
+                    if (node.hasProperty("jcr:content/jcr:data")) {
+                        sendFile(request, response, node);
+                    } else if (node.hasNode("file")) {
+                        sendFile(request, response, node.getNode("file"));
+                    } else {
+                        response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    }
+                }
+            } else {
+                return false;
+            }
+            return true;
+        } catch (RepositoryException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (!handleCommand(request, response)) {
+            super.doGet(request, response);
+        }
+    }
+
+    @Override
+    public void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            mgr.remove(pkg);
+            response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+        } catch (RepositoryException e) {
+            throw new IOException(e);
+        }
+    }
+
     private Entity getPackageEntity() throws RepositoryException {
         JcrPackageDefinition def = pkg.getDefinition();
         PackageId id = def.getId();
-        StringBuilder b = new StringBuilder(baseHref).append("/packages/");
-        if (id.getGroup().length() > 0) {
-            b.append(id.getGroup());
-            b.append("/");
-        }
-        b.append(id.getName());
-        if (id.getVersionString().length() > 0) {
-            b.append("/").append(id.getVersionString());
-        }
-        final String pkgRef = b.toString();
+        final String pkgRef = PackageRoute.getPackageAPIPath(baseHref, id);
         EntityBuilder builder = addPackageProperties(new EntityBuilder(), def, id)
                 .addLink(Rels.REL_VLT_PACKAGE_DOWNLOAD, pkgRef + "/" + id.getDownloadName());
 
