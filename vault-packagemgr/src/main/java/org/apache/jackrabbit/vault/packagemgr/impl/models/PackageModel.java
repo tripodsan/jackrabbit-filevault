@@ -18,6 +18,8 @@
 package org.apache.jackrabbit.vault.packagemgr.impl.models;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -25,17 +27,70 @@ import javax.jcr.RepositoryException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.DependencyResolver;
 import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.FieldBuilder;
+import org.apache.jackrabbit.vault.packaging.Dependency;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PackageModel extends Base {
+
+    /**
+     * default logger
+     */
+    private static final Logger log = LoggerFactory.getLogger(PackageModel.class);
+
+    public static Field FIELD_DESCRIPTION = new FieldBuilder()
+            .withName("description")
+            .withTitle("Descriptive text of this package.");
+    public static Field FIELD_BUILT_WITH = new FieldBuilder()
+            .withName("builtWith")
+            .withTitle("System that built this package.");
+    public static Field FIELD_TESTED_WITH = new FieldBuilder()
+            .withName("testedWith")
+            .withTitle("System(s) that this package was tested on.");
+    public static Field FIELD_FIXED_BUGS = new FieldBuilder()
+            .withName("fixedBugs")
+            .withTitle("List of fixed bugs; newline separated");
+    public static Field FIELD_REQUIRES_ROOT = new FieldBuilder()
+            .withName("requiresRoot")
+            .withType(Field.Type.CHECKBOX)
+            .withTitle("Flag informing that package installation needs admin access (deprecated).");
+    public static Field FIELD_REQUIRES_RESTART = new FieldBuilder()
+            .withName("requiresRestart")
+            .withType(Field.Type.CHECKBOX)
+            .withTitle("Flag informing that system needs restart after package installation.");
+    public static Field FIELD_ACCESS_CONTROL_HANDLING = new FieldBuilder()
+            .withName("acHandling")
+            .withTitle("Default access control handling. One of: 'merge', 'merge_preserve', 'overwrite', 'clear', 'ignore'");
+    public static Field FIELD_PROVIDER_NAME = new FieldBuilder()
+            .withName("providerName")
+            .withTitle("Name of the provider; eg company or author");
+    public static Field FIELD_PROVIDER_URL = new FieldBuilder()
+            .withName("providerUrl")
+            .withTitle("URL of the homepage of the provider");
+    public static Field FIELD_PROVIDER_LINK = new FieldBuilder()
+            .withName("providerLink")
+            .withTitle("Link to more information about this package.");
+    public static Field FIELD_REPLACES = new FieldBuilder()
+            .withName("providerUrl")
+            .withTitle("JSON array of package id's of packages that are superseded by this package.");
+    public static Field FIELD_WORKSPACE_FILTER = new FieldBuilder()
+            .withName("workspaceFilter")
+            .withTitle("JSON object or XML of a workspace filter definition.");
+    public static Field FIELD_DEPENDENCIES = new FieldBuilder()
+            .withName("dependencies")
+            .withTitle("JSON array of package dependencies");
 
     public static String CLASS = "package";
 
@@ -48,6 +103,8 @@ public class PackageModel extends Base {
     private JcrPackage pkg;
 
     private JcrPackageManager mgr;
+
+    private DependencyResolver dependencyResolver;
 
     public PackageModel withBrief(boolean brief) {
         this.brief = brief;
@@ -66,6 +123,11 @@ public class PackageModel extends Base {
 
     public PackageModel withRoute(PackageRoute route) {
         this.route = route;
+        return this;
+    }
+
+    public PackageModel withDependencyResolver(DependencyResolver dependencyResolver) {
+        this.dependencyResolver = dependencyResolver;
         return this;
     }
 
@@ -117,6 +179,10 @@ public class PackageModel extends Base {
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (pkg == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         if (!handleCommand(request, response)) {
             super.doGet(request, response);
         }
@@ -124,9 +190,34 @@ public class PackageModel extends Base {
 
     @Override
     public void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (pkg == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         try {
             mgr.remove(pkg);
             response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+        } catch (RepositoryException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (pkg != null) {
+            response.sendError(HttpServletResponse.SC_CONFLICT);
+            return;
+        }
+
+        final PackageId id = route.getPackageId();
+        try (JcrPackage pkg = mgr.create(id.getGroup(), id.getName(), id.getVersion().toString())) {
+            PackageId newId = pkg.getDefinition().getId();
+            if (!newId.equals(id)) {
+                log.warn("desired package id {} adjusted to {}", id, newId);
+            }
+            String location = PackageRoute.getPackageAPIPath(baseHref, newId);
+            response.setHeader("Location", location);
+            response.setStatus(HttpServletResponse.SC_CREATED);
         } catch (RepositoryException e) {
             throw new IOException(e);
         }
@@ -174,9 +265,9 @@ public class PackageModel extends Base {
                 .addProperty("version", id.getVersionString())
                 .addProperty("downloadName", id.getDownloadName())
                 .addProperty("downloadSize", pkg.getSize())
-                .addProperty("lastUnpacked", def.getLastUnpacked())
-                .addProperty("lastModified", def.getLastModified())
-                .addProperty("created", def.getCreated());
+                .addProperty("isInstalled", pkg.isInstalled())
+                .addProperty("isModified", def.isModified())
+        ;
 
         if (brief) {
             return b;
@@ -185,32 +276,44 @@ public class PackageModel extends Base {
         b
                 .addProperty("description", def.getDescription())
                 .addProperty("buildCount", def.getBuildCount())
+                .addProperty("lastModified", def.getLastModified())
                 .addProperty("lastModifiedBy", def.getLastModifiedBy())
+                .addProperty("lastUnpacked", def.getLastUnpacked())
                 .addProperty("lastUnpackedBy", def.getLastUnpackedBy())
+                .addProperty("created", def.getCreated())
                 .addProperty("createdBy", def.getCreatedBy())
                 .addProperty("hasSnapshot", pkg.getSnapshot() != null)
-                .addProperty("needsRewrap", needsRewrap(pkg, id))
                 .addProperty("builtWith", def.get("builtWith"))
                 .addProperty("testedWith", def.get("testedWith"))
                 .addProperty("fixedBugs", def.get("fixedBugs"))
                 .addProperty("requiresRoot", def.requiresRoot())
                 .addProperty("requiresRestart", def.requiresRestart())
-                .addProperty("acHandling",
-                        def.getAccessControlHandling() == null
-                                ? ""
-                                : def.getAccessControlHandling().name().toLowerCase())
+                .addProperty("acHandling",def.getAccessControlHandling())
                 .addProperty("providerName", def.get("providerName"))
                 .addProperty("providerUrl", def.get("providerUrl"))
                 .addProperty("providerLink", def.get("providerLink"))
-                .addProperty("dependencies", defNode, "dependencies")
                 .addProperty("replaces", defNode, "replaces")
                 .addProperty("workspaceFilter", def.getMetaInf().getFilter());
+        addPackageDependencies(b, def);
         return b;
     }
 
-    private boolean needsRewrap(JcrPackage pack, PackageId id) throws RepositoryException {
-        String groupPath = id.getGroup().equals("") ? id.getGroup() : "/" + id.getGroup();
-        return !pack.getNode().getParent().getPath().equals(PackageId.ETC_PACKAGES + groupPath);
+    private void addPackageDependencies(EntityBuilder b, JcrPackageDefinition def) {
+        boolean allResolved = true;
+        Dependency[] deps = def.getDependencies();
+        Map<String, Object> resolved = new HashMap<>();
+        for (Dependency d: deps) {
+            try {
+                String pkgId = dependencyResolver.resolve(d);
+                resolved.put(d.toString(), pkgId);
+                if (pkgId.isEmpty()) {
+                    allResolved = false;
+                }
+            } catch (RepositoryException e) {
+                log.error("unable to resolve dependencies", e);
+            }
+        }
+        b.addProperty("dependencies", resolved);
+        b.addProperty("isResolved", allResolved);
     }
-
 }

@@ -114,11 +114,9 @@ public class PackageMgrServlet extends HttpServlet {
             String path = relPath.substring("/packages".length());
             PackageRoute r = new PackageRoute(path);
             JcrPackage pkg = mgr.open(r.getPackageId());
-            if (pkg == null) {
-                return null;
-            }
             return new PackageModel()
                     .withPackageManager(mgr)
+                    .withDependencyResolver(new DependencyResolver(mgr))
                     .withPackage(pkg)
                     .withBrief("brief".equals(format))
                     .withRoute(r)
@@ -152,6 +150,20 @@ public class PackageMgrServlet extends HttpServlet {
                 return;
             }
             model.doPost(request, response);
+        } catch (RepositoryException | JsonException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            Base model = resolve(request, response);
+            if (model == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+            model.doPut(request, response);
         } catch (RepositoryException | JsonException e) {
             throw new IOException(e);
         }

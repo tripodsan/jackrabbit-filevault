@@ -55,6 +55,10 @@ public abstract class Base {
         response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     }
 
+    public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+    }
+
     public void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     }

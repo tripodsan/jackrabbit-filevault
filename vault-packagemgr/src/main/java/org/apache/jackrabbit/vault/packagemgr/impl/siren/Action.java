@@ -25,6 +25,10 @@ public interface Action extends Base {
 
     String TYPE_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
 
+    String TYPE_JSON = "application/json";
+
+    String TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
+
     String getHref();
 
     String getMethod();

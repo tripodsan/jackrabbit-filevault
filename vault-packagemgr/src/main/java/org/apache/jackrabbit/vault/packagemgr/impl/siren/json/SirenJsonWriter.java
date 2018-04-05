@@ -158,6 +158,9 @@ public class SirenJsonWriter implements AutoCloseable {
                 w.write(e.getKey(), (Double) v);
             } else if (v instanceof Boolean) {
                 w.write(e.getKey(), (Boolean) v);
+            } else if (v instanceof Map) {
+                //noinspection unchecked
+                write(e.getKey(), (Map<String, Object>) v);
             } else {
                 w.write(e.getKey(), v.toString());
             }

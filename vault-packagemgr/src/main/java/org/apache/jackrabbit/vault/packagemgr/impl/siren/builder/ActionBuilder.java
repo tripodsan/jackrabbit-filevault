@@ -55,6 +55,12 @@ public class ActionBuilder extends BaseBuilder implements Action {
         return this;
     }
 
+    @Override
+    public ActionBuilder withTitle(String title) {
+        super.withTitle(title);
+        return this;
+    }
+
     public ActionBuilder withMethod(String method) {
         this.method = method;
         return this;

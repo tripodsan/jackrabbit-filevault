@@ -31,6 +31,7 @@ import javax.jcr.Value;
 
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
+import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
@@ -79,6 +80,20 @@ public class EntityBuilder extends LinkBuilder implements Entity {
     }
 
     public EntityBuilder addProperty(String name, WorkspaceFilter value) {
+        if (value != null) {
+            props.put(name, value);
+        }
+        return this;
+    }
+
+    public EntityBuilder addProperty(String name, AccessControlHandling value) {
+        if (value != null) {
+            props.put(name, value.name().toLowerCase());
+        }
+        return this;
+    }
+
+    public EntityBuilder addProperty(String name, Map<String, Object> value) {
         if (value != null) {
             props.put(name, value);
         }

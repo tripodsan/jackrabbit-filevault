@@ -22,23 +22,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import javax.jcr.ItemExistsException;
 import javax.jcr.RepositoryException;
-import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.apache.commons.fileupload.util.Streams;
+import org.apache.jackrabbit.vault.packagemgr.impl.DependencyResolver;
 import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
@@ -60,6 +57,7 @@ public class Packages extends Base {
     public static final String CLASS = "packages";
 
     public static final String ACTION_CREATE_PACKAGE = "create-package";
+    public static final String ACTION_UPLOAD_PACKAGE = "upload-package";
     public static final String PARAM_PACKAGE = "package";
     public static final String PARAM_REPLACE = "replace";
 
@@ -73,6 +71,8 @@ public class Packages extends Base {
 
     @Override
     public Entity buildEntity() throws IOException {
+        DependencyResolver depResolver = new DependencyResolver(pkgMgr);
+
         List<JcrPackage> packages = listPackages();
         EntityBuilder builder = new EntityBuilder()
                 .addClass(CLASS)
@@ -82,94 +82,149 @@ public class Packages extends Base {
         for (JcrPackage pkg: packages) {
             builder.addEntity(new PackageModel()
                     .withPackage(pkg)
+                    .withDependencyResolver(depResolver)
                     .withBrief(true)
                     .withBaseHref(baseHref)
                     .buildEntity()
             );
         }
+
         builder.addAction(new ActionBuilder()
-                .withName(ACTION_CREATE_PACKAGE)
+                .withName(ACTION_UPLOAD_PACKAGE)
+                .withTitle("Upload package with multipart formdata.")
                 .withType(Action.TYPE_MULTIPART_FORM_DATA)
                 .withPOST()
                 .withHref(baseHref + "/packages")
                 .addField(new FieldBuilder()
                     .withName(PARAM_PACKAGE)
                     .withTitle("Package File")
-                    .withType("file"))
+                    .withType(Field.Type.FILE))
                 .addField(new FieldBuilder()
                     .withName(PARAM_REPLACE)
-                    .withTitle("Replace existing package")
-                    .withType("text"))
+                    .withTitle("Replace existing package"))
+        );
+
+        builder.addAction(new ActionBuilder()
+                .withName(ACTION_UPLOAD_PACKAGE)
+                .withTitle("Upload package with binary body")
+                .withType(Action.TYPE_APPLICATION_OCTET_STREAM)
+                .withPOST()
+                .withHref(baseHref + "/packages")
+        );
+
+        builder.addAction(new ActionBuilder()
+                .withName(ACTION_CREATE_PACKAGE)
+                .withTitle("Create new package with JSON payload as initial values")
+                .withType(Action.TYPE_JSON)
+                .withPUT()
+                .withHref(baseHref + "/packages/{packageId}")
         );
 
         return builder.build();
     }
 
-    @Override
-    public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        if (!ServletFileUpload.isMultipartContent(request)) {
-            // upload as raw: TODO
-            response.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
-            return;
+
+    private static class Uploader {
+
+        private File tmpFile;
+
+        private InputStream in;
+
+        private boolean replace;
+
+        public void setInputStream(InputStream in) {
+            this.in = in;
         }
 
-        DiskFileItemFactory factory = new DiskFileItemFactory(16*1024*1024, new File(System.getProperty("java.io.tmpdir")));
-        ServletFileUpload upload = new ServletFileUpload(factory);
+        public void setReplace(boolean replace) {
+            this.replace = replace;
+        }
 
-        FileItem pkgItem = null;
-        boolean forceUpload = false;
-        try {
-            for (FileItem item: upload.parseRequest(request)) {
-                if (item.isFormField()) {
-                    if (PARAM_REPLACE.equals(item.getFieldName())) {
-                        forceUpload = Boolean.valueOf(item.getString());
+        public void setTmpFile(File tmpFile) {
+            this.tmpFile = tmpFile;
+        }
+
+        public PackageId upload(JcrPackageManager mgr) throws IOException, PackageExistsException {
+            JcrPackage pkg = null;
+            try {
+                if (tmpFile == null) {
+                    try {
+                        pkg = mgr.upload(in, replace, true);
+                    } finally {
+                        in.close();
                     }
                 } else {
-                    if (PARAM_PACKAGE.equals(item.getFieldName())) {
-                        pkgItem = item;
+                    pkg = mgr.upload(tmpFile, true, replace, null, true);
+                }
+                return pkg.getDefinition().getId();
+            } catch (RepositoryException e) {
+                if (e.getCause() instanceof PackageExistsException) {
+                    throw (PackageExistsException) e.getCause();
+                }
+                throw new IOException(e);
+            } finally {
+                if (pkg != null) {
+                    pkg.close();
+                }
+            }
+        }
+    }
+
+
+    @Override
+    public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        // support "raw" binary upload
+        Uploader uploader = new Uploader();
+        String contentType = request.getContentType();
+        if (contentType == null || contentType.isEmpty() || Action.TYPE_APPLICATION_OCTET_STREAM.equals(contentType)) {
+            uploader.setInputStream(request.getInputStream());
+        } else if (!ServletFileUpload.isMultipartContent(request)) {
+            response.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
+            return;
+        } else {
+            DiskFileItemFactory factory = new DiskFileItemFactory(16*1024*1024, new File(System.getProperty("java.io.tmpdir")));
+            ServletFileUpload upload = new ServletFileUpload(factory);
+
+            FileItem pkgItem = null;
+            try {
+                for (FileItem item: upload.parseRequest(request)) {
+                    if (item.isFormField()) {
+                        if (PARAM_REPLACE.equals(item.getFieldName())) {
+                            uploader.setReplace(Boolean.valueOf(item.getString()));
+                        }
+                    } else {
+                        if (PARAM_PACKAGE.equals(item.getFieldName())) {
+                            pkgItem = item;
+                        }
                     }
                 }
+            } catch (FileUploadException e) {
+                throw new IOException(e);
             }
-        } catch (FileUploadException e) {
-            throw new IOException(e);
-        }
 
-        if (pkgItem == null) {
-            log.error("create-package is missing 'package' parameter.");
-            response.sendError(HttpServletResponse.SC_PRECONDITION_FAILED);
-            return;
-        }
-
-        // check for file
-        File tmpFile = !pkgItem.isInMemory() && pkgItem instanceof DiskFileItem ? ((DiskFileItem) pkgItem).getStoreLocation() : null;
-        PackageId id;
-        try {
-            JcrPackage pkg;
+            if (pkgItem == null) {
+                log.error("create-package is missing 'package' parameter.");
+                response.sendError(HttpServletResponse.SC_PRECONDITION_FAILED);
+                return;
+            }
+            File tmpFile = !pkgItem.isInMemory() && pkgItem instanceof DiskFileItem ? ((DiskFileItem) pkgItem).getStoreLocation() : null;
             if (tmpFile == null) {
-                try (InputStream in = pkgItem.getInputStream()) {
-                    pkg = pkgMgr.upload(in, forceUpload, true);
-                }
+                uploader.setInputStream(pkgItem.getInputStream());
             } else {
-                pkg = pkgMgr.upload(tmpFile, true, forceUpload, null, true);
+                uploader.setTmpFile(tmpFile);
             }
-            id = pkg.getDefinition().getId();
+        }
+
+        try {
+            PackageId id = uploader.upload(pkgMgr);
             String location = PackageRoute.getPackageAPIPath(baseHref, id);
             response.setHeader("Location", location);
             response.setStatus(HttpServletResponse.SC_CREATED);
-            pkg.close();
-        } catch (ItemExistsException e) {
-            if (e.getCause() instanceof PackageExistsException) {
-                PackageId existingId = ((PackageExistsException) e.getCause()).getId();
-                String location = PackageRoute.getPackageAPIPath(baseHref, existingId);
-                response.setHeader("Location", location);
-            }
+        } catch (PackageExistsException e) {
+            String location = PackageRoute.getPackageAPIPath(baseHref, e.getId());
+            response.setHeader("Location", location);
             response.sendError(HttpServletResponse.SC_CONFLICT);
-        } catch (RepositoryException e) {
-            throw new IOException(e);
         }
-
-
-
     }
 
     private List<JcrPackage> listPackages() throws IOException {

@@ -21,6 +21,9 @@ const port = process.argv[2] || '8080';
 
 const collection = require('./filevault-packagemgr-tests.postman_collection.json');
 
+
+const TEST_PKG_1 = path.join(__dirname, 'testfiles', 'fullpackage-1.0.zip');
+
 // need to set the package file source correctly.
 // maybe use the collection sdk....
 function setPackageFile(col) {
@@ -28,12 +31,15 @@ function setPackageFile(col) {
         col.item.forEach(setPackageFile);
     }
     else if (col.request.method === 'POST' && col.request.body && col.request.body) {
-        if (col.request.body.formdata) {
-            col.request.body.formdata.forEach(field => {
+        const body = col.request.body;
+        if (body.formdata) {
+            body.formdata.forEach(field => {
                 if (field.key === 'package' && field.type === 'file') {
-                    field.src = path.join(__dirname, 'testfiles', 'fullpackage-1.0.zip');
+                    field.src = TEST_PKG_1;
                 }
             });
+        } else if (body.mode === 'file') {
+            body.file = TEST_PKG_1;
         }
     }
 }

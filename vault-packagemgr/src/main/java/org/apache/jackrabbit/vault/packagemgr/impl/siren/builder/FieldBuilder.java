@@ -25,6 +25,10 @@ public class FieldBuilder extends BaseBuilder implements Field {
 
     private String value;
 
+    public FieldBuilder() {
+        withType(Type.TEXT);
+    }
+
     @Override
     public FieldBuilder withName(String name) {
         super.withName(name);
@@ -34,6 +38,11 @@ public class FieldBuilder extends BaseBuilder implements Field {
     @Override
     public FieldBuilder withType(String type) {
         super.withType(type);
+        return this;
+    }
+
+    public FieldBuilder withType(Type type) {
+        super.withType(type.toString());
         return this;
     }
 

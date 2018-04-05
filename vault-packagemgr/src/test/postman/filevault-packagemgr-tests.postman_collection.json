@@ -84,7 +84,55 @@
 							]
 						}
 					},
-					"response": []
+					"response": [
+						{
+							"id": "5e5aa544-2976-4c31-b68d-fb487610a0b1",
+							"name": "Default responst",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": ""
+								},
+								"url": {
+									"raw": "{{HOST}}/{{API_BASE}}/packages",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"{{API_BASE}}",
+										"packages"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "432",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json;charset=utf-8",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 04 Apr 2018 06:58:31 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								}
+							],
+							"cookie": [],
+							"body": "{\"class\":[\"packages\"],\"properties\":{\"itemCount\":0},\"links\":[{\"rel\":[\"self\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages\"}],\"actions\":[{\"name\":\"create-package\",\"type\":\"multipart/form-data\",\"method\":\"POST\",\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages\",\"fields\":[{\"name\":\"package\",\"type\":\"file\",\"title\":\"Package File\"},{\"name\":\"replace\",\"type\":\"text\",\"title\":\"Replace existing package\"}]}]}"
+						}
+					]
 				},
 				{
 					"name": "not existent package gives 404",
@@ -122,15 +170,71 @@
 							]
 						}
 					},
-					"response": []
+					"response": [
+						{
+							"id": "fdfead5f-76c5-4f95-a480-3599ce46f928",
+							"name": "not existent package gives 404",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {},
+								"url": {
+									"raw": "{{HOST}}/{{API_BASE}}/packages/org/apache/jackrabbit/fullpackage/1.0",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"{{API_BASE}}",
+										"packages",
+										"org",
+										"apache",
+										"jackrabbit",
+										"fullpackage",
+										"1.0"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "html",
+							"header": [
+								{
+									"key": "Cache-Control",
+									"value": "must-revalidate,no-cache,no-store",
+									"name": "Cache-Control",
+									"description": "Tells all caching mechanisms from server to client whether they may cache this object. It is measured in seconds"
+								},
+								{
+									"key": "Content-Length",
+									"value": "311",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "text/html;charset=iso-8859-1",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 04 Apr 2018 06:58:56 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								}
+							],
+							"cookie": [],
+							"body": "<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html;charset=ISO-8859-1\"/>\n<title>Error 404 </title>\n</head>\n<body>\n<h2>HTTP ERROR: 404</h2>\n<p>Problem accessing /system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0. Reason:\n<pre>    Not Found</pre></p>\n<hr />\n</body>\n</html>\n"
+						}
+					]
 				},
 				{
-					"name": "create action exists",
+					"name": "upload action exists",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "ccf39705-8550-42b5-87f4-ef525cd073df",
+								"id": "3e610ee3-3f8b-43eb-bf6b-ab60d1c18c9f",
 								"type": "text/javascript",
 								"exec": [
 									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
@@ -138,10 +242,11 @@
 									"",
 									"pm.test('has create-package action', function() {",
 									"    var jsonData = pm.response.json();",
-									"    var action = jsonData.actions.find(a => a.name === 'create-package');",
+									"    var action = jsonData.actions.find(a => a.name === 'upload-package');",
 									"    pm.expect(action).to.eql({",
-									"            \"name\": \"create-package\",",
+									"            \"name\": \"upload-package\",",
 									"            \"type\": \"multipart/form-data\",",
+									"            \"title\": \"Upload package with multipart formdata.\",",
 									"            \"method\": \"POST\",",
 									"            \"href\": API_BASE_URL + \"/packages\",",
 									"            \"fields\": [",
@@ -186,16 +291,59 @@
 					"response": []
 				},
 				{
-					"name": "create action upload missing param",
+					"name": "upload package with missing param",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "c786e48c-3e01-4211-9832-be5015c71130",
+								"id": "dd1f438a-6744-4dcc-8329-36b289076684",
 								"type": "text/javascript",
 								"exec": [
-									"pm.test(\"Status code is 415\", function () {",
-									"    pm.response.to.have.status(415);",
+									"pm.test(\"Status code is 412\", function () {",
+									"    pm.response.to.have.status(412);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "replace",
+									"value": "true",
+									"description": "",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "upload package with no data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "45983e1a-8deb-41c8-ae6f-e07898131b34",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 500\", function () {",
+									"    pm.response.to.have.status(500);",
 									"});"
 								]
 							}
@@ -219,7 +367,7 @@
 					"response": []
 				},
 				{
-					"name": "create action upload",
+					"name": "upload valid package",
 					"event": [
 						{
 							"listen": "test",
@@ -265,7 +413,212 @@
 							]
 						}
 					},
+					"response": [
+						{
+							"id": "9e06c79e-dcef-45ae-a225-bfc52241eae3",
+							"name": "create action upload",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "package",
+											"description": "",
+											"type": "file",
+											"src": {
+												"0": {}
+											}
+										}
+									]
+								},
+								"url": {
+									"raw": "{{HOST}}/{{API_BASE}}/packages",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"{{API_BASE}}",
+										"packages"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "plain",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "0",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 04 Apr 2018 06:59:23 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Location",
+									"value": "http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0",
+									"name": "Location",
+									"description": "Used in redirection, or when a new resource has been created."
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "delete package",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e8419cac-2323-44ca-a649-557ac5109c12",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages/org/apache/jackrabbit/fullpackage/1.0",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages",
+								"org",
+								"apache",
+								"jackrabbit",
+								"fullpackage",
+								"1.0"
+							]
+						}
+					},
 					"response": []
+				},
+				{
+					"name": "create action upload raw binary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9d08d9d9-23f1-4bb8-a767-50ffbb2f3a7c",
+								"type": "text/javascript",
+								"exec": [
+									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Location headers is correct', function() {",
+									"    pm.response.to.be.header('Location', API_BASE_URL + '/packages/org/apache/jackrabbit/fullpackage/1.0');",
+									"})",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": ""
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {}
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "142427a2-2217-4946-b44e-f9b87235c573",
+							"name": "create action upload",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "package",
+											"description": "",
+											"type": "file",
+											"src": {
+												"0": {}
+											}
+										}
+									]
+								},
+								"url": {
+									"raw": "{{HOST}}/{{API_BASE}}/packages",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"{{API_BASE}}",
+										"packages"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "plain",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "0",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 04 Apr 2018 06:59:23 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Location",
+									"value": "http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0",
+									"name": "Location",
+									"description": "Used in redirection, or when a new resource has been created."
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
 				},
 				{
 					"name": "create action 2nd upload fails",
@@ -420,7 +773,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "716ba532-ea51-49d5-9d82-e02f7ec766e2",
+								"id": "ed8f62a0-5dca-4948-97d6-e53c6e7c5b86",
 								"type": "text/javascript",
 								"exec": [
 									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
@@ -436,26 +789,28 @@
 									"    \"class\": [",
 									"        \"package\"",
 									"    ],",
-									"    \"properties\": {",
+									"        \"properties\": {",
 									"        \"acHandling\": \"clear\",",
 									"        \"buildCount\": 2,",
 									"        \"builtWith\": \"Apache Sling 10\",",
 									"        \"created\": \"2018-04-04T09:29:16.476+09:00\",",
 									"        \"createdBy\": \"admin\",",
-									"        \"dependencies\": [",
-									"            \"org/apache/jackrabbit:test-package:1.0\",",
-									"            \"org/apache/jackrabbit:core-package:2.2\"",
-									"        ],",
+									"        \"dependencies\": {",
+									"            \"org/apache/jackrabbit:test-package:1.0\": \"\",",
+									"            \"org/apache/jackrabbit:core-package:2.2\": \"\"",
+									"        },",
 									"        \"description\": \"This is a test package\",",
 									"        \"downloadName\": \"fullpackage-1.0.zip\",",
 									"        \"downloadSize\": 154995,",
 									"        \"fixedBugs\": \"FIX-1 Test Issue\\r\\nFIX-2 Test Issue\",",
 									"        \"group\": \"org/apache/jackrabbit\",",
 									"        \"hasSnapshot\": false,",
+									"        \"isInstalled\": false,",
+									"        \"isModified\": false,",
+									"        \"isResolved\": false,",
 									"        \"lastModified\": \"2018-04-04T09:29:16.462+09:00\",",
 									"        \"lastModifiedBy\": \"admin\",",
 									"        \"name\": \"fullpackage\",",
-									"        \"needsRewrap\": false,",
 									"        \"pid\": \"org/apache/jackrabbit:fullpackage:1.0\",",
 									"        \"providerLink\": \"http://jackrabbit.apache.org/filevault\",",
 									"        \"providerName\": \"Apache Software Foundation\",",
@@ -562,7 +917,60 @@
 							]
 						}
 					},
-					"response": []
+					"response": [
+						{
+							"id": "0fae16f7-ce2a-4414-9e4e-05512e9ac6b9",
+							"name": "test-package full reponse",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": ""
+								},
+								"url": {
+									"raw": "{{HOST}}/{{API_BASE}}/packages/org/apache/jackrabbit/fullpackage/1.0",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"{{API_BASE}}",
+										"packages",
+										"org",
+										"apache",
+										"jackrabbit",
+										"fullpackage",
+										"1.0"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "2336",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json;charset=utf-8",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 05 Apr 2018 01:23:48 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								}
+							],
+							"cookie": [],
+							"body": "{\"class\":[\"package\"],\"properties\":{\"acHandling\":\"clear\",\"buildCount\":2,\"builtWith\":\"Apache Sling 10\",\"created\":\"2018-04-04T09:29:16.476+09:00\",\"createdBy\":\"admin\",\"dependencies\":{\"org/apache/jackrabbit:test-package:1.0\":\"\",\"org/apache/jackrabbit:core-package:2.2\":\"\"},\"description\":\"This is a test package\",\"downloadName\":\"fullpackage-1.0.zip\",\"downloadSize\":154995,\"fixedBugs\":\"FIX-1 Test Issue\\r\\nFIX-2 Test Issue\",\"group\":\"org/apache/jackrabbit\",\"hasSnapshot\":false,\"isInstalled\":false,\"isModified\":false,\"isResolved\":false,\"lastModified\":\"2018-04-04T09:29:16.462+09:00\",\"lastModifiedBy\":\"admin\",\"name\":\"fullpackage\",\"pid\":\"org/apache/jackrabbit:fullpackage:1.0\",\"providerLink\":\"http://jackrabbit.apache.org/filevault\",\"providerName\":\"Apache Software Foundation\",\"providerUrl\":\"https://www.apache.org/\",\"replaces\":[\"org/apache/jackrabbit:old-package:3.7\"],\"requiresRestart\":false,\"requiresRoot\":false,\"testedWith\":\"Sling 10\",\"version\":\"1.0\",\"workspaceFilter\":{\"filters\":[{\"root\":\"/tmp\",\"mode\":\"replace\",\"rules\":[{\"type\":\"include\",\"pattern\":\"/tmp/test(/.*)?\"},{\"type\":\"exclude\",\"pattern\":\"/tmp/ignored\"}],\"default\":\"exclude\"}]}},\"links\":[{\"rel\":[\"self\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0\"},{\"rel\":[\"http://jackrabbit.apache.org/filevault/rels/package-download\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0/fullpackage-1.0.zip\"},{\"rel\":[\"http://jackrabbit.apache.org/filevault/rels/screenshot\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0/screenshot/9da109b1-e630-4bbb-bfec-512fc8609c24\"},{\"rel\":[\"http://jackrabbit.apache.org/filevault/rels/screenshot\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0/screenshot/fc09e393-a708-4454-ab77-ca735373009e\"},{\"rel\":[\"http://jackrabbit.apache.org/filevault/rels/thumbnail\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0/thumbnail.png\"},{\"rel\":[\"http://jackrabbit.apache.org/filevault/rels/package-brief\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0?format=brief\"}],\"actions\":[{\"name\":\"delete-package\",\"method\":\"DELETE\"}]}"
+						}
+					]
 				},
 				{
 					"name": "test-package brief response",
@@ -570,7 +978,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "f59ae189-1f5f-485f-98a8-3ebb192b7b55",
+								"id": "b3c06729-a861-41ca-b99c-9676d414bec4",
 								"type": "text/javascript",
 								"exec": [
 									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
@@ -588,11 +996,11 @@
 									"        \"package-brief\"",
 									"    ],",
 									"    \"properties\": {",
-									"        \"created\": \"2018-04-04T09:29:16.476+09:00\",",
 									"        \"downloadName\": \"fullpackage-1.0.zip\",",
 									"        \"downloadSize\": 154995,",
 									"        \"group\": \"org/apache/jackrabbit\",",
-									"        \"lastModified\": \"2018-04-04T09:29:16.462+09:00\",",
+									"        \"isInstalled\": false,",
+									"        \"isModified\": false,",
 									"        \"name\": \"fullpackage\",",
 									"        \"pid\": \"org/apache/jackrabbit:fullpackage:1.0\",",
 									"        \"version\": \"1.0\"",
@@ -785,6 +1193,206 @@
 			]
 		},
 		{
+			"name": "package CRUD",
+			"description": "CRUD Tests for individual packages",
+			"item": [
+				{
+					"name": "create new package",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6cfb8ae5-4c86-454e-ac85-02ea2adf67c4",
+								"type": "text/javascript",
+								"exec": [
+									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
+									"const TEST_PKG1_ID_PATH = pm.variables.get(\"TEST_PKG1_ID_PATH\");",
+									"",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Location headers is correct', function() {",
+									"    pm.response.to.be.header('Location', API_BASE_URL + '/packages' + TEST_PKG1_ID_PATH);",
+									"})",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages{{TEST_PKG1_ID_PATH}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages{{TEST_PKG1_ID_PATH}}"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "037b590d-8c7f-4839-ac7c-2cf2de9b6c95",
+							"name": "create action upload",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "package",
+											"description": "",
+											"type": "file",
+											"src": {
+												"0": {}
+											}
+										}
+									]
+								},
+								"url": {
+									"raw": "{{HOST}}/{{API_BASE}}/packages",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"{{API_BASE}}",
+										"packages"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "plain",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "0",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 04 Apr 2018 06:59:23 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								},
+								{
+									"key": "Location",
+									"value": "http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0",
+									"name": "Location",
+									"description": "Used in redirection, or when a new resource has been created."
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "new package is correct",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "de6232bb-5e23-4dda-9fc0-ea36e93305c4",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('pid is correct', function() {",
+									"    var jsonData = pm.response.json();",
+									"    var pid = jsonData.properties.pid;",
+									"    pm.expect(pid).to.eql(pm.variables.get(\"TEST_PKG1_ID\"));",
+									"    ",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{HOST}}/{{API_BASE}}/packages{{TEST_PKG1_ID_PATH}}",
+							"host": [
+								"{{HOST}}"
+							],
+							"path": [
+								"{{API_BASE}}",
+								"packages{{TEST_PKG1_ID_PATH}}"
+							]
+						}
+					},
+					"response": [
+						{
+							"id": "d58dad3c-28a9-4af1-99eb-2a28a42209e7",
+							"name": "Default responst",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": ""
+								},
+								"url": {
+									"raw": "{{HOST}}/{{API_BASE}}/packages",
+									"host": [
+										"{{HOST}}"
+									],
+									"path": [
+										"{{API_BASE}}",
+										"packages"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Length",
+									"value": "432",
+									"name": "Content-Length",
+									"description": "The length of the response body in octets (8-bit bytes)"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json;charset=utf-8",
+									"name": "Content-Type",
+									"description": "The mime type of this content"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 04 Apr 2018 06:58:31 GMT",
+									"name": "Date",
+									"description": "The date and time that the message was sent"
+								}
+							],
+							"cookie": [],
+							"body": "{\"class\":[\"packages\"],\"properties\":{\"itemCount\":0},\"links\":[{\"rel\":[\"self\"],\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages\"}],\"actions\":[{\"name\":\"create-package\",\"type\":\"multipart/form-data\",\"method\":\"POST\",\"href\":\"http://localhost:8080/system/jackrabbit/filevault/packages\",\"fields\":[{\"name\":\"package\",\"type\":\"file\",\"title\":\"Package File\"},{\"name\":\"replace\",\"type\":\"text\",\"title\":\"Replace existing package\"}]}]}"
+						}
+					]
+				}
+			]
+		},
+		{
 			"name": "Filevault API Home",
 			"event": [
 				{
@@ -845,7 +1453,7 @@
 			},
 			"response": [
 				{
-					"id": "8e8feccf-7cab-4c78-8ee4-8193b41eae72",
+					"id": "42b9fe35-e6cf-4bff-bdb5-d00b7302609b",
 					"name": "Example request",
 					"originalRequest": {
 						"method": "GET",
@@ -932,16 +1540,30 @@
 	],
 	"variable": [
 		{
-			"id": "40778a88-b06a-4131-9ae3-eaebb0832f4f",
+			"id": "02fa6134-0f1f-4de2-b606-97568455af42",
 			"key": "API_BASE",
 			"value": "/system/jackrabbit/filevault",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "9dc22ddf-e243-41a9-b5ad-35635aa75821",
+			"id": "84ef9922-828c-4925-8df6-c31f75a7d9c2",
 			"key": "REL_PACKAGES",
 			"value": "http://jackrabbit.apache.org/filevault/rels/packages",
+			"type": "string",
+			"description": ""
+		},
+		{
+			"id": "234e87f6-a169-449a-bc95-5276ded63b8f",
+			"key": "TEST_PKG1_ID",
+			"value": "org/apache/jackrabbit:test-package:1.0",
+			"type": "string",
+			"description": ""
+		},
+		{
+			"id": "d00e0119-31e6-4e16-a2bf-a46ef9da9a7f",
+			"key": "TEST_PKG1_ID_PATH",
+			"value": "/org/apache/jackrabbit/test-package/1.0",
 			"type": "string",
 			"description": ""
 		}
