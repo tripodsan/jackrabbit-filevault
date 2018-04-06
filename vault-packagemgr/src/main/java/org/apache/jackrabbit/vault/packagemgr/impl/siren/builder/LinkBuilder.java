@@ -35,6 +35,11 @@ public class LinkBuilder extends BaseBuilder implements Link {
         return this;
     }
 
+    public LinkBuilder withRels(Set<String> rels) {
+        this.rels.addAll(rels);
+        return this;
+    }
+
     public LinkBuilder withHref(String href) {
         this.href = href == null ? "" : href;
         return this;

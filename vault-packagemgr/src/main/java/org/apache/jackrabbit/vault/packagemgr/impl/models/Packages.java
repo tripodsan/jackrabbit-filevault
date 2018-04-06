@@ -101,6 +101,7 @@ public class Packages extends Base {
                     .withType(Field.Type.FILE))
                 .addField(new FieldBuilder()
                     .withName(PARAM_REPLACE)
+                    .withType(Field.Type.CHECKBOX)
                     .withTitle("Replace existing package"))
         );
 
