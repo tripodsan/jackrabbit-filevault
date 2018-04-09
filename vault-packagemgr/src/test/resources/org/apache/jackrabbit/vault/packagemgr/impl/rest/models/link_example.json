@@ -1,0 +1,35 @@
+{
+    "links": [
+        {
+            "rel": [
+                "other"
+            ],
+            "href": "http://filevault.apache.org/test1"
+        },
+        {
+            "rel": [
+                "bar",
+                "foo"
+            ],
+            "href": "http://filevault.apache.org/test2"
+        },
+        {
+            "rel": [
+                "other"
+            ],
+            "href": "http://filevault.apache.org/test3"
+        },
+        {
+            "rel": [
+                "other"
+            ],
+            "href": "http://filevault.apache.org/test4"
+        },
+        {
+            "rel": [
+                "packages"
+            ],
+            "href": "http://localhost:8080/system/packages"
+        }
+    ]
+}

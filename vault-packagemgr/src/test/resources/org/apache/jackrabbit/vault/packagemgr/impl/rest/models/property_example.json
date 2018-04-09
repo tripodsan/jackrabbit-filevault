@@ -1,0 +1,24 @@
+{
+    "properties": {
+        "bar": "world",
+        "booleanProperty": true,
+        "doubleProperty": 3.141592653589793,
+        "floatProperty": 3.140000104904175,
+        "foo": "Hello",
+        "intArray": [2,3,5,7,11,13],
+        "intProperty": 42,
+        "mapProperty": {
+            "bar": "world",
+            "foo": "Hello"
+        },
+        "methodBooleanProperty": true,
+        "methodStringProperty": "Hello, world.",
+        "string-property": "Hello, world.",
+        "stringArray": [
+            "hello",
+            "world"
+        ],
+        "stringProperty": "Hello, world."
+    },
+    "links": []
+}

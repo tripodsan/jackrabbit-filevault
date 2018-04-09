@@ -1,0 +1,23 @@
+{
+    "class":[
+        "filevault"
+    ],
+    "properties":{
+        "api-version":"1.0",
+        "version":"3.2.0"
+    },
+    "links":[
+        {
+            "rel":[
+                "self"
+            ],
+            "href":"http://localhost:8080/system"
+        },
+        {
+            "rel":[
+                "http://jackrabbit.apache.org/filevault/rels/packages"
+            ],
+            "href":"http://localhost:8080/system/packages"
+        }
+    ]
+}

@@ -37,6 +37,11 @@ public class LinkExample {
         return "http://filevault.apache.org/test4";
     }
 
+    @ApiLink("packages")
+    public String test6() {
+        return "/packages";
+    }
+
     public static final String TEST5 = "no link annotation";
 
 }

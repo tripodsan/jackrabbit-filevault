@@ -17,21 +17,29 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.models;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
 
+@ApiModel
 public class Filevault extends Base {
 
-    public static String CLASS = "filevault";
+    @ApiClass
+    public static final String CLASS = "filevault";
 
-    @Override
-    public Entity buildEntity() {
-        return new EntityBuilder()
-                .addClass(CLASS)
-                .addProperty("version", "3.2.0")
-                .addProperty("api-version", "1.0")
-                .addLink(Rels.SELF, baseHref)
-                .addLink(Rels.REL_VLT_PACKAGES, baseHref + "/packages");
-    }
+    @ApiLink(ApiLink.SELF)
+    public static final String SELF = "";
+
+    @ApiLink(Rels.REL_VLT_PACKAGES)
+    public static final String PACKAGES = "/packages";
+
+    @ApiProperty(name = "api-version")
+    public static final String apiVersion = "1.0";
+
+    @ApiProperty
+    public static final String version = "3.2.0";
 }

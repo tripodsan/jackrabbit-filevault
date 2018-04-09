@@ -18,37 +18,31 @@
 package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ClassExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ClassExampleWithModel;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.EntitiesExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class ClassTests {
-
-    private static final Set<String> TEST1_CLASSES = new HashSet<>(Arrays.asList("test1", "test2a", "test2b", "test3", "test4", "test5a", "test5b"));
-
-    private static final Set<String> TEST2_CLASSES = new HashSet<>(Collections.singletonList("main"));
+public class EntitiesTest {
 
     @Test
-    public void testMemberClasses() throws Exception {
+    public void testEntitiesExample() throws Exception {
         AnnotationTransformer transformer = new AnnotationTransformer()
-                .withModel(new ClassExample());
-        Set<String> classes = transformer.collectClasses();
-        assertEquals("Classes", TEST1_CLASSES, classes);
-    }
-
-    @Test
-    public void testModelClasses() throws Exception {
-        AnnotationTransformer transformer = new AnnotationTransformer()
-                .withModel(new ClassExampleWithModel());
-        Set<String> classes = transformer.collectClasses();
-        assertEquals("Classes", TEST2_CLASSES, classes);
+                .withModel(new EntitiesExample());
+        Collection entities = transformer.collectEntities();
+        assertEquals("size", 2, entities.size());
+        Iterator<EntitiesExample.SimpleEntity> iter = (Iterator<EntitiesExample.SimpleEntity>) entities.iterator();
+        assertEquals("Entity0", "Hello, world.", iter.next().getTitle());
+        assertEquals("Entity1", "Jackrabbit is cool.", iter.next().getTitle());
     }
 
 

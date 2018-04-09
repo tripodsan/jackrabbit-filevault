@@ -1,5 +1,6 @@
 .ratignore
 src/test/postman/**
+src/test/resources/org/apache/jackrabbit/vault/packagemgr/impl/rest/models/**
 node_modules/**
 package.json
 package-lock.json

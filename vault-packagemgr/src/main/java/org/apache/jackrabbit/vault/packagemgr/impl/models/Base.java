@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 
 public abstract class Base {
@@ -39,7 +40,12 @@ public abstract class Base {
         return this;
     }
 
-    public abstract Entity buildEntity() throws IOException;
+    public Entity buildEntity() throws IOException {
+        return new AnnotationTransformer()
+                .withModel(this)
+                .withBaseHref(baseHref)
+                .build();
+    }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("application/json");

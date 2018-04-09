@@ -21,56 +21,39 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiEntities;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 
 public class AnnotationTransformer {
 
-    private static void addStrings(Set<String> set, Object obj) {
-        if (obj == null) {
-            return;
-        }
-        if (obj.getClass().isArray()) {
-            for (Object o: ((Object[]) obj)) {
-                set.add(o.toString());
-            }
-        } else {
-            set.add(obj.toString());
-        }
+    private String baseHref = "";
+
+    private Object model;
+
+    public AnnotationTransformer withBaseHref(String baseHref) {
+        this.baseHref = baseHref;
+        return this;
     }
 
-    private static Object getValue(Object obj, Member member) {
-        try {
-            if (member instanceof Field) {
-                return ((Field) member).get(obj);
-            } else if (member instanceof Method) {
-                return ((Method) member).invoke(obj);
-            }
-            return null;
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    private static String getStringValue(Object obj, Member member) {
-        final Object ret = getValue(obj, member);
-        return ret == null ? null : ret.toString();
-    }
-
-    private static String[] getStringValues(Object obj, Member member) {
-        final Object ret = getValue(obj, member);
-        if (ret instanceof String[]) {
-            return (String[]) ret;
-        }
-        return null;
+    public AnnotationTransformer withModel(Object model) {
+        this.model = model;
+        return this;
     }
 
     private Link buildLink(ApiLink annotation, String href) {
@@ -84,31 +67,52 @@ public class AnnotationTransformer {
             rels.add(annotation.value());
         }
 
+        if (href.isEmpty()) {
+            href = baseHref;
+        } else if (href.startsWith("/")) {
+            href = baseHref + href;
+        }
         return new LinkBuilder()
                 .withRels(rels)
                 .withHref(href);
     }
 
-    public Link transformLink(Object model, ApiLink annotation, Member member) {
-        return buildLink(annotation, getStringValue(model, member));
+    public Link transformLink(ApiLink annotation, Member member) {
+        return buildLink(annotation, ReflectionUtils.getStringValue(model, member));
     }
 
-    public Set<String> collectClasses(Object model) {
+    public Collection<Link> collectLinks() {
+        List<Link> links = new LinkedList<>();
+        for (Field field: model.getClass().getFields()) {
+            ApiLink annotation = field.getAnnotation(ApiLink.class);
+            if (annotation != null) {
+                links.add(buildLink(annotation, ReflectionUtils.getStringValue(model, field)));
+            }
+        }
+        for (Method method: model.getClass().getMethods()) {
+            ApiLink annotation = method.getAnnotation(ApiLink.class);
+            if (annotation != null) {
+                links.add(buildLink(annotation, ReflectionUtils.getStringValue(model, method)));
+            }
+        }
+        return links;
+    }
+
+    public Set<String> collectClasses() {
         Set<String> classes = new HashSet<>();
         for (Field field: model.getClass().getFields()) {
             ApiClass annotation = field.getAnnotation(ApiClass.class);
             if (annotation != null) {
-                addStrings(classes, getValue(model, field));
+                ReflectionUtils.addStrings(classes, ReflectionUtils.getValue(model, field));
             }
         }
         for (Method method: model.getClass().getMethods()) {
             ApiClass annotation = method.getAnnotation(ApiClass.class);
             if (annotation != null) {
-                addStrings(classes, getValue(model, method));
+                ReflectionUtils.addStrings(classes, ReflectionUtils.getValue(model, method));
             }
         }
 
-        // todo: move somewhere generic
         ApiModel annotation = model.getClass().getAnnotation(ApiModel.class);
         if (annotation != null) {
             classes.addAll(Arrays.asList(annotation.cls()));
@@ -117,8 +121,64 @@ public class AnnotationTransformer {
         return classes;
     }
 
-    public Map<String,Object> collectProperties(Object model) {
+    public Map<String,Object> collectProperties() {
         Map<String, Object> properties = new HashMap<>();
+        for (Field field: model.getClass().getFields()) {
+            ApiProperty annotation = field.getAnnotation(ApiProperty.class);
+            if (annotation != null) {
+                String name = annotation.name();
+                if (name.isEmpty()) {
+                    name = field.getName();
+                }
+                ReflectionUtils.addProperty(properties, name, annotation.flatten(), ReflectionUtils.getValue(model, field));
+            }
+        }
+        for (Method method: model.getClass().getMethods()) {
+            ApiProperty annotation = method.getAnnotation(ApiProperty.class);
+            if (annotation != null) {
+                String name = annotation.name();
+                if (name.isEmpty()) {
+                    name = ReflectionUtils.methodToPropertyName(method.getName());
+                }
+                ReflectionUtils.addProperty(properties, name, annotation.flatten(), ReflectionUtils.getValue(model, method));
+            }
+        }
         return properties;
+    }
+
+    public Collection<?> collectEntities() {
+        Collection<?> ret = null;
+        for (Method method: model.getClass().getMethods()) {
+            ApiEntities annotation = method.getAnnotation(ApiEntities.class);
+            if (annotation != null) {
+                if (ret != null) {
+                    throw new IllegalArgumentException("Model defines multiple entities annotations");
+                }
+                try {
+                    ret = (Collection<?>) method.invoke(model);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    throw new IllegalArgumentException(e);
+                }
+            }
+        }
+        return ret;
+    }
+
+    public Entity build() {
+        // class
+        EntityBuilder builder = new EntityBuilder();
+        for (String clazz: collectClasses()){
+            builder.addClass(clazz);
+        }
+
+        // properties
+        builder.addProperties(collectProperties());
+
+        // links
+        for (Link link: collectLinks()) {
+            builder.addLink(link);
+        }
+
+        return builder;
     }
 }

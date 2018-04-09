@@ -20,7 +20,6 @@ import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -30,7 +29,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.util.ISO8601;
-import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
@@ -55,33 +53,9 @@ public class EntityBuilder extends LinkBuilder implements Entity {
         return this;
     }
 
-    public EntityBuilder addProperty(String name, String value) {
-        if (value != null) {
-            props.put(name, value);
-        }
-        return this;
-    }
-
-    public EntityBuilder addProperty(String name, boolean value) {
-        props.put(name, value);
-        return this;
-    }
-
-    public EntityBuilder addProperty(String name, long value) {
-        props.put(name, value);
-        return this;
-    }
-
     public EntityBuilder addProperty(String name, Calendar value) {
         if (value != null) {
             props.put(name, ISO8601.format(value));
-        }
-        return this;
-    }
-
-    public EntityBuilder addProperty(String name, WorkspaceFilter value) {
-        if (value != null) {
-            props.put(name, value);
         }
         return this;
     }
@@ -93,12 +67,18 @@ public class EntityBuilder extends LinkBuilder implements Entity {
         return this;
     }
 
-    public EntityBuilder addProperty(String name, Map<String, Object> value) {
+    public EntityBuilder addProperty(String name, Object value) {
         if (value != null) {
             props.put(name, value);
         }
         return this;
     }
+
+    public EntityBuilder addProperties(Map<String, Object> properties) {
+        props.putAll(properties);
+        return this;
+    }
+
 
     public EntityBuilder addProperty(String name, Node node, String jcrName) throws RepositoryException {
         if (node.hasProperty(jcrName)) {

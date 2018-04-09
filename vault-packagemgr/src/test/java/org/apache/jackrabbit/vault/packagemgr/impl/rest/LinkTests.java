@@ -17,15 +17,13 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Member;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
@@ -37,53 +35,30 @@ public class LinkTests {
 
     private static final Set<String> REL_OTHER = Collections.singleton("other");
 
+    private static final Set<String> REL_PACKAGES = Collections.singleton("packages");
+
     private static final Set<String> REL_FOO_BAR = new HashSet<>(Arrays.asList("foo", "bar"));
 
-    private static final String HREF_TEST1 = "http://filevault.apache.org/test1";
+    private static final Map<String, Set<String>> TEST_LINKS = new HashMap<>();
+    static {
+        TEST_LINKS.put("http://filevault.apache.org/test1", REL_OTHER);
+        TEST_LINKS.put("http://filevault.apache.org/test2", REL_FOO_BAR);
+        TEST_LINKS.put("http://filevault.apache.org/test3", REL_OTHER);
+        TEST_LINKS.put("http://filevault.apache.org/test4", REL_OTHER);
+        TEST_LINKS.put("http://filevault.apache.org/base/api/packages", REL_PACKAGES);
+    }
 
-    private static final String HREF_TEST2 = "http://filevault.apache.org/test2";
-
-    private static final String HREF_TEST3 = "http://filevault.apache.org/test3";
-
-    private static final String HREF_TEST4 = "http://filevault.apache.org/test4";
-
-    private void testMember(String name, String expectedHref, Set<String> expectedRels) throws Exception {
-        AnnotationTransformer transformer = new AnnotationTransformer();
-        LinkExample obj = new LinkExample();
-        Member member;
-        ApiLink annotation;
-        try {
-            Field field = LinkExample.class.getField(name);
-            annotation = field.getAnnotation(ApiLink.class);
-            member = field;
-        } catch (NoSuchFieldException e) {
-            Method method = LinkExample.class.getMethod(name);
-            annotation = method.getAnnotation(ApiLink.class);
-            member = method;
+    @Test
+    public void testLinks() throws Exception {
+        AnnotationTransformer transformer = new AnnotationTransformer()
+                .withBaseHref("http://filevault.apache.org/base/api")
+                .withModel(new LinkExample());
+        Map<String, Set<String>> tests = new HashMap<>(TEST_LINKS);
+        for (Link link: transformer.collectLinks()) {
+            Set<String> rels = tests.remove(link.getHref());
+            assertEquals("Link: " + link.getHref(), rels, link.getRels());
         }
-        Link link = transformer.transformLink(obj, annotation, member);
-        assertEquals("href", expectedHref, link.getHref());
-        assertEquals("rel", expectedRels, link.getRels());
-    }
-
-    @Test
-    public void testStaticLink() throws Exception {
-        testMember("TEST1", HREF_TEST1, REL_OTHER);
-    }
-
-    @Test
-    public void testMultiRels() throws Exception {
-        testMember("TEST2", HREF_TEST2, REL_FOO_BAR);
-    }
-
-    @Test
-    public void testInstanceLink() throws Exception {
-        testMember("test3", HREF_TEST3, REL_OTHER);
-    }
-
-    @Test
-    public void testMethodLink() throws Exception {
-        testMember("test4", HREF_TEST4, REL_OTHER);
+        assertEquals("empty", new HashMap(), tests);
     }
 
 

@@ -15,28 +15,38 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.vault.packagemgr.impl.rest.models;
+package org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures;
 
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
+import java.util.Arrays;
+import java.util.Collection;
+
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiEntities;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
 
 @ApiModel
-public class Filevault {
+public class EntitiesExample {
 
-    @ApiClass
-    public static final String CLASS = "filevault";
+    @ApiEntities
+    public Collection<SimpleEntity> entities() {
+        return Arrays.asList(
+                new SimpleEntity("Hello, world."),
+                new SimpleEntity("Jackrabbit is cool.")
+        );
+    }
 
-    @ApiLink(ApiLink.SELF)
-    public static final String SELF = "http://";
+    @ApiModel
+    public static class SimpleEntity {
 
-    @ApiLink("http://jackrabbit.apache.org/filevault/rels/packages")
-    public static final String PACKAGES = "/packages";
+        private final String title;
 
-    @ApiProperty(name = "api-version")
-    public static final String apiVersion = "1.0";
+        private SimpleEntity(String title) {
+            this.title = title;
+        }
 
-    @ApiProperty
-    public static final String version = "3.2.0";
+        @ApiProperty
+        public String getTitle() {
+            return title;
+        }
+    }
 }

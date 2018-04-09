@@ -17,6 +17,10 @@
 package org.apache.jackrabbit.vault.packagemgr.impl.siren.json;
 
 import java.io.Writer;
+import java.lang.reflect.Array;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,7 +51,11 @@ public class SirenJsonWriter implements AutoCloseable {
     }
 
     public SirenJsonWriter(Writer writer) {
-        this.w = Json.createGenerator(writer);
+        this(writer, false);
+    }
+
+    public SirenJsonWriter(Writer writer, boolean prettyPrint) {
+        this(Json.createGeneratorFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, prettyPrint)).createGenerator(writer));
     }
 
     public void write(Entity e) throws JsonException {
@@ -136,14 +144,44 @@ public class SirenJsonWriter implements AutoCloseable {
         w.close();
     }
 
+    private void writeValue(Object value) {
+        if (value.getClass().isArray()) {
+            w.writeStartArray();
+            for (Object o : (Object[]) value) {
+                writeValue(o);
+            }
+            w.writeEnd();
+        } else if (value instanceof Integer) {
+            w.write((Integer) value);
+        } else if (value instanceof Long) {
+            w.write((Long) value);
+        } else if (value instanceof Float) {
+            w.write((Float) value);
+        } else if (value instanceof Double) {
+            w.write((Double) value);
+        } else if (value instanceof Boolean) {
+            w.write((Boolean) value);
+        } else if (value instanceof Map) {
+            //noinspection unchecked
+            write(null, (Map<String, Object>) value);
+        } else {
+            w.write(value.toString());
+        }
+    }
+
     private void write(String key, Map<String, Object> props) throws JsonException {
-        w.writeStartObject(key);
+        if (key == null) {
+            w.writeStartObject();
+        } else {
+            w.writeStartObject(key);
+        }
         for (Map.Entry<String, Object> e: props.entrySet()) {
             Object v = e.getValue();
-            if (v instanceof String[]) {
+            if (v.getClass().isArray()) {
                 w.writeStartArray(e.getKey());
-                for (String s : (String[]) v) {
-                    w.write(s);
+                int len = Array.getLength(v);
+                for (int i=0; i<len; i++) {
+                    writeValue(Array.get(v, i));
                 }
                 w.writeEnd();
             } else if (v instanceof WorkspaceFilter) {

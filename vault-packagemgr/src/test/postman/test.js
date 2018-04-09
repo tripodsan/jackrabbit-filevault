@@ -59,7 +59,12 @@ newman.run({
         ],
         '_postman_variable_scope': 'environment'
     },
-    reporters: 'cli'
+    reporters: ['cli','json'],
+    reporter: {
+        json: {
+            'export': 'target/newman-report.json'
+        }
+    }
 }, function (err, summary) {
     if (err) {
         throw err;
