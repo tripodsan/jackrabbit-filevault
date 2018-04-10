@@ -34,12 +34,6 @@ public @interface ApiLink {
     /**
      * The relation type that this link represents.
      */
-    String value() default "";
-
-    /**
-     * The relation type that this link represents.
-     */
-    String[] rels() default {};
-
+    String[] value() default {};
 
 }

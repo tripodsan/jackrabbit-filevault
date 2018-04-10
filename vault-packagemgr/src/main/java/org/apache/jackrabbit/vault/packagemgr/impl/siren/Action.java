@@ -19,7 +19,7 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 /**
  * {@code Action}...
  */
-public interface Action extends Base {
+public interface Action {
 
     String TYPE_MULTIPART_FORM_DATA = "multipart/form-data";
 
@@ -28,6 +28,12 @@ public interface Action extends Base {
     String TYPE_JSON = "application/json";
 
     String TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
+
+    String getName();
+
+    String getType();
+
+    String getTitle();
 
     String getHref();
 

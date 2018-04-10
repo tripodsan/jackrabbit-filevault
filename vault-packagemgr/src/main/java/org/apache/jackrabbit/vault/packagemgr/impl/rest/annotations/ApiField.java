@@ -23,21 +23,50 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Defines the model of an API.
+ * Defines a field of an action of an entity.
  */
-@Target(ElementType.TYPE)
+@Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ApiModel {
+public @interface ApiField {
 
-    /**
-     * The {@code "classes"} of an entity.
-     * @return classes or empty array.
-     */
-    String[] classes() default {};
+    enum Type {
+        HIDDEN,
+        TEXT,
+        SEARCH,
+        TEL,
+        URL,
+        EMAIL,
+        PASSWORD,
+        DATETIME,
+        DATETIME_LOCAL,
+        DATE,
+        MONTH,
+        WEEK,
+        TIME,
+        NUMBER,
+        RANGE,
+        COLOR,
+        CHECKBOX,
+        RADIO,
+        FILE;
 
-    /**
-     * Automatically generate <em>self</em> link.
-     * @return {@code false} to disable auto link generation.
-     */
-    boolean selfLink() default true;
+        @Override
+        public String toString() {
+            if (this == DATETIME_LOCAL) {
+                return "datetime-local";
+            }
+            return super.toString().toLowerCase();
+        }
+    }
+
+    String value() default "";
+
+    String name() default "";
+
+    Type type() default Type.TEXT;
+
+    String title() default "";
+
+    String defaultValue() default "";
+
 }

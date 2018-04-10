@@ -72,6 +72,28 @@ public class ReflectionUtils {
         return name;
     }
 
+    public static String methodToActionName(String name) {
+        if (name == null || name.length() == 0) {
+            return name;
+        }
+        StringBuilder ret = new StringBuilder();
+        boolean isLowerCase = false;
+        for (int i=0; i<name.length();i++) {
+            char c = name.charAt(i);
+            if (Character.isLowerCase(c)) {
+                isLowerCase = true;
+                ret.append(c);
+            } else {
+                if (isLowerCase) {
+                    ret.append('-');
+                }
+                isLowerCase = false;
+                ret.append(Character.toLowerCase(c));
+            }
+        }
+        return ret.toString();
+    }
+
     public static void addProperty(Map<String, Object> properties, String name, boolean flattenMap, Object value) {
         if (value instanceof Map && flattenMap) {
             Map<?,?> map = (Map) value;
@@ -83,4 +105,12 @@ public class ReflectionUtils {
         properties.put(name, value);
     }
 
+    public static Member[] getFieldsAndMethods(Class clazz) {
+        Field[] fields = clazz.getFields();
+        Method[] methods = clazz.getMethods();
+        Member[] ret = new Member[fields.length + methods.length];
+        System.arraycopy(fields, 0, ret, 0, fields.length);
+        System.arraycopy(methods, 0, ret, fields.length, methods.length);
+        return ret;
+    }
 }

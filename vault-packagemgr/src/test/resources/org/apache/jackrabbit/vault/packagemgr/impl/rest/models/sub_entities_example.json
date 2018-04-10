@@ -1,0 +1,17 @@
+{
+    "class": [
+        "simple-entity"
+    ],
+    "properties": {
+        "entityTitle": "entity: Hello, world",
+        "title": "Hello, world"
+    },
+    "links": [
+        {
+            "rel": [
+                "self"
+            ],
+            "href": "http://localhost:8080/system/1"
+        }
+    ]
+}

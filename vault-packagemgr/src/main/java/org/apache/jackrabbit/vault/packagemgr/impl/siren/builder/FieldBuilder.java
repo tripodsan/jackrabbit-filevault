@@ -16,12 +16,20 @@
  */
 package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 
+import java.util.Objects;
+
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 
 /**
  * {@code FieldBuilder}...
  */
-public class FieldBuilder extends BaseBuilder implements Field {
+public class FieldBuilder implements Field {
+
+    private String name;
+
+    private String type;
+
+    private String title;
 
     private String value;
 
@@ -29,26 +37,22 @@ public class FieldBuilder extends BaseBuilder implements Field {
         withType(Type.TEXT);
     }
 
-    @Override
     public FieldBuilder withName(String name) {
-        super.withName(name);
-        return this;
-    }
-
-    @Override
-    public FieldBuilder withType(String type) {
-        super.withType(type);
+        this.name = name;
         return this;
     }
 
     public FieldBuilder withType(Type type) {
-        super.withType(type.toString());
+        return this.withType(type.name());
+    }
+
+    public FieldBuilder withType(String type) {
+        this.type = type;
         return this;
     }
 
-    @Override
     public FieldBuilder withTitle(String title) {
-        super.withTitle(title);
+        this.title = title;
         return this;
     }
 
@@ -57,8 +61,38 @@ public class FieldBuilder extends BaseBuilder implements Field {
         return this;
     }
 
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String getType() {
+        return type;
+    }
+
+    @Override
+    public String getTitle() {
+        return title;
+    }
+
     public String getValue() {
         return value;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FieldBuilder that = (FieldBuilder) o;
+        return Objects.equals(name, that.name) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(title, that.title) &&
+                Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, type, title, value);
+    }
 }

@@ -20,7 +20,9 @@ package org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiEntities;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
 
@@ -30,23 +32,46 @@ public class EntitiesExample {
     @ApiEntities
     public Collection<SimpleEntity> entities() {
         return Arrays.asList(
-                new SimpleEntity("Hello, world."),
-                new SimpleEntity("Jackrabbit is cool.")
+                new SimpleEntity("1", "Hello, world."),
+                new SimpleEntity("2", "Jackrabbit is cool.")
         );
     }
 
     @ApiModel
     public static class SimpleEntity {
 
+        private final String id;
+
         private final String title;
 
-        private SimpleEntity(String title) {
+        public SimpleEntity(String id, String title) {
+            this.id = id;
             this.title = title;
+        }
+
+        @ApiClass
+        public static String CLASS = "simple-entity";
+
+        @ApiLink(ApiLink.SELF)
+        public String selfLink() {
+            return "/" + id;
         }
 
         @ApiProperty
         public String getTitle() {
             return title;
         }
+
+        @ApiProperty(context = ApiProperty.Context.INLINE)
+        public String getInlineTitle() {
+            return "inline: " + title;
+        }
+
+        @ApiProperty(context = ApiProperty.Context.ENTITY)
+        public String getEntityTitle() {
+            return "entity: " + title;
+        }
+
+
     }
 }

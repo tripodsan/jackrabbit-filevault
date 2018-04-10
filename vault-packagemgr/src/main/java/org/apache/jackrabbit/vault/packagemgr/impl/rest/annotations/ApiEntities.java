@@ -23,8 +23,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Defines the list of entities. The annotated method should return a collection.
- * todo: add iterable with pagination
+ * Defines the list of entities. The annotated method should return an iterable.
+ * todo: add pagination
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

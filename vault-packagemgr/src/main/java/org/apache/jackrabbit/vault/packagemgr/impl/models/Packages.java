@@ -33,6 +33,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.jackrabbit.vault.packagemgr.impl.DependencyResolver;
 import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
@@ -47,6 +48,7 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ApiModel
 public class Packages extends Base {
 
     /**
@@ -63,6 +65,7 @@ public class Packages extends Base {
 
 
     private JcrPackageManager pkgMgr;
+
 
     public Packages withPackageManager(JcrPackageManager pkgMgr) {
         this.pkgMgr = pkgMgr;

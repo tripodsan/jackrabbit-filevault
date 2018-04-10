@@ -28,7 +28,9 @@ public class LinkBuilder extends BaseBuilder implements Link {
 
     private String href = "";
 
-    private TreeSet<String> rels = new TreeSet<String>();
+    private Set<String> rels = new TreeSet<>();
+
+    private String key;
 
     public LinkBuilder addRel(String rel) {
         rels.add(rel);
@@ -59,7 +61,26 @@ public class LinkBuilder extends BaseBuilder implements Link {
         return href;
     }
 
+    private String getRelKey() {
+        if (key == null) {
+            StringBuilder b = new StringBuilder();
+            for (String rel: rels) {
+                if ("self".equals(rel)) {
+                    b.insert(0, '!');
+                } else {
+                    b.append(rel);
+                }
+            }
+            key = b.toString();
+        }
+        return key;
+    }
+
     public int compareTo(Link o) {
+        int cmp = getRelKey().compareTo(((LinkBuilder) o).getRelKey());
+        if (cmp != 0) {
+            return cmp;
+        }
         return href.compareTo(o.getHref());
     }
 }

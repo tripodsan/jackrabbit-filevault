@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExample;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExampleWithModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
 import org.junit.Test;
@@ -32,6 +34,10 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class LinkTests {
+
+    private static final String BASE_HREF = "http://filevault.apache.org/base/api";
+
+    private static final Set<String> REL_SELF = Collections.singleton("self");
 
     private static final Set<String> REL_OTHER = Collections.singleton("other");
 
@@ -41,17 +47,18 @@ public class LinkTests {
 
     private static final Map<String, Set<String>> TEST_LINKS = new HashMap<>();
     static {
+        TEST_LINKS.put(BASE_HREF, REL_SELF);
         TEST_LINKS.put("http://filevault.apache.org/test1", REL_OTHER);
         TEST_LINKS.put("http://filevault.apache.org/test2", REL_FOO_BAR);
         TEST_LINKS.put("http://filevault.apache.org/test3", REL_OTHER);
         TEST_LINKS.put("http://filevault.apache.org/test4", REL_OTHER);
-        TEST_LINKS.put("http://filevault.apache.org/base/api/packages", REL_PACKAGES);
+        TEST_LINKS.put(BASE_HREF + "/packages", REL_PACKAGES);
     }
 
     @Test
     public void testLinks() throws Exception {
         AnnotationTransformer transformer = new AnnotationTransformer()
-                .withBaseHref("http://filevault.apache.org/base/api")
+                .withBaseHref(BASE_HREF)
                 .withModel(new LinkExample());
         Map<String, Set<String>> tests = new HashMap<>(TEST_LINKS);
         for (Link link: transformer.collectLinks()) {
@@ -61,5 +68,37 @@ public class LinkTests {
         assertEquals("empty", new HashMap(), tests);
     }
 
+    @Test
+    public void testAutoSelfLink() throws Exception {
+        Collection<Link> links = new AnnotationTransformer()
+                .withBaseHref(BASE_HREF)
+                .withModel(new LinkExampleWithModel.AutoSelfLink())
+                .collectLinks();
+        assertEquals("number of links", 1, links.size());
+        Link link = links.iterator().next();
+        assertEquals("href", BASE_HREF, link.getHref());
+        assertEquals("rels", REL_SELF, link.getRels());
+    }
+
+    @Test
+    public void testNoSelfLink() throws Exception {
+        Collection<Link> links = new AnnotationTransformer()
+                .withBaseHref(BASE_HREF)
+                .withModel(new LinkExampleWithModel.NoSelfLink())
+                .collectLinks();
+        assertEquals("number of links", 0, links.size());
+    }
+
+    @Test
+    public void testCustomSelfLink() throws Exception {
+        Collection<Link> links = new AnnotationTransformer()
+                .withBaseHref(BASE_HREF)
+                .withModel(new LinkExampleWithModel.CustomSelfLink())
+                .collectLinks();
+        assertEquals("number of links", 1, links.size());
+        Link link = links.iterator().next();
+        assertEquals("href", BASE_HREF + "?format=full", link.getHref());
+        assertEquals("rels", REL_SELF, link.getRels());
+    }
 
 }

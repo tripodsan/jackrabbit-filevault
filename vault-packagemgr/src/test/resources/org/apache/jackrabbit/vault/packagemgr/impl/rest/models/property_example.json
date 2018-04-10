@@ -20,5 +20,12 @@
         ],
         "stringProperty": "Hello, world."
     },
-    "links": []
+    "links": [
+        {
+            "rel": [
+                "self"
+            ],
+            "href": "http://localhost:8080/system"
+        }
+    ]
 }

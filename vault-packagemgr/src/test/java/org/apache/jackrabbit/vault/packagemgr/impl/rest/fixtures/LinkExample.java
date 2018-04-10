@@ -23,10 +23,13 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 @ApiModel
 public class LinkExample {
 
+    @ApiLink(ApiLink.SELF)
+    public static final String SELF = "";
+
     @ApiLink("other")
     public static final String TEST1 = "http://filevault.apache.org/test1";
 
-    @ApiLink(rels = {"foo", "bar"})
+    @ApiLink({"foo", "bar"})
     public static final String TEST2 = "http://filevault.apache.org/test2";
 
     @ApiLink("other")

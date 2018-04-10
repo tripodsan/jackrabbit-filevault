@@ -15,29 +15,30 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations;
+package org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 
-/**
- * Defines the model of an API.
- */
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface ApiModel {
+public class LinkExampleWithModel {
 
-    /**
-     * The {@code "classes"} of an entity.
-     * @return classes or empty array.
-     */
-    String[] classes() default {};
 
-    /**
-     * Automatically generate <em>self</em> link.
-     * @return {@code false} to disable auto link generation.
-     */
-    boolean selfLink() default true;
+    @ApiModel
+    public static class AutoSelfLink {
+
+    }
+
+    @ApiModel(selfLink = false)
+    public static class NoSelfLink {
+
+    }
+
+    @ApiModel
+    public static class CustomSelfLink {
+
+        @ApiLink("self")
+        public static final String SELF = "?format=full";
+
+    }
+
 }

@@ -20,7 +20,7 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 /**
  * {@code Field}...
  */
-public interface Field extends Base {
+public interface Field {
 
     enum Type {
         HIDDEN,
@@ -52,6 +52,12 @@ public interface Field extends Base {
             return super.toString().toLowerCase();
         }
     }
+
+    String getName();
+
+    String getType();
+
+    String getTitle();
 
     String getValue();
 

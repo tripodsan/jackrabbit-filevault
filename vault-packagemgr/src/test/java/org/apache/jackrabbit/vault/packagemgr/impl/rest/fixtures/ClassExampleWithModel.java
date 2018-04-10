@@ -19,7 +19,7 @@ package org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 
-@ApiModel(cls = {"main"})
+@ApiModel(classes = {"main"})
 public class ClassExampleWithModel {
 
 }

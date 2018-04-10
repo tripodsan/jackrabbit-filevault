@@ -23,21 +23,39 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Defines the model of an API.
+ * Defines a action of an entity.
  */
-@Target(ElementType.TYPE)
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ApiModel {
+public @interface ApiAction {
 
-    /**
-     * The {@code "classes"} of an entity.
-     * @return classes or empty array.
-     */
-    String[] classes() default {};
+    enum Method {
+        GET,
+        POST,
+        PUT,
+        DELETE,
+        PATCH
+    }
 
-    /**
-     * Automatically generate <em>self</em> link.
-     * @return {@code false} to disable auto link generation.
-     */
-    boolean selfLink() default true;
+    String TYPE_MULTIPART_FORM_DATA = "multipart/form-data";
+
+    String TYPE_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
+
+    String TYPE_JSON = "application/json";
+
+    String TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
+
+    String value() default "";
+
+    String name() default "";
+
+    String type() default TYPE_X_WWW_FORM_URLENCODED;
+
+    String title() default "";
+
+    String href() default "";
+
+    Method method() default Method.POST;
+
+    ApiField[] fields() default {};
 }

@@ -18,9 +18,7 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren.json;
 
 import java.io.Writer;
 import java.lang.reflect.Array;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -115,7 +113,9 @@ public class SirenJsonWriter implements AutoCloseable {
 
     private void write(Action a) {
         w.writeStartObject();
-        writeBase(a);
+        writeIfNotEmpty("name", a.getName());
+        writeIfNotEmpty("type", a.getType());
+        writeIfNotEmpty("title", a.getTitle());
         writeIfNotEmpty("method", a.getMethod());
         writeIfNotEmpty("href", a.getHref());
         boolean hasFields = false;
@@ -134,7 +134,9 @@ public class SirenJsonWriter implements AutoCloseable {
 
     private void write(Field f) {
         w.writeStartObject();
-        writeBase(f);
+        writeIfNotEmpty("name", f.getName());
+        writeIfNotEmpty("type", f.getType());
+        writeIfNotEmpty("title", f.getTitle());
         writeIfNotEmpty("value", f.getValue());
         w.writeEnd();
     }

@@ -18,6 +18,9 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
@@ -25,7 +28,13 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 /**
  * {@code ActionBuilder}...
  */
-public class ActionBuilder extends BaseBuilder implements Action {
+public class ActionBuilder implements Action {
+
+    private String name;
+
+    private String type;
+
+    private String title;
 
     private String method = "GET";
 
@@ -33,20 +42,13 @@ public class ActionBuilder extends BaseBuilder implements Action {
 
     private List<Field> fields = new LinkedList<Field>();
 
-    @Override
-    public String getHref() {
-        return href;
-    }
-
-    @Override
     public ActionBuilder withName(String name) {
-        super.withName(name);
+        this.name = name;
         return this;
     }
 
-    @Override
     public ActionBuilder withType(String type) {
-        super.withType(type);
+        this.type = type;
         return this;
     }
 
@@ -55,15 +57,34 @@ public class ActionBuilder extends BaseBuilder implements Action {
         return this;
     }
 
-    @Override
     public ActionBuilder withTitle(String title) {
-        super.withTitle(title);
+        this.title = title;
         return this;
     }
 
     public ActionBuilder withMethod(String method) {
         this.method = method;
         return this;
+    }
+
+    @Override
+    public String getHref() {
+        return href;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String getType() {
+        return type;
+    }
+
+    @Override
+    public String getTitle() {
+        return title;
     }
 
     public ActionBuilder withGET() {
@@ -97,5 +118,23 @@ public class ActionBuilder extends BaseBuilder implements Action {
 
     public Iterable<Field> getFields() {
         return fields;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ActionBuilder that = (ActionBuilder) o;
+        return Objects.equals(name, that.name) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(title, that.title) &&
+                Objects.equals(method, that.method) &&
+                Objects.equals(href, that.href) &&
+                Objects.equals(fields, that.fields);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, type, title, method, href, fields);
     }
 }

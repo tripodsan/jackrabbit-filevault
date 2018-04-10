@@ -17,20 +17,14 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ClassExample;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ClassExampleWithModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.EntitiesExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class EntitiesTest {
 
@@ -38,11 +32,11 @@ public class EntitiesTest {
     public void testEntitiesExample() throws Exception {
         AnnotationTransformer transformer = new AnnotationTransformer()
                 .withModel(new EntitiesExample());
-        Collection entities = transformer.collectEntities();
-        assertEquals("size", 2, entities.size());
+        Iterable entities = transformer.collectEntities();
         Iterator<EntitiesExample.SimpleEntity> iter = (Iterator<EntitiesExample.SimpleEntity>) entities.iterator();
         assertEquals("Entity0", "Hello, world.", iter.next().getTitle());
         assertEquals("Entity1", "Jackrabbit is cool.", iter.next().getTitle());
+        assertFalse("no more entities", iter.hasNext());
     }
 
 

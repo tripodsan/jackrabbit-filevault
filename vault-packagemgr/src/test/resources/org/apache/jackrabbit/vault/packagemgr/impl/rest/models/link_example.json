@@ -2,9 +2,9 @@
     "links": [
         {
             "rel": [
-                "other"
+                "self"
             ],
-            "href": "http://filevault.apache.org/test1"
+            "href": "http://localhost:8080/system"
         },
         {
             "rel": [
@@ -12,6 +12,12 @@
                 "foo"
             ],
             "href": "http://filevault.apache.org/test2"
+        },
+        {
+            "rel": [
+                "other"
+            ],
+            "href": "http://filevault.apache.org/test1"
         },
         {
             "rel": [
