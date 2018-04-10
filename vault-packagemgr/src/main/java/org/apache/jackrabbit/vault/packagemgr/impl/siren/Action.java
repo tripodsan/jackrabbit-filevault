@@ -19,7 +19,7 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 /**
  * {@code Action}...
  */
-public interface Action {
+public interface Action extends Comparable<Action> {
 
     String TYPE_MULTIPART_FORM_DATA = "multipart/form-data";
 

@@ -33,6 +33,8 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.jackrabbit.vault.packagemgr.impl.DependencyResolver;
 import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
@@ -127,6 +129,17 @@ public class Packages extends Base {
         return builder.build();
     }
 
+    @ApiAction(
+            method = ApiAction.Method.PUT,
+            name = ACTION_CREATE_PACKAGE,
+            title = "Create new package with JSON payload as initial values",
+            type = ApiAction.TYPE_JSON,
+            href = "/{packageId}"
+    )
+    @Override
+    public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        // todo
+    }
 
     private static class Uploader {
 
@@ -174,7 +187,25 @@ public class Packages extends Base {
         }
     }
 
+    @ApiAction(
+            name = ACTION_UPLOAD_PACKAGE,
+            type = ApiAction.TYPE_APPLICATION_OCTET_STREAM,
+            title = "Upload package with binary body"
+    )
+    public void doPost2() {
 
+    }
+
+    @ApiAction(
+            method = ApiAction.Method.POST,
+            name = ACTION_UPLOAD_PACKAGE,
+            title = "Upload package with multipart formdata.",
+            type = ApiAction.TYPE_MULTIPART_FORM_DATA,
+            fields = {
+                    @ApiField(name = PARAM_PACKAGE, type = ApiField.Type.FILE, title = "Package File"),
+                    @ApiField(name = PARAM_REPLACE, type = ApiField.Type.CHECKBOX, title = "Replace existing package")
+            }
+    )
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         // support "raw" binary upload

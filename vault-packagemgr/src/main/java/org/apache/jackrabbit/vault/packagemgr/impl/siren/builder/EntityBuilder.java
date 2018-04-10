@@ -45,7 +45,7 @@ public class EntityBuilder extends LinkBuilder implements Entity {
 
     private List<Entity> entities = new LinkedList<>();
 
-    private List<Action> actions = new LinkedList<>();
+    private TreeSet<Action> actions = new TreeSet<>();
 
     @Override
     public EntityBuilder addClass(String className) {

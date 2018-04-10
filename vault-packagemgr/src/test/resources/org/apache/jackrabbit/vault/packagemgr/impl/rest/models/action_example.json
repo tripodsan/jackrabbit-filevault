@@ -1,0 +1,60 @@
+{
+    "links": [
+        {
+            "rel": [
+                "self"
+            ],
+            "href": "http://localhost:8080/system"
+        }
+    ],
+    "actions": [
+        {
+            "name": "create-stuff",
+            "type": "application/x-www-form-urlencoded",
+            "method": "POST",
+            "href": "http://localhost:8080/system"
+        },
+        {
+            "name": "default-action",
+            "type": "application/x-www-form-urlencoded",
+            "method": "POST",
+            "href": "http://localhost:8080/system"
+        },
+        {
+            "name": "put-action",
+            "type": "application/json",
+            "title": "create new stuff",
+            "method": "PUT",
+            "href": "http://localhost:8080/system/stuff/{id}",
+            "fields": [
+                {
+                    "name": "title",
+                    "type": "TEXT"
+                },
+                {
+                    "name": "flag",
+                    "type": "CHECKBOX",
+                    "value": "false"
+                }
+            ]
+        },
+        {
+            "name": "upload-thumbnail",
+            "type": "multipart/form-data",
+            "title": "Upload thumbnail",
+            "method": "POST",
+            "href": "http://localhost:8080/system/thumbnail",
+            "fields": [
+                {
+                    "name": "title",
+                    "type": "TEXT"
+                },
+                {
+                    "name": "file",
+                    "type": "FILE",
+                    "title": "File to upload"
+                }
+            ]
+        }
+    ]
+}

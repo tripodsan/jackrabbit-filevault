@@ -33,17 +33,24 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 
 public abstract class Base {
 
-    String baseHref;
+    String baseHref = "";
+
+    String relPath = "";
 
     public Base withBaseHref(String baseHref) {
         this.baseHref = baseHref;
         return this;
     }
 
+    public Base withRelPath(String relPath) {
+        this.relPath = relPath;
+        return this;
+    }
+
     public Entity buildEntity() throws IOException {
         return new AnnotationTransformer()
                 .withModel(this)
-                .withBaseHref(baseHref)
+                .withBaseHref(baseHref + relPath)
                 .build();
     }
 

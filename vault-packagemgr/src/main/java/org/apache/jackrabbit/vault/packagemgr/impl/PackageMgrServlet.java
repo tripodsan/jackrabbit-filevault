@@ -107,6 +107,7 @@ public class PackageMgrServlet extends HttpServlet {
         } else if ("/packages".equals(relPath)) {
             return new Packages()
                     .withPackageManager(mgr)
+                    .withRelPath("/packages")
                     .withBaseHref(baseRef);
 
         } else if (relPath.startsWith("/packages/")) {

@@ -30,11 +30,11 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
  */
 public class ActionBuilder implements Action {
 
-    private String name;
+    private String name = "";
 
-    private String type;
+    private String type = "";
 
-    private String title;
+    private String title = "";
 
     private String method = "GET";
 
@@ -136,5 +136,18 @@ public class ActionBuilder implements Action {
     @Override
     public int hashCode() {
         return Objects.hash(name, type, title, method, href, fields);
+    }
+
+    @Override
+    public int compareTo(Action o) {
+        int c = name.compareTo(o.getName());
+        if (c != 0) {
+            return c;
+        }
+        c = href.compareTo(o.getHref());
+        if (c != 0) {
+            return c;
+        }
+        return type.compareTo(o.getType());
     }
 }

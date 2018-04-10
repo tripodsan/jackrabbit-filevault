@@ -240,6 +240,11 @@ public class AnnotationTransformer {
             builder.addEntity(e);
         }
 
+        // actions
+        for (Action a: collectActions()) {
+            builder.addAction(a);
+        }
+
         return builder;
     }
 }

@@ -25,6 +25,7 @@ import javax.json.Json;
 import javax.json.JsonStructure;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Filevault;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ActionExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.EntitiesExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.PropertyExample;
@@ -76,5 +77,10 @@ public class ModelTests {
     @Test
     public void testSubEntitiesExample() throws Exception {
         testModelJson(new EntitiesExample.SimpleEntity("1", "Hello, world"), "sub_entities_example.json");
+    }
+
+    @Test
+    public void testActionExample() throws Exception {
+        testModelJson(new ActionExample(), "action_example.json");
     }
 }

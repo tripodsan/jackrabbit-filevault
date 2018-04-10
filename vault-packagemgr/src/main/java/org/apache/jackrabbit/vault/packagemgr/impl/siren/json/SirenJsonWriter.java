@@ -113,10 +113,10 @@ public class SirenJsonWriter implements AutoCloseable {
 
     private void write(Action a) {
         w.writeStartObject();
+        writeIfNotEmpty("method", a.getMethod());
         writeIfNotEmpty("name", a.getName());
         writeIfNotEmpty("type", a.getType());
         writeIfNotEmpty("title", a.getTitle());
-        writeIfNotEmpty("method", a.getMethod());
         writeIfNotEmpty("href", a.getHref());
         boolean hasFields = false;
         for (Field f: a.getFields()) {
