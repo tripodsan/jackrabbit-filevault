@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,6 +42,10 @@ public class LinkTests {
 
     private static final Set<String> REL_OTHER = Collections.singleton("other");
 
+    private static final Set<String> REL_SCREENSHOT = Collections.singleton("screenshot");
+
+    private static final Set<String> REL_ICON = Collections.singleton("icon");
+
     private static final Set<String> REL_PACKAGES = Collections.singleton("packages");
 
     private static final Set<String> REL_FOO_BAR = new HashSet<>(Arrays.asList("foo", "bar"));
@@ -52,13 +57,17 @@ public class LinkTests {
         TEST_LINKS.put("http://filevault.apache.org/test2", REL_FOO_BAR);
         TEST_LINKS.put("http://filevault.apache.org/test3", REL_OTHER);
         TEST_LINKS.put("http://filevault.apache.org/test4", REL_OTHER);
+        TEST_LINKS.put("http://filevault.apache.org/test5", REL_SCREENSHOT);
+        TEST_LINKS.put("http://filevault.apache.org/test6", REL_SCREENSHOT);
+        TEST_LINKS.put("http://filevault.apache.org/test7", REL_ICON);
+        TEST_LINKS.put("http://filevault.apache.org/test8", REL_ICON);
         TEST_LINKS.put(BASE_HREF + "/packages", REL_PACKAGES);
     }
 
     @Test
     public void testLinks() throws Exception {
         AnnotationTransformer transformer = new AnnotationTransformer()
-                .withBaseHref(BASE_HREF)
+                .withSelfURI(new URI(BASE_HREF))
                 .withModel(new LinkExample());
         Map<String, Set<String>> tests = new HashMap<>(TEST_LINKS);
         for (Link link: transformer.collectLinks()) {
@@ -71,7 +80,7 @@ public class LinkTests {
     @Test
     public void testAutoSelfLink() throws Exception {
         Collection<Link> links = new AnnotationTransformer()
-                .withBaseHref(BASE_HREF)
+                .withSelfURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.AutoSelfLink())
                 .collectLinks();
         assertEquals("number of links", 1, links.size());
@@ -83,7 +92,7 @@ public class LinkTests {
     @Test
     public void testNoSelfLink() throws Exception {
         Collection<Link> links = new AnnotationTransformer()
-                .withBaseHref(BASE_HREF)
+                .withSelfURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.NoSelfLink())
                 .collectLinks();
         assertEquals("number of links", 0, links.size());
@@ -92,7 +101,7 @@ public class LinkTests {
     @Test
     public void testCustomSelfLink() throws Exception {
         Collection<Link> links = new AnnotationTransformer()
-                .withBaseHref(BASE_HREF)
+                .withSelfURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.CustomSelfLink())
                 .collectLinks();
         assertEquals("number of links", 1, links.size());

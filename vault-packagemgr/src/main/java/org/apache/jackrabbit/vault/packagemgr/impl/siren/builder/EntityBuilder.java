@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 
+import java.net.URI;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -37,7 +39,9 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 /**
  * {@code EntityBuilder}...
  */
-public class EntityBuilder extends LinkBuilder implements Entity {
+public class EntityBuilder {
+
+    private TreeSet<String> classes = new TreeSet<String>();
 
     private Map<String, Object> props = new TreeMap<String, Object>();
 
@@ -47,26 +51,29 @@ public class EntityBuilder extends LinkBuilder implements Entity {
 
     private TreeSet<Action> actions = new TreeSet<>();
 
-    @Override
+    private Set<String> rels = new TreeSet<>();
+
+    private String href = "";
+
     public EntityBuilder addClass(String className) {
-        super.addClass(className);
+        classes.add(className);
         return this;
     }
 
-    public EntityBuilder addProperty(String name, Calendar value) {
-        if (value != null) {
-            props.put(name, ISO8601.format(value));
-        }
-        return this;
-    }
-
-    public EntityBuilder addProperty(String name, AccessControlHandling value) {
-        if (value != null) {
-            props.put(name, value.name().toLowerCase());
-        }
-        return this;
-    }
-
+//    public EntityBuilder addProperty(String name, Calendar value) {
+//        if (value != null) {
+//            props.put(name, ISO8601.format(value));
+//        }
+//        return this;
+//    }
+//
+//    public EntityBuilder addProperty(String name, AccessControlHandling value) {
+//        if (value != null) {
+//            props.put(name, value.name().toLowerCase());
+//        }
+//        return this;
+//    }
+//
     public EntityBuilder addProperty(String name, Object value) {
         if (value != null) {
             props.put(name, value);
@@ -79,32 +86,31 @@ public class EntityBuilder extends LinkBuilder implements Entity {
         return this;
     }
 
-
-    public EntityBuilder addProperty(String name, Node node, String jcrName) throws RepositoryException {
-        if (node.hasProperty(jcrName)) {
-            Property p = node.getProperty(jcrName);
-            if (p.isMultiple()) {
-                List<String> values = new LinkedList<String>();
-                for (Value v : p.getValues()) {
-                    values.add(v.getString());
-                }
-                props.put(name, values.toArray(new String[values.size()]));
-            } else {
-                props.put(name, p.getString());
-            }
-        }
-        return this;
-    }
+//    public EntityBuilder addProperty(String name, Node node, String jcrName) throws RepositoryException {
+//        if (node.hasProperty(jcrName)) {
+//            Property p = node.getProperty(jcrName);
+//            if (p.isMultiple()) {
+//                List<String> values = new LinkedList<String>();
+//                for (Value v : p.getValues()) {
+//                    values.add(v.getString());
+//                }
+//                props.put(name, values.toArray(new String[values.size()]));
+//            } else {
+//                props.put(name, p.getString());
+//            }
+//        }
+//        return this;
+//    }
 
     public EntityBuilder addLink(Link link) {
         links.add(link);
         return this;
     }
 
-    public EntityBuilder addLink(String rel, String href) {
-        links.add(new LinkBuilder().addRel(rel).withHref(href));
-        return this;
-    }
+//    public EntityBuilder addLink(String rel, String href) {
+//        links.add(new LinkBuilder().addRel(rel).withHref(href).build());
+//        return this;
+//    }
 
     public EntityBuilder addEntity(Entity entity) {
         entities.add(entity);
@@ -116,24 +122,56 @@ public class EntityBuilder extends LinkBuilder implements Entity {
         return this;
     }
 
-    public Entity build() {
+    public EntityBuilder withRels(Set<String> rels) {
+        this.rels.addAll(rels);
         return this;
     }
 
-    public Map<String, Object> getProperties() {
-        return props;
+    public EntityBuilder withHref(URI uri) {
+        this.href = uri == null ? "" : uri.toString();
+        return this;
     }
 
-    public Iterable<Link> getLinks() {
-        return links;
+    public Entity build() {
+        return new EntityImpl();
     }
 
-    public Iterable<Entity> getEntities() {
-        return entities;
-    }
+    protected class EntityImpl implements Entity {
 
-    public Iterable<Action> getActions() {
-        return actions;
+        @Override
+        public Set<String> getClasses() {
+            return classes;
+        }
+
+        @Override
+        public Map<String, Object> getProperties() {
+            return props;
+        }
+
+        @Override
+        public Iterable<Link> getLinks() {
+            return links;
+        }
+
+        @Override
+        public Iterable<Entity> getEntities() {
+            return entities;
+        }
+
+        @Override
+        public Iterable<Action> getActions() {
+            return actions;
+        }
+
+        @Override
+        public Set<String> getRels() {
+            return rels;
+        }
+
+        @Override
+        public String getHref() {
+            return href;
+        }
     }
 
 }

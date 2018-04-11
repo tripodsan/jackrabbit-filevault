@@ -30,6 +30,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ApiProperty {
 
+    String value() default "";
+
     String name() default "";
 
     Context context() default Context.BOTH;

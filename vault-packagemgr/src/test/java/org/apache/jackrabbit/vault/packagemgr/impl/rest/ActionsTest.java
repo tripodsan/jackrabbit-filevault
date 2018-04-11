@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collection;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
@@ -36,10 +38,10 @@ public class ActionsTest {
 
     private static final String BASE_HREF = "http://filevault.apache.org/base/api";
 
-    private void testAction(Action expected) {
+    private void testAction(Action expected) throws URISyntaxException {
         Collection<Action> actions = new AnnotationTransformer()
                 .withModel(new ActionExample())
-                .withBaseHref(BASE_HREF)
+                .withSelfURI(new URI(BASE_HREF))
                 .collectActions();
         String name = expected.getName();
         for (Action a: actions) {
@@ -56,9 +58,11 @@ public class ActionsTest {
         testAction(new ActionBuilder()
                 .withName("default-action")
                 .withType(Action.TYPE_X_WWW_FORM_URLENCODED)
-                .withPOST()
+                .withMethod(Action.Method.POST)
                 .withTitle("")
-                .withHref(BASE_HREF));
+                .withHref(BASE_HREF)
+                .build()
+        );
     }
 
     @Test
@@ -66,9 +70,11 @@ public class ActionsTest {
         testAction(new ActionBuilder()
                 .withName("create-stuff")
                 .withType(Action.TYPE_X_WWW_FORM_URLENCODED)
-                .withPOST()
+                .withMethod(Action.Method.POST)
                 .withTitle("")
-                .withHref(BASE_HREF));
+                .withHref(BASE_HREF)
+                .build()
+        );
     }
 
     @Test
@@ -76,7 +82,7 @@ public class ActionsTest {
         testAction(new ActionBuilder()
                 .withName("put-action")
                 .withType(Action.TYPE_JSON)
-                .withPUT()
+                .withMethod(Action.Method.PUT)
                 .withTitle("create new stuff")
                 .withHref(BASE_HREF + "/stuff/{id}")
                 .addField(new FieldBuilder()
@@ -84,13 +90,16 @@ public class ActionsTest {
                         .withTitle("")
                         .withType(Field.Type.TEXT)
                         .withValue("")
+                        .build()
                 )
                 .addField(new FieldBuilder()
                         .withName("flag")
                         .withTitle("")
                         .withType(Field.Type.CHECKBOX)
                         .withValue("false")
+                        .build()
                 )
+                .build()
         );
     }
 
@@ -99,7 +108,7 @@ public class ActionsTest {
         testAction(new ActionBuilder()
                 .withName("upload-thumbnail")
                 .withType(Action.TYPE_MULTIPART_FORM_DATA)
-                .withPOST()
+                .withMethod(Action.Method.POST)
                 .withTitle("Upload thumbnail")
                 .withHref(BASE_HREF + "/thumbnail")
                 .addField(new FieldBuilder()
@@ -107,13 +116,16 @@ public class ActionsTest {
                         .withTitle("")
                         .withType(Field.Type.TEXT)
                         .withValue("")
+                        .build()
                 )
                 .addField(new FieldBuilder()
                         .withName("file")
                         .withTitle("File to upload")
                         .withType(Field.Type.FILE)
                         .withValue("")
+                        .build()
                 )
+                .build()
         );
     }
 

@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl;
 
+import java.net.URI;
+
 import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 
@@ -28,8 +30,12 @@ public class PackageRoute {
 
     private String file;
 
-    public static String getPackageAPIPath(String baseHref, PackageId id) {
-        StringBuilder b = new StringBuilder(baseHref).append("/packages/");
+    public static URI getPackageURI(URI baseURI, PackageId id) {
+        return baseURI.resolve(baseURI.getPath() + getPackageRelPath(id));
+    }
+
+    public static String getPackageRelPath(PackageId id) {
+        StringBuilder b = new StringBuilder("/packages/");
         if (id.getGroup().length() > 0) {
             b.append(id.getGroup());
             b.append("/");

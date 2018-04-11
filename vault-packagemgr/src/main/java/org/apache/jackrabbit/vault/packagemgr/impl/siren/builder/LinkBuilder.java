@@ -24,13 +24,11 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 /**
  * {@code LinkBuilder}...
  */
-public class LinkBuilder extends BaseBuilder implements Link {
+public class LinkBuilder {
 
     private String href = "";
 
     private Set<String> rels = new TreeSet<>();
-
-    private String key;
 
     public LinkBuilder addRel(String rel) {
         rels.add(rel);
@@ -47,40 +45,46 @@ public class LinkBuilder extends BaseBuilder implements Link {
         return this;
     }
 
-    @Override
-    public LinkBuilder withTitle(String title) {
-        super.withTitle(title);
-        return this;
+    public Link build() {
+        return new LinkImpl();
     }
 
-    public Set<String> getRels() {
-        return rels;
-    }
+    private class LinkImpl implements Link {
 
-    public String getHref() {
-        return href;
-    }
+        @Override
+        public Set<String> getRels() {
+            return rels;
+        }
 
-    private String getRelKey() {
-        if (key == null) {
-            StringBuilder b = new StringBuilder();
-            for (String rel: rels) {
-                if ("self".equals(rel)) {
-                    b.insert(0, '!');
-                } else {
-                    b.append(rel);
+        @Override
+        public String getHref() {
+            return href;
+        }
+
+        private String key;
+
+        private String getRelKey() {
+            if (key == null) {
+                StringBuilder b = new StringBuilder();
+                for (String rel: rels) {
+                    if ("self".equals(rel)) {
+                        b.insert(0, '!');
+                    } else {
+                        b.append(rel);
+                    }
                 }
+                key = b.toString();
             }
-            key = b.toString();
+            return key;
         }
-        return key;
-    }
 
-    public int compareTo(Link o) {
-        int cmp = getRelKey().compareTo(((LinkBuilder) o).getRelKey());
-        if (cmp != 0) {
-            return cmp;
+        public int compareTo(Link o) {
+            int cmp = getRelKey().compareTo(((LinkImpl) o).getRelKey());
+            if (cmp != 0) {
+                return cmp;
+            }
+            return href.compareTo(o.getHref());
         }
-        return href.compareTo(o.getHref());
+
     }
 }

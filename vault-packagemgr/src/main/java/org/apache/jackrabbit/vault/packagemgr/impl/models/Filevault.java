@@ -26,15 +26,16 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
 
 @ApiModel
-public class Filevault extends Base {
+public class Filevault extends Base<Filevault> {
+
+    public static final String VLT_BASE_URI = "http://jackrabbit.apache.org/filevault/rels";
+
+    public static final String REL_VLT_PACKAGES = VLT_BASE_URI + "/packages";
 
     @ApiClass
     public static final String CLASS = "filevault";
 
-    @ApiLink(ApiLink.SELF)
-    public static final String SELF = "";
-
-    @ApiLink(Rels.REL_VLT_PACKAGES)
+    @ApiLink(REL_VLT_PACKAGES)
     public static final String PACKAGES = "/packages";
 
     @ApiProperty(name = "api-version")

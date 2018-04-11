@@ -17,8 +17,11 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures;
 
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
@@ -29,8 +32,14 @@ public class PropertyExample {
     @ApiProperty(name = "string-property")
     public static final String STRING_PROPERTY = "Hello, world.";
 
+    @ApiProperty("string-property-1")
+    public static final String STRING_PROPERTY_1 = "Hello, world.";
+
     @ApiProperty
     public static final String stringProperty = "Hello, world.";
+
+    @ApiProperty
+    public static final String nullStringProperty = null;
 
     @ApiProperty
     public final int intProperty = 42;
@@ -45,6 +54,13 @@ public class PropertyExample {
     public final boolean booleanProperty = true;
 
     @ApiProperty
+    public Calendar dateProperty() {
+        Calendar c = GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
+        c.setTimeInMillis(0);
+        return c;
+    }
+
+    @ApiProperty
     public final String[] stringArray = {"hello", "world"};
 
     @ApiProperty
@@ -56,9 +72,12 @@ public class PropertyExample {
     }
 
     @ApiProperty
-    public boolean isMethodBooleanProperty() {
+    public Boolean isMethodBooleanProperty() {
         return true;
     }
+
+    @ApiProperty
+    public String getPropertyLooksLikeMethod = "foo";
 
     @ApiProperty
     public Map<String, String> mapProperty() {

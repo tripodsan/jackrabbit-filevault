@@ -17,6 +17,9 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 
@@ -44,6 +47,25 @@ public class LinkExample {
     public String test6() {
         return "/packages";
     }
+
+    @ApiLink("other")
+    public String nullLinkIsIgnored() {
+        return null;
+    }
+
+    @ApiLink("screenshot")
+    public String[] stringArrayTest = {
+            "http://filevault.apache.org/test5",
+            "http://filevault.apache.org/test6",
+    };
+
+    @ApiLink("icon")
+    public List<String> iterableTest() {
+        return Arrays.asList(
+            "http://filevault.apache.org/test7",
+            "http://filevault.apache.org/test8"
+        );
+    };
 
     public static final String TEST5 = "no link annotation";
 

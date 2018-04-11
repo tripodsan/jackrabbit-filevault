@@ -19,8 +19,6 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
@@ -28,7 +26,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 /**
  * {@code ActionBuilder}...
  */
-public class ActionBuilder implements Action {
+public class ActionBuilder {
 
     private String name = "";
 
@@ -36,11 +34,11 @@ public class ActionBuilder implements Action {
 
     private String title = "";
 
-    private String method = "GET";
+    private Action.Method method = Action.Method.POST;
 
     private String href = "";
 
-    private List<Field> fields = new LinkedList<Field>();
+    private List<Field> fields = new LinkedList<>();
 
     public ActionBuilder withName(String name) {
         this.name = name;
@@ -62,49 +60,9 @@ public class ActionBuilder implements Action {
         return this;
     }
 
-    public ActionBuilder withMethod(String method) {
+    public ActionBuilder withMethod(Action.Method method) {
         this.method = method;
         return this;
-    }
-
-    @Override
-    public String getHref() {
-        return href;
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String getType() {
-        return type;
-    }
-
-    @Override
-    public String getTitle() {
-        return title;
-    }
-
-    public ActionBuilder withGET() {
-        return withMethod("GET");
-    }
-
-    public ActionBuilder withPUT() {
-        return withMethod("PUT");
-    }
-
-    public ActionBuilder withPOST() {
-        return withMethod("POST");
-    }
-
-    public ActionBuilder withDELETE() {
-        return withMethod("DELETE");
-    }
-
-    public ActionBuilder withPATCH() {
-        return withMethod("PATCH");
     }
 
     public ActionBuilder addField(Field field) {
@@ -112,42 +70,72 @@ public class ActionBuilder implements Action {
         return this;
     }
 
-    public String getMethod() {
-        return method;
+    public Action build() {
+        return new ActionImpl();
     }
 
-    public Iterable<Field> getFields() {
-        return fields;
-    }
+    private class ActionImpl implements Action {
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ActionBuilder that = (ActionBuilder) o;
-        return Objects.equals(name, that.name) &&
-                Objects.equals(type, that.type) &&
-                Objects.equals(title, that.title) &&
-                Objects.equals(method, that.method) &&
-                Objects.equals(href, that.href) &&
-                Objects.equals(fields, that.fields);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, type, title, method, href, fields);
-    }
-
-    @Override
-    public int compareTo(Action o) {
-        int c = name.compareTo(o.getName());
-        if (c != 0) {
-            return c;
+        @Override
+        public String getHref() {
+            return href;
         }
-        c = href.compareTo(o.getHref());
-        if (c != 0) {
-            return c;
+
+        @Override
+        public String getName() {
+            return name;
         }
-        return type.compareTo(o.getType());
+
+        @Override
+        public String getType() {
+            return type;
+        }
+
+        @Override
+        public String getTitle() {
+            return title;
+        }
+
+        @Override
+        public Method getMethod() {
+            return method;
+        }
+
+        @Override
+        public Iterable<Field> getFields() {
+            return fields;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ActionImpl that = (ActionImpl) o;
+            return Objects.equals(name, that.getName()) &&
+                    Objects.equals(type, that.getType()) &&
+                    Objects.equals(title, that.getTitle()) &&
+                    Objects.equals(method, that.getMethod()) &&
+                    Objects.equals(href, that.getHref()) &&
+                    Objects.equals(fields, that.getFields());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, type, title, method, href, fields);
+        }
+
+        @Override
+        public int compareTo(Action o) {
+            int c = name.compareTo(o.getName());
+            if (c != 0) {
+                return c;
+            }
+            c = href.compareTo(o.getHref());
+            if (c != 0) {
+                return c;
+            }
+            return type.compareTo(o.getType());
+        }
+
     }
 }

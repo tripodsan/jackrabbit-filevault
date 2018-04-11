@@ -22,14 +22,24 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
 
 public class ReflectionUtils {
 
     private static final String[] GETTER_PREFIX = {"get", "is", "has"};
 
-    public static void addStrings(Set<String> set, Object obj) {
+    public static void addStrings(Collection<String> set, Object obj) {
         if (obj == null) {
             return;
         }
@@ -59,6 +69,26 @@ public class ReflectionUtils {
     public static String getStringValue(Object obj, Member member) {
         final Object ret = getValue(obj, member);
         return ret == null ? null : ret.toString();
+    }
+
+    public static String[] getStringValues(Object obj, Member member) {
+        final Object ret = getValue(obj, member);
+        if (ret == null) {
+            return null;
+        }
+        if (ret instanceof String[]) {
+            return (String[]) ret;
+        }
+        if (ret instanceof Iterable) {
+            List<String> values = new LinkedList<>();
+            for (Object o: ((Iterable) ret)) {
+                if (o != null) {
+                    values.add(o.toString());
+                }
+            }
+            return values.toArray(new String[values.size()]);
+        }
+        return new String[]{ret.toString()};
     }
 
     public static String methodToPropertyName(String name) {
@@ -112,5 +142,21 @@ public class ReflectionUtils {
         System.arraycopy(fields, 0, ret, 0, fields.length);
         System.arraycopy(methods, 0, ret, fields.length, methods.length);
         return ret;
+    }
+
+    public static Object jcrPropertyToObject(Node node, String jcrName) throws RepositoryException {
+        if (node.hasProperty(jcrName)) {
+            Property p = node.getProperty(jcrName);
+            if (p.isMultiple()) {
+                List<String> values = new LinkedList<String>();
+                for (Value v : p.getValues()) {
+                    values.add(v.getString());
+                }
+                return values.toArray(new String[values.size()]);
+            } else {
+                return p.getString();
+            }
+        }
+        return null;
     }
 }

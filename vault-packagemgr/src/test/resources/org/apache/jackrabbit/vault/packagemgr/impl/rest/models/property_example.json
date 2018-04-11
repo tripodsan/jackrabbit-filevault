@@ -2,10 +2,19 @@
     "properties": {
         "bar": "world",
         "booleanProperty": true,
+        "dateProperty": "1970-01-01T00:00:00.000Z",
         "doubleProperty": 3.141592653589793,
         "floatProperty": 3.140000104904175,
         "foo": "Hello",
-        "intArray": [2,3,5,7,11,13],
+        "getPropertyLooksLikeMethod": "foo",
+        "intArray": [
+            2,
+            3,
+            5,
+            7,
+            11,
+            13
+        ],
         "intProperty": 42,
         "mapProperty": {
             "bar": "world",
@@ -14,6 +23,7 @@
         "methodBooleanProperty": true,
         "methodStringProperty": "Hello, world.",
         "string-property": "Hello, world.",
+        "string-property-1": "Hello, world.",
         "stringArray": [
             "hello",
             "world"

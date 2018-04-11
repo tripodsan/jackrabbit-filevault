@@ -20,6 +20,8 @@ package org.apache.jackrabbit.vault.packagemgr.impl.rest.models;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import javax.json.Json;
 import javax.json.JsonStructure;
@@ -38,10 +40,10 @@ import static junit.framework.TestCase.assertEquals;
 
 public class ModelTests {
 
-    private void testModelJson(Object model, String filename) throws IOException {
+    private void testModelJson(Object model, String filename) throws IOException, URISyntaxException {
         AnnotationTransformer tx = new AnnotationTransformer();
         Entity entity = tx
-                .withBaseHref("http://localhost:8080/system")
+                .withSelfURI(new URI("http://localhost:8080/system"))
                 .withModel(model)
                 .build();
         StringWriter out = new StringWriter();

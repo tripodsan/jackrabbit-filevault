@@ -29,6 +29,14 @@ public interface Action extends Comparable<Action> {
 
     String TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
 
+    enum Method {
+        POST,
+        PUT,
+        DELETE,
+        PATCH,
+        GET
+    }
+
     String getName();
 
     String getType();
@@ -37,7 +45,7 @@ public interface Action extends Comparable<Action> {
 
     String getHref();
 
-    String getMethod();
+    Method getMethod();
 
     Iterable<Field> getFields();
 }

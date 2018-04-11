@@ -17,17 +17,24 @@
 package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * {@code Entity}...
  */
-public interface Entity extends Link {
+public interface Entity {
+
+    Set<String> getClasses();
 
     Map<String, Object> getProperties();
-
-    Iterable<Link> getLinks();
 
     Iterable<Entity> getEntities();
 
     Iterable<Action> getActions();
+
+    Iterable<Link> getLinks();
+
+    Set<String> getRels();
+
+    String getHref();
 }

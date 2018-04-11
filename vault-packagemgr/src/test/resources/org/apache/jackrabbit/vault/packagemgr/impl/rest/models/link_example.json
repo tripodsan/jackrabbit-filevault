@@ -15,6 +15,18 @@
         },
         {
             "rel": [
+                "icon"
+            ],
+            "href": "http://filevault.apache.org/test7"
+        },
+        {
+            "rel": [
+                "icon"
+            ],
+            "href": "http://filevault.apache.org/test8"
+        },
+        {
+            "rel": [
                 "other"
             ],
             "href": "http://filevault.apache.org/test1"
@@ -36,6 +48,18 @@
                 "packages"
             ],
             "href": "http://localhost:8080/system/packages"
+        },
+        {
+            "rel": [
+                "screenshot"
+            ],
+            "href": "http://filevault.apache.org/test5"
+        },
+        {
+            "rel": [
+                "screenshot"
+            ],
+            "href": "http://filevault.apache.org/test6"
         }
     ]
 }

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren.json;
 
 import java.io.Writer;
 import java.lang.reflect.Array;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -26,13 +27,14 @@ import javax.json.Json;
 import javax.json.JsonException;
 import javax.json.stream.JsonGenerator;
 
+import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.vault.fs.api.FilterSet;
 import org.apache.jackrabbit.vault.fs.api.PathFilter;
 import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.filter.DefaultPathFilter;
+import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Base;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
@@ -57,10 +59,16 @@ public class SirenJsonWriter implements AutoCloseable {
     }
 
     public void write(Entity e) throws JsonException {
+        write(e, false);
+    }
+
+    private void write(Entity e, boolean isSubEntity) throws JsonException {
         w.writeStartObject();
-        writeBase(e);
-        write("rel", e.getRels());
-        writeIfNotEmpty("href", e.getHref());
+        write("class", e.getClasses());
+        if (isSubEntity) {
+            write("rel", e.getRels());
+            writeIfNotEmpty("href", e.getHref());
+        }
         if (!e.getProperties().isEmpty()) {
             write("properties", e.getProperties());
         }
@@ -75,7 +83,7 @@ public class SirenJsonWriter implements AutoCloseable {
                 w.writeStartArray("entities");
                 hasEntities = true;
             }
-            write(sub);
+            write(sub, true);
         }
         if (hasEntities) {
             w.writeEnd();
@@ -96,24 +104,16 @@ public class SirenJsonWriter implements AutoCloseable {
         w.writeEnd();
     }
 
-    public void writeLink(Link link) throws JsonException {
+    private void writeLink(Link link) throws JsonException {
         w.writeStartObject();
         write("rel", link.getRels());
         writeIfNotNull("href", link.getHref());
-        writeIfNotEmpty("title", link.getTitle());
         w.writeEnd();
-    }
-
-    private void writeBase(Base b) {
-        writeIfNotEmpty("name", b.getName());
-        writeIfNotEmpty("type", b.getType());
-        writeIfNotEmpty("title", b.getTitle());
-        write("class", b.getClasses());
     }
 
     private void write(Action a) {
         w.writeStartObject();
-        writeIfNotEmpty("method", a.getMethod());
+        writeIfNotEmpty("method", a.getMethod().name());
         writeIfNotEmpty("name", a.getName());
         writeIfNotEmpty("type", a.getType());
         writeIfNotEmpty("title", a.getTitle());
@@ -163,6 +163,8 @@ public class SirenJsonWriter implements AutoCloseable {
             w.write((Double) value);
         } else if (value instanceof Boolean) {
             w.write((Boolean) value);
+        } else if (value instanceof Calendar) {
+            w.write(ISO8601.format((Calendar) value));
         } else if (value instanceof Map) {
             //noinspection unchecked
             write(null, (Map<String, Object>) value);
@@ -188,6 +190,8 @@ public class SirenJsonWriter implements AutoCloseable {
                 w.writeEnd();
             } else if (v instanceof WorkspaceFilter) {
                 write(e.getKey(), (WorkspaceFilter) v);
+            } else if (v instanceof AccessControlHandling) {
+                w.write(e.getKey(), ((AccessControlHandling) v).name().toLowerCase());
             } else if (v instanceof Integer) {
                 w.write(e.getKey(), (Integer) v);
             } else if (v instanceof Long) {
@@ -198,6 +202,8 @@ public class SirenJsonWriter implements AutoCloseable {
                 w.write(e.getKey(), (Double) v);
             } else if (v instanceof Boolean) {
                 w.write(e.getKey(), (Boolean) v);
+            } else if (v instanceof Calendar) {
+                w.write(e.getKey(), ISO8601.format((Calendar) v));
             } else if (v instanceof Map) {
                 //noinspection unchecked
                 write(e.getKey(), (Map<String, Object>) v);
@@ -246,6 +252,7 @@ public class SirenJsonWriter implements AutoCloseable {
             w.writeEnd();
         }
     }
+
     private void write(String key, Set<String> strings) throws JsonException {
         if (!strings.isEmpty()) {
             w.writeStartArray(key);

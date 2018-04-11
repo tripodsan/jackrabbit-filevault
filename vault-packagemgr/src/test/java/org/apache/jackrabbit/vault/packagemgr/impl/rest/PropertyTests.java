@@ -17,8 +17,11 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.PropertyExample;
@@ -28,6 +31,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class PropertyTests {
 
@@ -38,6 +42,7 @@ public class PropertyTests {
         TEST_SUB_MAP.put("bar", "world");
 
         TEST_PROPERTIES.put("string-property", "Hello, world.");
+        TEST_PROPERTIES.put("string-property-1", "Hello, world.");
         TEST_PROPERTIES.put("stringProperty", "Hello, world.");
         TEST_PROPERTIES.put("intProperty", 42);
         TEST_PROPERTIES.put("floatProperty", 3.14f);
@@ -47,9 +52,13 @@ public class PropertyTests {
         TEST_PROPERTIES.put("intArray", new int[]{2,3,5,7,11,13});
         TEST_PROPERTIES.put("methodStringProperty", "Hello, world.");
         TEST_PROPERTIES.put("methodBooleanProperty", true);
+        TEST_PROPERTIES.put("getPropertyLooksLikeMethod", "foo");
         TEST_PROPERTIES.put("mapProperty", TEST_SUB_MAP);
         TEST_PROPERTIES.put("foo", "Hello");
         TEST_PROPERTIES.put("bar", "world");
+        Calendar date = GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
+        date.setTimeInMillis(0);
+        TEST_PROPERTIES.put("dateProperty", date);
     }
 
     @Test

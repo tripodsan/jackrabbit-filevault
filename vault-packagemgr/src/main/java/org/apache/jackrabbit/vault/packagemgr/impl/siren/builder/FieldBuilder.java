@@ -23,7 +23,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 /**
  * {@code FieldBuilder}...
  */
-public class FieldBuilder implements Field {
+public class FieldBuilder {
 
     private String name;
 
@@ -34,7 +34,7 @@ public class FieldBuilder implements Field {
     private String value;
 
     public FieldBuilder() {
-        withType(Type.TEXT);
+        withType(Field.Type.TEXT);
     }
 
     public FieldBuilder withName(String name) {
@@ -42,7 +42,7 @@ public class FieldBuilder implements Field {
         return this;
     }
 
-    public FieldBuilder withType(Type type) {
+    public FieldBuilder withType(Field.Type type) {
         return this.withType(type.name());
     }
 
@@ -61,38 +61,46 @@ public class FieldBuilder implements Field {
         return this;
     }
 
-    @Override
-    public String getName() {
-        return name;
+    public Field build() {
+        return new FieldImpl();
     }
 
-    @Override
-    public String getType() {
-        return type;
-    }
+    private class FieldImpl implements Field {
 
-    @Override
-    public String getTitle() {
-        return title;
-    }
+        @Override
+        public String getName() {
+            return name;
+        }
 
-    public String getValue() {
-        return value;
-    }
+        @Override
+        public String getType() {
+            return type;
+        }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        FieldBuilder that = (FieldBuilder) o;
-        return Objects.equals(name, that.name) &&
-                Objects.equals(type, that.type) &&
-                Objects.equals(title, that.title) &&
-                Objects.equals(value, that.value);
-    }
+        @Override
+        public String getTitle() {
+            return title;
+        }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, type, title, value);
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FieldImpl that = (FieldImpl) o;
+            return Objects.equals(name, that.getName()) &&
+                    Objects.equals(type, that.getType()) &&
+                    Objects.equals(title, that.getTitle()) &&
+                    Objects.equals(value, that.getValue());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, type, title, value);
+        }
+
     }
 }

@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.vault.packagemgr.impl.models;
 
 import java.io.IOException;
+import java.net.URI;
 
 import javax.jcr.Binary;
 import javax.jcr.Node;
@@ -26,31 +27,58 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 
-public abstract class Base {
+public abstract class Base<B extends Base<B>> {
 
-    String baseHref = "";
+    private URI baseURI;
 
-    String relPath = "";
+    private URI selfURI;
 
-    public Base withBaseHref(String baseHref) {
-        this.baseHref = baseHref;
-        return this;
+    private String relPath = "";
+
+    /**
+     * Set the URI of the base of the API. This addresses typically the entry point of the API.
+     * @param baseURI the base URI
+     * @return {@code this}
+     */
+    public B withBaseURI(URI baseURI) {
+        this.baseURI = baseURI;
+        this.selfURI = baseURI.resolve(baseURI.getPath() + relPath);
+        //noinspection unchecked
+        return (B) this;
     }
 
-    public Base withRelPath(String relPath) {
+    /**
+     * Sets the relative path of this model.
+     * @param relPath the relative path
+     * @return {@code this}
+     */
+    public B withRelPath(String relPath) {
         this.relPath = relPath;
-        return this;
+        this.selfURI = baseURI == null ? null : baseURI.resolve(baseURI.getPath() + relPath);
+        //noinspection unchecked
+        return (B) this;
+    }
+
+    public URI getBaseURI() {
+        return baseURI;
+    }
+
+    public URI getSelfURI() {
+        return selfURI;
+    }
+
+    public String getRelPath() {
+        return relPath;
     }
 
     public Entity buildEntity() throws IOException {
         return new AnnotationTransformer()
                 .withModel(this)
-                .withBaseHref(baseHref + relPath)
+                .withSelfURI(selfURI)
                 .build();
     }
 

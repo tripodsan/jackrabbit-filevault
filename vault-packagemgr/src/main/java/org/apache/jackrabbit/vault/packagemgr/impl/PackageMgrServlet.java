@@ -18,9 +18,9 @@
 package org.apache.jackrabbit.vault.packagemgr.impl;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
-import javax.jcr.Binary;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.json.JsonException;
@@ -30,15 +30,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Base;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Filevault;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.PackageModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Packages;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
-import org.apache.jackrabbit.vault.packaging.JcrPackageDefinition;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.Packaging;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -86,7 +82,7 @@ public class PackageMgrServlet extends HttpServlet {
     private Packaging packaging;
 
     private Base resolve(HttpServletRequest request, HttpServletResponse response)
-            throws IOException, RepositoryException {
+            throws IOException, RepositoryException, URISyntaxException {
         final ResourceResolver resolver = (ResourceResolver) request.getAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_RESOLVER);
         if (resolver == null) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
@@ -98,17 +94,17 @@ public class PackageMgrServlet extends HttpServlet {
         if (relPath == null || "/".equals(relPath)) {
             relPath = "";
         }
-        String baseRef = request.getScheme() + "://" + request.getHeader("host") + request.getContextPath();
+        URI baseRef = new URI(request.getScheme() + "://" + request.getHeader("host") + request.getContextPath());
 
         if (relPath.length() == 0) {
             return new Filevault()
-                    .withBaseHref(baseRef);
+                    .withBaseURI(baseRef);
 
         } else if ("/packages".equals(relPath)) {
             return new Packages()
                     .withPackageManager(mgr)
-                    .withRelPath("/packages")
-                    .withBaseHref(baseRef);
+                    .withBaseURI(baseRef)
+                    .withRelPath("/packages");
 
         } else if (relPath.startsWith("/packages/")) {
             String format = request.getParameter("format");
@@ -121,7 +117,7 @@ public class PackageMgrServlet extends HttpServlet {
                     .withPackage(pkg)
                     .withBrief("brief".equals(format))
                     .withRoute(r)
-                    .withBaseHref(baseRef);
+                    .withBaseURI(baseRef);
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return null;
@@ -137,7 +133,7 @@ public class PackageMgrServlet extends HttpServlet {
                 return;
             }
             model.doGet(request, response);
-        } catch (RepositoryException | JsonException e) {
+        } catch (RepositoryException | JsonException | URISyntaxException e) {
             throw new IOException(e);
         }
     }
@@ -151,7 +147,7 @@ public class PackageMgrServlet extends HttpServlet {
                 return;
             }
             model.doPost(request, response);
-        } catch (RepositoryException | JsonException e) {
+        } catch (RepositoryException | JsonException | URISyntaxException e) {
             throw new IOException(e);
         }
     }
@@ -165,7 +161,7 @@ public class PackageMgrServlet extends HttpServlet {
                 return;
             }
             model.doPut(request, response);
-        } catch (RepositoryException | JsonException e) {
+        } catch (RepositoryException | JsonException | URISyntaxException e) {
             throw new IOException(e);
         }
     }
@@ -179,7 +175,7 @@ public class PackageMgrServlet extends HttpServlet {
                 return;
             }
             model.doDelete(request, response);
-        } catch (RepositoryException | JsonException e) {
+        } catch (RepositoryException | JsonException | URISyntaxException e) {
             throw new IOException(e);
         }
     }
