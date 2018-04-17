@@ -19,38 +19,22 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 
 /**
  * {@code LinkBuilder}...
  */
-public class LinkBuilder {
-
-    private String href = "";
-
-    private Set<String> rels = new TreeSet<>();
-
-    public LinkBuilder addRel(String rel) {
-        rels.add(rel);
-        return this;
-    }
-
-    public LinkBuilder withRels(Set<String> rels) {
-        this.rels.addAll(rels);
-        return this;
-    }
-
-    public LinkBuilder withHref(String href) {
-        this.href = href == null ? "" : href;
-        return this;
-    }
+public class LinkBuilder extends BaseBuilder<LinkBuilder> {
 
     public Link build() {
         return new LinkImpl();
     }
 
-    private class LinkImpl implements Link {
+    protected class LinkImpl implements Link {
 
+        @Nullable
         @Override
         public Set<String> getRels() {
             return rels;
@@ -59,6 +43,24 @@ public class LinkBuilder {
         @Override
         public String getHref() {
             return href;
+        }
+
+        @Nullable
+        @Override
+        public Set<String> getClasses() {
+            return classes;
+        }
+
+        @Nullable
+        @Override
+        public String getType() {
+            return type;
+        }
+
+        @Nullable
+        @Override
+        public String getTitle() {
+            return title;
         }
 
         private String key;

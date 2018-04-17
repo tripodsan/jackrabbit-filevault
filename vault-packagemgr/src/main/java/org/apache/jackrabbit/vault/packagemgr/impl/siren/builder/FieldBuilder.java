@@ -17,19 +17,16 @@
 package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 
 import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 
 /**
  * {@code FieldBuilder}...
  */
-public class FieldBuilder {
-
-    private String name;
-
-    private String type;
-
-    private String title;
+public class FieldBuilder extends BaseBuilder<FieldBuilder> {
 
     private String value;
 
@@ -37,23 +34,8 @@ public class FieldBuilder {
         withType(Field.Type.TEXT);
     }
 
-    public FieldBuilder withName(String name) {
-        this.name = name;
-        return this;
-    }
-
     public FieldBuilder withType(Field.Type type) {
         return this.withType(type.name());
-    }
-
-    public FieldBuilder withType(String type) {
-        this.type = type;
-        return this;
-    }
-
-    public FieldBuilder withTitle(String title) {
-        this.title = title;
-        return this;
     }
 
     public FieldBuilder withValue(String value) {
@@ -84,6 +66,12 @@ public class FieldBuilder {
 
         public String getValue() {
             return value;
+        }
+
+        @Nullable
+        @Override
+        public Set<String> getClasses() {
+            return classes;
         }
 
         @Override

@@ -40,6 +40,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiRelation;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.FieldBuilder;
 import org.apache.jackrabbit.vault.packaging.Dependency;
@@ -56,6 +57,10 @@ public class PackageModel extends Base<PackageModel> {
     public static final String REL_VLT_THUMBNAIL = Filevault.VLT_BASE_URI + "/thumbnail";
 
     public static final String REL_VLT_SCREENSHOT = Filevault.VLT_BASE_URI + "/screenshot";
+
+    @ApiRelation
+    public static final String REL_VLT_PACKAGE = Filevault.VLT_BASE_URI + "/package";
+
     /**
      * default logger
      */

@@ -31,7 +31,6 @@ public class ActionExample {
 
     @ApiAction("create-stuff")
     public void actionWithNameAsValue() {
-
     }
 
     @ApiAction(
@@ -51,6 +50,7 @@ public class ActionExample {
 
     @ApiAction(
             name = "upload-thumbnail",
+            method = ApiAction.Method.POST,
             type = ApiAction.TYPE_MULTIPART_FORM_DATA,
             title = "Upload thumbnail",
             href = "/thumbnail",

@@ -57,8 +57,8 @@ public class ActionsTest {
     public void testDefaultAction() throws Exception {
         testAction(new ActionBuilder()
                 .withName("default-action")
-                .withType(Action.TYPE_X_WWW_FORM_URLENCODED)
-                .withMethod(Action.Method.POST)
+                .withType("")
+                .withMethod(Action.Method.GET)
                 .withTitle("")
                 .withHref(BASE_HREF)
                 .build()
@@ -69,8 +69,8 @@ public class ActionsTest {
     public void testWithNameAsValue() throws Exception {
         testAction(new ActionBuilder()
                 .withName("create-stuff")
-                .withType(Action.TYPE_X_WWW_FORM_URLENCODED)
-                .withMethod(Action.Method.POST)
+                .withType("")
+                .withMethod(Action.Method.GET)
                 .withTitle("")
                 .withHref(BASE_HREF)
                 .build()

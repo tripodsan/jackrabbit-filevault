@@ -19,10 +19,13 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren.json;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.json.Json;
 import javax.json.JsonException;
 import javax.json.stream.JsonGenerator;
@@ -58,95 +61,29 @@ public class SirenJsonWriter implements AutoCloseable {
         this(Json.createGeneratorFactory(Collections.singletonMap(JsonGenerator.PRETTY_PRINTING, prettyPrint)).createGenerator(writer));
     }
 
-    public void write(Entity e) throws JsonException {
+    public void write(@Nonnull Entity e) throws JsonException {
         write(e, false);
     }
 
-    private void write(Entity e, boolean isSubEntity) throws JsonException {
+    private void write(@Nonnull Entity e, boolean isSubEntity) throws JsonException {
         w.writeStartObject();
         write("class", e.getClasses());
         if (isSubEntity) {
             write("rel", e.getRels());
             writeIfNotEmpty("href", e.getHref());
         }
-        if (!e.getProperties().isEmpty()) {
-            write("properties", e.getProperties());
-        }
-        w.writeStartArray("links");
-        for (Link link : e.getLinks()) {
-            writeLink(link);
-        }
-        w.writeEnd();
-        boolean hasEntities = false;
-        for (Entity sub: e.getEntities()) {
-            if (!hasEntities) {
-                w.writeStartArray("entities");
-                hasEntities = true;
-            }
-            write(sub, true);
-        }
-        if (hasEntities) {
-            w.writeEnd();
-        }
-
-        boolean hasActions = false;
-        for (Action action: e.getActions()) {
-            if (!hasActions) {
-                w.writeStartArray("actions");
-                hasActions = true;
-            }
-            write(action);
-        }
-        if (hasActions) {
-            w.writeEnd();
-        }
-
+        write("properties", e.getProperties());
+        writeLinks(e.getLinks());
+        writeEntities(e.getEntities());
+        writeActions(e.getActions());
         w.writeEnd();
     }
-
-    private void writeLink(Link link) throws JsonException {
-        w.writeStartObject();
-        write("rel", link.getRels());
-        writeIfNotNull("href", link.getHref());
-        w.writeEnd();
-    }
-
-    private void write(Action a) {
-        w.writeStartObject();
-        writeIfNotEmpty("method", a.getMethod().name());
-        writeIfNotEmpty("name", a.getName());
-        writeIfNotEmpty("type", a.getType());
-        writeIfNotEmpty("title", a.getTitle());
-        writeIfNotEmpty("href", a.getHref());
-        boolean hasFields = false;
-        for (Field f: a.getFields()) {
-            if (!hasFields) {
-                hasFields = true;
-                w.writeStartArray("fields");
-            }
-            write(f);
-        }
-        if (hasFields) {
-            w.writeEnd();
-        }
-        w.writeEnd();
-    }
-
-    private void write(Field f) {
-        w.writeStartObject();
-        writeIfNotEmpty("name", f.getName());
-        writeIfNotEmpty("type", f.getType());
-        writeIfNotEmpty("title", f.getTitle());
-        writeIfNotEmpty("value", f.getValue());
-        w.writeEnd();
-    }
-
 
     public void close() {
         w.close();
     }
 
-    private void writeValue(Object value) {
+    private void writeValue(@Nonnull Object value) {
         if (value.getClass().isArray()) {
             w.writeStartArray();
             for (Object o : (Object[]) value) {
@@ -173,7 +110,79 @@ public class SirenJsonWriter implements AutoCloseable {
         }
     }
 
-    private void write(String key, Map<String, Object> props) throws JsonException {
+
+    private void writeActions(@Nullable Collection<Action> actions) throws JsonException {
+        if (actions == null || actions.isEmpty()) {
+            return;
+        }
+        w.writeStartArray("actions");
+        for (Action a: actions) {
+            w.writeStartObject();
+            write("method", a.getMethod());
+            writeIfNotEmpty("name", a.getName());
+            writeIfNotEmpty("type", a.getType());
+            writeIfNotEmpty("title", a.getTitle());
+            writeIfNotEmpty("href", a.getHref());
+            writeFields(a.getFields());
+            w.writeEnd();
+        }
+        w.writeEnd();
+    }
+
+    private void writeFields(@Nullable Collection<Field> fields) throws JsonException {
+        if (fields == null || fields.isEmpty()) {
+            return;
+        }
+        w.writeStartArray("fields");
+        for (Field f: fields) {
+            w.writeStartObject();
+            writeIfNotEmpty("name", f.getName());
+            writeIfNotEmpty("type", f.getType());
+            writeIfNotEmpty("title", f.getTitle());
+            writeIfNotEmpty("value", f.getValue());
+            w.writeEnd();
+        }
+        w.writeEnd();
+    }
+
+    private void writeEntities(@Nullable Iterable<Entity> entities) throws JsonException {
+        if (entities == null) {
+            return;
+        }
+        boolean hasEntities = false;
+        for (Entity sub: entities) {
+            if (!hasEntities) {
+                w.writeStartArray("entities");
+                hasEntities = true;
+            }
+            write(sub, true);
+        }
+        if (hasEntities) {
+            w.writeEnd();
+        }
+    }
+
+    private void writeLinks(@Nullable Collection<Link> links) throws JsonException {
+        if (links == null || links.isEmpty()) {
+            return;
+        }
+        w.writeStartArray("links");
+        for (Link link : links) {
+            w.writeStartObject();
+            write("class", link.getClasses());
+            write("rel", link.getRels());
+            writeIfNotEmpty("href", link.getHref());
+            writeIfNotEmpty("title", link.getTitle());
+            writeIfNotEmpty("type", link.getType());
+            w.writeEnd();
+        }
+        w.writeEnd();
+
+    }
+    private void write(@Nullable String key, @Nullable Map<String, Object> props) throws JsonException {
+        if (props == null || props.isEmpty()) {
+            return;
+        }
         if (key == null) {
             w.writeStartObject();
         } else {
@@ -214,7 +223,7 @@ public class SirenJsonWriter implements AutoCloseable {
         w.writeEnd();
     }
 
-    private void write(String key, WorkspaceFilter filter) throws JsonException {
+    private void write(@Nonnull String key, @Nullable WorkspaceFilter filter) throws JsonException {
         if (filter != null) {
             w.writeStartObject(key);
             w.writeStartArray("filters");
@@ -253,8 +262,8 @@ public class SirenJsonWriter implements AutoCloseable {
         }
     }
 
-    private void write(String key, Set<String> strings) throws JsonException {
-        if (!strings.isEmpty()) {
+    private void write(@Nonnull String key, @Nullable  Set<String> strings) throws JsonException {
+        if (strings != null && !strings.isEmpty()) {
             w.writeStartArray(key);
             for (String s: strings) {
                 w.write(s);
@@ -263,13 +272,19 @@ public class SirenJsonWriter implements AutoCloseable {
         }
     }
 
-    private void writeIfNotNull(String key, Object value) throws JsonException {
+    private void write(@Nonnull String key, @Nullable Action.Method method) {
+        if (method != null) {
+            w.write(key, method.name());
+        }
+    }
+
+    private void writeIfNotNull(@Nonnull String key, @Nullable Object value) throws JsonException {
         if (value != null) {
             w.write(key, value.toString());
         }
     }
 
-    private void writeIfNotEmpty(String key, String value) throws JsonException {
+    private void writeIfNotEmpty(@Nonnull String key, @Nullable String value) throws JsonException {
         if (value != null && value.length() > 0) {
             w.write(key, value);
         }

@@ -43,11 +43,14 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiRelation;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 
 public class AnnotationTransformer {
+
+    private URI baseURI;
 
     private URI selfURI;
 
@@ -57,6 +60,11 @@ public class AnnotationTransformer {
 
     public AnnotationTransformer withSelfURI(URI selfURI) {
         this.selfURI = selfURI;
+        return this;
+    }
+
+    public AnnotationTransformer withBaseURI(URI baseURI) {
+        this.baseURI = baseURI;
         return this;
     }
 
@@ -70,26 +78,22 @@ public class AnnotationTransformer {
         return this;
     }
 
-    private String resolveHref(String href) throws URISyntaxException {
+    private String resolveHref(URI base, String href) throws URISyntaxException {
         if (href.isEmpty()) {
-            return selfURI.toString();
+            return base.toString();
         } else if (href.startsWith("/") || href.startsWith("?") ) {
-            return selfURI.toString() + href;
+            return base.toString() + href;
         }
         return href;
     }
 
-    private Link buildLink(ApiLink annotation, String href) throws URISyntaxException {
-        Set<String> rels = new HashSet<>();
-        for (String rel: annotation.value()) {
-            if (!rel.isEmpty()) {
-                rels.add(rel);
-            }
-        }
+    private LinkBuilder buildLink(ApiLink annotation, String href) throws URISyntaxException {
         return new LinkBuilder()
-                .withRels(rels)
-                .withHref(resolveHref(href))
-                .build();
+                .withHref(href)
+                .withRels(annotation.value())
+                .withClasses(annotation.classes())
+                .withTitle(annotation.title())
+                .withType(annotation.type());
     }
 
     private Action buildAction(ApiAction action, Method method) throws URISyntaxException {
@@ -104,7 +108,7 @@ public class AnnotationTransformer {
                 .withName(name)
                 .withMethod(Action.Method.valueOf(action.method().name()))
                 .withTitle(action.title())
-                .withHref(resolveHref(action.href()))
+                .withHref(resolveHref(selfURI, action.href()))
                 .withType(action.type());
         for (ApiField field: action.fields()) {
             String fieldName = field.name();
@@ -124,17 +128,18 @@ public class AnnotationTransformer {
 
 
     public Collection<Link> collectLinks() throws URISyntaxException {
+        // first get all links w/o any href resolution
         Member[] members = ReflectionUtils.getFieldsAndMethods(model.getClass());
-        List<Link> links = new ArrayList<>(members.length + 1);
-        Link selfLink = null;
+        List<LinkBuilder> links = new ArrayList<>(members.length);
+        LinkBuilder selfLink = null;
         for (Member member: ReflectionUtils.getFieldsAndMethods(model.getClass())) {
             ApiLink annotation = ((AnnotatedElement) member).getAnnotation(ApiLink.class);
             if (annotation != null) {
                 String[] values = ReflectionUtils.getStringValues(model, member);
                 if (values != null) {
                     for (String href: values) {
-                        Link link = buildLink(annotation, href);
-                        if (link.getRels().contains(ApiLink.SELF)) {
+                        LinkBuilder link = buildLink(annotation, href);
+                        if (link.rels.contains(ApiLink.SELF)) {
                             selfLink = link;
                         } else {
                             links.add(link);
@@ -143,19 +148,31 @@ public class AnnotationTransformer {
                 }
             }
         }
-        if (selfLink == null) {
+        if (selfLink != null) {
+            String newSelfRef = resolveHref(baseURI, selfLink.href);
+            selfURI = new URI(newSelfRef);
+            selfLink = selfLink.withHref(newSelfRef);
+        } else {
             ApiModel annotation = model.getClass().getAnnotation(ApiModel.class);
-            if (annotation != null && annotation.selfLink()) {
+            if (annotation != null &&annotation.selfLink()) {
+                String newSelfRef = resolveHref(baseURI, annotation.relPath());
+                selfURI = new URI(newSelfRef);
                 selfLink = new LinkBuilder()
                         .addRel(ApiLink.SELF)
-                        .withHref(selfURI.toString())
-                        .build();
+                        .withHref(newSelfRef);
             }
         }
-        if (selfLink != null) {
-            links.add(selfLink);
+        List<Link> ret = new ArrayList<>(links.size());
+        for (LinkBuilder builder: links) {
+            ret.add(builder
+                    .withHref(resolveHref(selfURI, builder.href))
+                    .build()
+            );
         }
-        return links;
+        if (selfLink != null) {
+            ret.add(selfLink.build());
+        }
+        return ret;
     }
 
     public Set<String> collectClasses() {
@@ -172,6 +189,17 @@ public class AnnotationTransformer {
         }
 
         return classes;
+    }
+
+    public Set<String> collectRels() {
+        Set<String> rels = new HashSet<>();
+        for (Member member: ReflectionUtils.getFieldsAndMethods(model.getClass())) {
+            ApiRelation annotation = ((AnnotatedElement) member).getAnnotation(ApiRelation.class);
+            if (annotation != null) {
+                ReflectionUtils.addStrings(rels, ReflectionUtils.getValue(model, member));
+            }
+        }
+        return rels;
     }
 
     public Map<String,Object> collectProperties() {
@@ -237,26 +265,27 @@ public class AnnotationTransformer {
 
     public Entity build() throws IOException {
         try {
-            // class
             EntityBuilder builder = new EntityBuilder();
-            for (String clazz: collectClasses()){
-                builder.addClass(clazz);
-            }
-
-            // properties
-            builder.addProperties(collectProperties());
 
             // links
             for (Link link: collectLinks()) {
                 builder.addLink(link);
             }
 
+            // class
+            for (String clazz: collectClasses()){
+                builder.addClass(clazz);
+            }
+
+            // properties
+            builder.withProperties(collectProperties());
+
             // entities
             for (Object entity: collectEntities()) {
                 Entity e = new AnnotationTransformer()
                         .withModel(entity)
                         .withParentModel(model)
-                        .withSelfURI(selfURI)
+                        .withBaseURI(baseURI)
                         .build();
                 builder.addEntity(e);
             }
@@ -266,6 +295,10 @@ public class AnnotationTransformer {
                 builder.addAction(a);
             }
 
+            // rels
+            if (parentModel != null) {
+                builder.withRels(collectRels());
+            }
             return builder.build();
 
         } catch (URISyntaxException e) {

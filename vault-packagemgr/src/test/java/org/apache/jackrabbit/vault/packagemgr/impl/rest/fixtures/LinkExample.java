@@ -62,10 +62,18 @@ public class LinkExample {
     @ApiLink("icon")
     public List<String> iterableTest() {
         return Arrays.asList(
-            "http://filevault.apache.org/test7",
-            "http://filevault.apache.org/test8"
+                "http://filevault.apache.org/test7",
+                "http://filevault.apache.org/test8"
         );
     };
+
+    @ApiLink(
+            value = "other",
+            classes = {"foo", "bar"},
+            type = "image/png",
+            title = "Hello, world."
+    )
+    public static final String TEST9 = "http://filevault.apache.org/test9";
 
     public static final String TEST5 = "no link annotation";
 

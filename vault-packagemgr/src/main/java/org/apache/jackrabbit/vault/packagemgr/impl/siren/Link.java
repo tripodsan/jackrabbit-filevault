@@ -18,12 +18,50 @@ package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
- * {@code Link}...
+ * Links represent navigational transitions. In JSON Siren, links are represented as an array inside the entity
  */
 public interface Link extends Comparable<Link> {
 
+    /**
+     * Defines the relationship of the link to its entity, per<a href="https://tools.ietf.org/html/rfc5988">Web Linking (RFC5988)</a>
+     * and <a href="http://www.iana.org/assignments/link-relations/link-relations.xhtml">Link Relations</a>.
+     * Required.
+     * @return the relations
+     */
+    @Nonnull
     Set<String> getRels();
 
+    /**
+     * The URI of the linked resource. Required.
+     * @return the URI
+     */
+    @Nonnull
     String getHref();
+
+    /**
+     * Describes aspects of the link based on the current representation. Possible values are implementation-dependent
+     * and should be documented. Optional.
+     * @return the set of classes
+     */
+    @Nullable
+    Set<String> getClasses();
+
+    /**
+     * Defines media type of the linked resource, per <a href="https://tools.ietf.org/html/rfc5988">Web Linking (RFC5988)</a>. Optional.
+     * @return the media type
+     */
+    @Nullable
+    String getType();
+
+    /**
+     * Text describing the nature of a link. Optional.
+     * @return the title
+     */
+    @Nullable
+    String getTitle();
+
 }

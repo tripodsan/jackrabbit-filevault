@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 
+import java.util.Collection;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
- * {@code Action}...
+ * Actions show available behaviors an entity exposes.
  */
 public interface Action extends Comparable<Action> {
 
@@ -37,15 +43,56 @@ public interface Action extends Comparable<Action> {
         GET
     }
 
+    /**
+     * A string that identifies the action to be performed. Action names MUST be unique within the set of actions for an
+     * entity. The behaviour of clients when parsing a Siren document that violates this constraint is undefined. Required.
+     * @return the name of this action
+     */
+    @Nonnull
     String getName();
 
-    String getType();
+    /**
+     * Describes the nature of an action based on the current representation. Possible values are implementation-dependent
+     * and should be documented. Optional.
+     * @return the classes
+     */
+    @Nullable
+    Set<String> getClasses();
 
-    String getTitle();
-
-    String getHref();
-
+    /**
+     * An enumerated attribute mapping to a protocol method. For HTTP, these values may be GET, PUT, POST, DELETE, or PATCH.
+     * If this attribute is omitted, GET should be assumed. Optional.
+     * @return the action method
+     */
+    @Nullable
     Method getMethod();
 
-    Iterable<Field> getFields();
+    /**
+     * The URI of the action. Required.
+     * @return the uri of the action
+     */
+    @Nonnull
+    String getHref();
+
+    /**
+     * The encoding type for the request. When omitted and the fields attribute exists, the default value is
+     * {@value #TYPE_X_WWW_FORM_URLENCODED}. Optional.
+     * @return the type.
+     */
+    @Nullable
+    String getType();
+
+    /**
+     * Descriptive text about the action. Optional.
+     * @return the title
+     */
+    @Nullable
+    String getTitle();
+
+    /**
+     * A collection of fields. Optional.
+     * @return the fields
+     */
+    @Nullable
+    Collection<Field> getFields();
 }

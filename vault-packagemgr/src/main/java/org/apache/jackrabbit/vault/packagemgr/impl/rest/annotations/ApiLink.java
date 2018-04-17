@@ -36,4 +36,9 @@ public @interface ApiLink {
      */
     String[] value() default {};
 
+    String[] classes() default {};
+
+    String type() default "";
+
+    String title() default "";
 }

@@ -35,6 +35,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.jackrabbit.vault.packagemgr.impl.DependencyResolver;
 import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiEntities;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
@@ -54,7 +55,6 @@ public class Packages extends Base<Packages> {
      */
     private static final Logger log = LoggerFactory.getLogger(Packages.class);
 
-    public static final String CLASS = "packages";
 
     public static final String ACTION_CREATE_PACKAGE = "create-package";
     public static final String ACTION_UPLOAD_PACKAGE = "upload-package";
@@ -69,6 +69,9 @@ public class Packages extends Base<Packages> {
         this.pkgMgr = pkgMgr;
         return this;
     }
+
+    @ApiClass
+    public static final String CLASS = "packages";
 
     @ApiEntities
     public Iterable<PackageModel> entities() throws IOException {

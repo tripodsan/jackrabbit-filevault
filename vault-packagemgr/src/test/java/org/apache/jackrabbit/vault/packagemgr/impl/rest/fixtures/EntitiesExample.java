@@ -25,6 +25,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiEntities;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiRelation;
 
 @ApiModel
 public class EntitiesExample {
@@ -51,6 +52,9 @@ public class EntitiesExample {
 
         @ApiClass
         public static String CLASS = "simple-entity";
+
+        @ApiRelation
+        public static String REL = "http://filevault.apache.org/base/api/simple";
 
         @ApiLink(ApiLink.SELF)
         public String selfLink() {

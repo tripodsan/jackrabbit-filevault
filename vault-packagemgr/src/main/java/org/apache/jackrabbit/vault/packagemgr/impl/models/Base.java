@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
@@ -67,6 +68,7 @@ public abstract class Base<B extends Base<B>> {
         return baseURI;
     }
 
+    @ApiLink(ApiLink.SELF)
     public URI getSelfURI() {
         return selfURI;
     }
@@ -78,6 +80,7 @@ public abstract class Base<B extends Base<B>> {
     public Entity buildEntity() throws IOException {
         return new AnnotationTransformer()
                 .withModel(this)
+                .withBaseURI(baseURI)
                 .withSelfURI(selfURI)
                 .build();
     }

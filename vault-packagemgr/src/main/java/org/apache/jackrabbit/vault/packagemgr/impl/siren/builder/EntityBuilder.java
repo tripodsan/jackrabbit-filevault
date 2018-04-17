@@ -16,22 +16,13 @@
  */
 package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 
-import java.net.URI;
-import java.util.Calendar;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
-import org.apache.jackrabbit.util.ISO8601;
-import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
@@ -39,9 +30,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 /**
  * {@code EntityBuilder}...
  */
-public class EntityBuilder {
-
-    private TreeSet<String> classes = new TreeSet<String>();
+public class EntityBuilder extends LinkBuilder {
 
     private Map<String, Object> props = new TreeMap<String, Object>();
 
@@ -51,66 +40,15 @@ public class EntityBuilder {
 
     private TreeSet<Action> actions = new TreeSet<>();
 
-    private Set<String> rels = new TreeSet<>();
-
-    private String href = "";
-
-    public EntityBuilder addClass(String className) {
-        classes.add(className);
-        return this;
-    }
-
-//    public EntityBuilder addProperty(String name, Calendar value) {
-//        if (value != null) {
-//            props.put(name, ISO8601.format(value));
-//        }
-//        return this;
-//    }
-//
-//    public EntityBuilder addProperty(String name, AccessControlHandling value) {
-//        if (value != null) {
-//            props.put(name, value.name().toLowerCase());
-//        }
-//        return this;
-//    }
-//
-    public EntityBuilder addProperty(String name, Object value) {
-        if (value != null) {
-            props.put(name, value);
-        }
-        return this;
-    }
-
-    public EntityBuilder addProperties(Map<String, Object> properties) {
+    public EntityBuilder withProperties(Map<String, Object> properties) {
         props.putAll(properties);
         return this;
     }
-
-//    public EntityBuilder addProperty(String name, Node node, String jcrName) throws RepositoryException {
-//        if (node.hasProperty(jcrName)) {
-//            Property p = node.getProperty(jcrName);
-//            if (p.isMultiple()) {
-//                List<String> values = new LinkedList<String>();
-//                for (Value v : p.getValues()) {
-//                    values.add(v.getString());
-//                }
-//                props.put(name, values.toArray(new String[values.size()]));
-//            } else {
-//                props.put(name, p.getString());
-//            }
-//        }
-//        return this;
-//    }
 
     public EntityBuilder addLink(Link link) {
         links.add(link);
         return this;
     }
-
-//    public EntityBuilder addLink(String rel, String href) {
-//        links.add(new LinkBuilder().addRel(rel).withHref(href).build());
-//        return this;
-//    }
 
     public EntityBuilder addEntity(Entity entity) {
         entities.add(entity);
@@ -122,26 +60,11 @@ public class EntityBuilder {
         return this;
     }
 
-    public EntityBuilder withRels(Set<String> rels) {
-        this.rels.addAll(rels);
-        return this;
-    }
-
-    public EntityBuilder withHref(URI uri) {
-        this.href = uri == null ? "" : uri.toString();
-        return this;
-    }
-
     public Entity build() {
         return new EntityImpl();
     }
 
-    protected class EntityImpl implements Entity {
-
-        @Override
-        public Set<String> getClasses() {
-            return classes;
-        }
+    protected class EntityImpl extends LinkBuilder.LinkImpl implements Entity {
 
         @Override
         public Map<String, Object> getProperties() {
@@ -149,7 +72,7 @@ public class EntityBuilder {
         }
 
         @Override
-        public Iterable<Link> getLinks() {
+        public Collection<Link> getLinks() {
             return links;
         }
 
@@ -159,19 +82,10 @@ public class EntityBuilder {
         }
 
         @Override
-        public Iterable<Action> getActions() {
+        public Collection<Action> getActions() {
             return actions;
         }
 
-        @Override
-        public Set<String> getRels() {
-            return rels;
-        }
-
-        @Override
-        public String getHref() {
-            return href;
-        }
     }
 
 }

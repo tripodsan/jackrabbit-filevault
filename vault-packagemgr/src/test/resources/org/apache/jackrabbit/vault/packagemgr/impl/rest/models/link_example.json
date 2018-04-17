@@ -44,6 +44,18 @@
             "href": "http://filevault.apache.org/test4"
         },
         {
+            "class": [
+                "bar",
+                "foo"
+            ],
+            "rel": [
+                "other"
+            ],
+            "href": "http://filevault.apache.org/test9",
+            "title": "Hello, world.",
+            "type": "image/png"
+        },
+        {
             "rel": [
                 "packages"
             ],

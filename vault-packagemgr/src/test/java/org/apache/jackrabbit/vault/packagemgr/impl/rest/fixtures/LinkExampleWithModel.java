@@ -23,7 +23,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 public class LinkExampleWithModel {
 
 
-    @ApiModel
+    @ApiModel(relPath= "/foo")
     public static class AutoSelfLink {
 
     }

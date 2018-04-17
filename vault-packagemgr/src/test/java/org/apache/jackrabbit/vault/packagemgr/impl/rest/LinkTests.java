@@ -61,13 +61,14 @@ public class LinkTests {
         TEST_LINKS.put("http://filevault.apache.org/test6", REL_SCREENSHOT);
         TEST_LINKS.put("http://filevault.apache.org/test7", REL_ICON);
         TEST_LINKS.put("http://filevault.apache.org/test8", REL_ICON);
+        TEST_LINKS.put("http://filevault.apache.org/test9", REL_OTHER);
         TEST_LINKS.put(BASE_HREF + "/packages", REL_PACKAGES);
     }
 
     @Test
     public void testLinks() throws Exception {
         AnnotationTransformer transformer = new AnnotationTransformer()
-                .withSelfURI(new URI(BASE_HREF))
+                .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExample());
         Map<String, Set<String>> tests = new HashMap<>(TEST_LINKS);
         for (Link link: transformer.collectLinks()) {
@@ -80,19 +81,19 @@ public class LinkTests {
     @Test
     public void testAutoSelfLink() throws Exception {
         Collection<Link> links = new AnnotationTransformer()
-                .withSelfURI(new URI(BASE_HREF))
+                .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.AutoSelfLink())
                 .collectLinks();
         assertEquals("number of links", 1, links.size());
         Link link = links.iterator().next();
-        assertEquals("href", BASE_HREF, link.getHref());
+        assertEquals("href", BASE_HREF + "/foo", link.getHref());
         assertEquals("rels", REL_SELF, link.getRels());
     }
 
     @Test
     public void testNoSelfLink() throws Exception {
         Collection<Link> links = new AnnotationTransformer()
-                .withSelfURI(new URI(BASE_HREF))
+                .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.NoSelfLink())
                 .collectLinks();
         assertEquals("number of links", 0, links.size());
@@ -101,7 +102,7 @@ public class LinkTests {
     @Test
     public void testCustomSelfLink() throws Exception {
         Collection<Link> links = new AnnotationTransformer()
-                .withSelfURI(new URI(BASE_HREF))
+                .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.CustomSelfLink())
                 .collectLinks();
         assertEquals("number of links", 1, links.size());

@@ -36,6 +36,12 @@ public @interface ApiModel {
     String[] classes() default {};
 
     /**
+     * Relative path to the API root.
+     * @return relative path
+     */
+    String relPath() default "";
+
+    /**
      * Automatically generate <em>self</em> link.
      * @return {@code false} to disable auto link generation.
      */

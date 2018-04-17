@@ -12,6 +12,9 @@
             "class": [
                 "simple-entity"
             ],
+            "rel": [
+                "http://filevault.apache.org/base/api/simple"
+            ],
             "properties": {
                 "inlineTitle": "inline: Hello, world.",
                 "title": "Hello, world."
@@ -28,6 +31,9 @@
         {
             "class": [
                 "simple-entity"
+            ],
+            "rel": [
+                "http://filevault.apache.org/base/api/simple"
             ],
             "properties": {
                 "inlineTitle": "inline: Jackrabbit is cool.",

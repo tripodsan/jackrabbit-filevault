@@ -17,8 +17,13 @@
  */
 package org.apache.jackrabbit.vault.packagemgr.impl.siren;
 
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
- * {@code Field}...
+ * Fields represent controls inside of actions.
  */
 public interface Field {
 
@@ -53,12 +58,42 @@ public interface Field {
         }
     }
 
+    /**
+     * A name describing the control. Field names MUST be unique within the set of fields for an action.
+     * The behaviour of clients when parsing a Siren document that violates this constraint is undefined. Required.
+     * @return the name
+     */
+    @Nonnull
     String getName();
 
+    /**
+     * Describes aspects of the field based on the current representation. Possible values are implementation-dependent
+     * and should be documented. Optional.
+     * @return the classes
+     */
+    @Nullable
+    Set<String> getClasses();
+
+    /**
+     * The input type of the field. This may include any of the following input types specified in HTML5. see {@link Field.Type}.
+     * When missing, the default value is text. Serialization of these fields will depend on the value of the action's type attribute. Optional.
+     * @return the type
+     */
+    @Nullable
     String getType();
 
+    /**
+     * Textual annotation of a field. Clients may use this as a label. Optional.
+     * @return the title
+     */
+    @Nullable
     String getTitle();
 
+    /**
+     * A default value assigned to the field. Optional.
+     * @return the value
+     */
+    @Nullable
     String getValue();
 
 }

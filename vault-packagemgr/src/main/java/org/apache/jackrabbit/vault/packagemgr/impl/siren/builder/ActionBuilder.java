@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
@@ -26,39 +30,11 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 /**
  * {@code ActionBuilder}...
  */
-public class ActionBuilder {
+public class ActionBuilder extends BaseBuilder<ActionBuilder> {
 
-    private String name = "";
-
-    private String type = "";
-
-    private String title = "";
-
-    private Action.Method method = Action.Method.POST;
-
-    private String href = "";
+    private Action.Method method = Action.Method.GET;
 
     private List<Field> fields = new LinkedList<>();
-
-    public ActionBuilder withName(String name) {
-        this.name = name;
-        return this;
-    }
-
-    public ActionBuilder withType(String type) {
-        this.type = type;
-        return this;
-    }
-
-    public ActionBuilder withHref(String href) {
-        this.href = href;
-        return this;
-    }
-
-    public ActionBuilder withTitle(String title) {
-        this.title = title;
-        return this;
-    }
 
     public ActionBuilder withMethod(Action.Method method) {
         this.method = method;
@@ -88,6 +64,9 @@ public class ActionBuilder {
 
         @Override
         public String getType() {
+            if (type == null || type.isEmpty() && fields.size() > 0) {
+                return Action.TYPE_X_WWW_FORM_URLENCODED;
+            }
             return type;
         }
 
@@ -102,8 +81,14 @@ public class ActionBuilder {
         }
 
         @Override
-        public Iterable<Field> getFields() {
+        public Collection<Field> getFields() {
             return fields;
+        }
+
+        @Nullable
+        @Override
+        public Set<String> getClasses() {
+            return classes;
         }
 
         @Override

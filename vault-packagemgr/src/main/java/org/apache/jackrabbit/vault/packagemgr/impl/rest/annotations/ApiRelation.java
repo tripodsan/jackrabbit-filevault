@@ -23,39 +23,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Defines a action of an entity.
+ * Defines a relation of an entity to its parent.
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ApiAction {
+public @interface ApiRelation {
 
-    enum Method {
-        GET,
-        POST,
-        PUT,
-        DELETE,
-        PATCH
-    }
-
-    String TYPE_MULTIPART_FORM_DATA = "multipart/form-data";
-
-    String TYPE_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
-
-    String TYPE_JSON = "application/json";
-
-    String TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
-
-    String value() default "";
-
-    String name() default "";
-
-    String type() default "";
-
-    String title() default "";
-
-    String href() default "";
-
-    Method method() default Method.GET;
-
-    ApiField[] fields() default {};
 }

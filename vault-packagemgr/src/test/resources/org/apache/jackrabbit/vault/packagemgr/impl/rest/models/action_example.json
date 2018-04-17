@@ -10,14 +10,12 @@
     "actions": [
         {
             "name": "create-stuff",
-            "type": "application/x-www-form-urlencoded",
-            "method": "POST",
+            "method": "GET",
             "href": "http://localhost:8080/system"
         },
         {
             "name": "default-action",
-            "type": "application/x-www-form-urlencoded",
-            "method": "POST",
+            "method": "GET",
             "href": "http://localhost:8080/system"
         },
         {

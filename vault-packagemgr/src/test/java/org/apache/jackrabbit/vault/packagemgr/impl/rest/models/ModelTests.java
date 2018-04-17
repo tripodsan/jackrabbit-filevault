@@ -43,7 +43,7 @@ public class ModelTests {
     private void testModelJson(Object model, String filename) throws IOException, URISyntaxException {
         AnnotationTransformer tx = new AnnotationTransformer();
         Entity entity = tx
-                .withSelfURI(new URI("http://localhost:8080/system"))
+                .withBaseURI(new URI("http://localhost:8080/system"))
                 .withModel(model)
                 .build();
         StringWriter out = new StringWriter();

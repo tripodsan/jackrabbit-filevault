@@ -21,9 +21,6 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Rels;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
 
 @ApiModel
 public class Filevault extends Base<Filevault> {
