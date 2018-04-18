@@ -55,7 +55,7 @@ public @interface ApiAction {
 
     String href() default "";
 
-    Method method() default Method.GET;
+    Method method() default Method.POST;
 
     ApiField[] fields() default {};
 }

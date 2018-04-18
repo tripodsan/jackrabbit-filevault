@@ -9,12 +9,12 @@
     ],
     "actions": [
         {
-            "method": "GET",
+            "method": "POST",
             "name": "create-stuff",
             "href": "http://localhost:8080/system"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "name": "default-action",
             "href": "http://localhost:8080/system"
         },
@@ -37,6 +37,47 @@
             ]
         },
         {
+            "method": "PUT",
+            "name": "raw-action",
+            "href": "http://localhost:8080/system"
+        },
+        {
+            "method": "POST",
+            "name": "upload-file",
+            "type": "multipart/form-data",
+            "href": "http://localhost:8080/system",
+            "fields": [
+                {
+                    "name": "thumbnail",
+                    "type": "file"
+                }
+            ]
+        },
+        {
+            "method": "POST",
+            "name": "upload-person",
+            "type": "application/x-www-form-urlencoded",
+            "href": "http://localhost:8080/system",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "text"
+                },
+                {
+                    "name": "email",
+                    "type": "text"
+                },
+                {
+                    "name": "birthday",
+                    "type": "datetime"
+                },
+                {
+                    "name": "shoe-size",
+                    "type": "number"
+                }
+            ]
+        },
+        {
             "method": "POST",
             "name": "upload-thumbnail",
             "type": "multipart/form-data",
@@ -51,6 +92,22 @@
                     "name": "file",
                     "type": "file",
                     "title": "File to upload"
+                }
+            ]
+        },
+        {
+            "method": "POST",
+            "name": "upload-with-fileupload",
+            "type": "multipart/form-data",
+            "href": "http://localhost:8080/system",
+            "fields": [
+                {
+                    "name": "title",
+                    "type": "text"
+                },
+                {
+                    "name": "file",
+                    "type": "file"
                 }
             ]
         }

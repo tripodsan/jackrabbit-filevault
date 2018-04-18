@@ -29,7 +29,7 @@ import java.util.Set;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExampleWithModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.AnnotationTransformer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

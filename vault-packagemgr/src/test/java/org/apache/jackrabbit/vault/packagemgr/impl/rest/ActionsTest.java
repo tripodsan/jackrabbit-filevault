@@ -17,16 +17,19 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ActionExample;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ActionInfo;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.AnnotationTransformer;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.FieldBuilder;
 import org.junit.Test;
 
@@ -39,12 +42,13 @@ public class ActionsTest {
     private static final String BASE_HREF = "http://filevault.apache.org/base/api";
 
     private void testAction(Action expected) throws URISyntaxException {
-        Collection<Action> actions = new AnnotationTransformer()
+        Collection<ActionInfo> actions = new AnnotationTransformer()
                 .withModel(new ActionExample())
                 .withSelfURI(new URI(BASE_HREF))
                 .collectActions();
         String name = expected.getName();
-        for (Action a: actions) {
+        for (ActionInfo ai: actions) {
+            Action a = ai.getSirenAction();
             if (name.equals(a.getName())) {
                 assertTrue("action: " + name, expected.equals(a));
                 return;
@@ -58,7 +62,7 @@ public class ActionsTest {
         testAction(new ActionBuilder()
                 .withName("default-action")
                 .withType("")
-                .withMethod(Action.Method.GET)
+                .withMethod(Action.Method.POST)
                 .withTitle("")
                 .withHref(BASE_HREF)
                 .build()
@@ -70,7 +74,7 @@ public class ActionsTest {
         testAction(new ActionBuilder()
                 .withName("create-stuff")
                 .withType("")
-                .withMethod(Action.Method.GET)
+                .withMethod(Action.Method.POST)
                 .withTitle("")
                 .withHref(BASE_HREF)
                 .build()
@@ -134,5 +138,24 @@ public class ActionsTest {
         assertEquals("do-post", ReflectionUtils.methodToActionName("doPost"));
         assertEquals("some-default-action", ReflectionUtils.methodToActionName("someDefaultAction"));
         assertEquals("get-it", ReflectionUtils.methodToActionName("GetIt"));
+    }
+
+    @Test
+    public void testInvalidActions() throws URISyntaxException {
+        ActionExample.InvalidActionExamples model = new ActionExample.InvalidActionExamples();
+        AnnotationTransformer tf = new AnnotationTransformer()
+                .withModel(model)
+                .withSelfURI(new URI(BASE_HREF));
+        for (Method method: model.getClass().getMethods()) {
+            ApiAction annotation = method.getAnnotation(ApiAction.class);
+            if (annotation != null) {
+                try {
+                    tf.buildAction(annotation, method);
+                    fail("expected " + method + " to fail");
+                } catch (Exception e) {
+                    // ok
+                }
+            }
+        }
     }
 }

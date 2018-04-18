@@ -61,7 +61,7 @@ public interface Action extends Comparable<Action> {
 
     /**
      * An enumerated attribute mapping to a protocol method. For HTTP, these values may be GET, PUT, POST, DELETE, or PATCH.
-     * If this attribute is omitted, GET should be assumed. Optional.
+     * If this attribute is omitted, POST should be assumed. Optional.
      * @return the action method
      */
     @Nullable

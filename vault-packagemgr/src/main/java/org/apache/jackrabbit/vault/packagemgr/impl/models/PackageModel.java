@@ -183,6 +183,23 @@ public class PackageModel extends Base<PackageModel> {
         return this;
     }
 
+    private void resolveDependencies() {
+        isResolved = true;
+        Dependency[] deps = def.getDependencies();
+        resolvedDependencies = new HashMap<>();
+        for (Dependency d : deps) {
+            try {
+                String pkgId = dependencyResolver.resolve(d);
+                resolvedDependencies.put(d.toString(), pkgId);
+                if (pkgId.isEmpty()) {
+                    isResolved = false;
+                }
+            } catch (RepositoryException e) {
+                log.error("unable to resolve dependencies", e);
+            }
+        }
+    }
+
     private boolean handleCommand(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             if ("thumbnail".equals(route.getCommand())) {
@@ -269,43 +286,6 @@ public class PackageModel extends Base<PackageModel> {
             throw new IOException(e);
         }
     }
-
-//    private Entity getPackageEntity() throws RepositoryException {
-//        JcrPackageDefinition def = pkg.getDefinition();
-//        PackageId id = def.getId();
-//        final String pkgRef = PackageRoute.getPackageRelPath(baseHref, id);
-//        EntityBuilder builder = addPackageProperties(new EntityBuilder(), def, id)
-//                .addLink(Rels.REL_VLT_PACKAGE_DOWNLOAD, pkgRef + "/" + id.getDownloadName());
-//
-//        if (brief) {
-//            builder.addClass(CLASS_BRIEF)
-//                    .addLink(Rels.SELF, pkgRef + "?format=brief")
-//                    .addLink(Rels.REL_VLT_PACKAGE, pkgRef);
-//        } else {
-//            builder.addClass(CLASS)
-//                    .addLink(Rels.SELF, pkgRef)
-//                    .addLink(Rels.REL_VLT_PACKAGE_BRIEF, pkgRef + "?format=brief");
-//
-//            if (def.get("thumbnail.png/jcr:content/jcr:mimeType") != null) {
-//                builder.addLink(Rels.REL_VLT_THUMBNAIL, pkgRef + "/thumbnail.png");
-//            }
-//
-//            if (def.getNode().hasNode("screenshots")) {
-//                NodeIterator it = def.getNode().getNode("screenshots").getNodes();
-//                while (it.hasNext()) {
-//                    builder.addLink(Rels.REL_VLT_SCREENSHOT, pkgRef + "/screenshot/" + it.nextNode().getName());
-//                }
-//            }
-//        }
-//
-//        builder.addAction(new ActionBuilder()
-//                .withName("delete-package")
-//                .withMethod(Action.Method.DELETE)
-//                .build()
-//        );
-//        return builder.build();
-//    }
-
 
     @ApiClass
     public String clazz() {
@@ -529,69 +509,4 @@ public class PackageModel extends Base<PackageModel> {
         }
     }
 
-
-//    private EntityBuilder addPackageProperties(EntityBuilder b, JcrPackageDefinition def, PackageId id) throws RepositoryException {
-//        b.addProperty("pid", id.toString())
-//                .addProperty("name", id.getName())
-//                .addProperty("group", id.getGroup())
-//                .addProperty("version", id.getVersionString())
-//                .addProperty("downloadName", id.getDownloadName())
-//                .addProperty("downloadSize", pkg.getSize())
-//                .addProperty("isInstalled", pkg.isInstalled())
-//                .addProperty("isModified", def.isModified())
-//        ;
-//
-//        if (brief) {
-//            return b;
-//        }
-//        Node defNode = def.getNode();
-//        b
-//                .addProperty("description", def.getDescription())
-//                .addProperty("buildCount", def.getBuildCount())
-//                .addProperty("lastModified", def.getLastModified())
-//                .addProperty("lastModifiedBy", def.getLastModifiedBy())
-//                .addProperty("lastUnpacked", def.getLastUnpacked())
-//                .addProperty("lastUnpackedBy", def.getLastUnpackedBy())
-//                .addProperty("created", def.getCreated())
-//                .addProperty("createdBy", def.getCreatedBy())
-//                .addProperty("hasSnapshot", pkg.getSnapshot() != null)
-//                .addProperty("builtWith", def.get("builtWith"))
-//                .addProperty("testedWith", def.get("testedWith"))
-//                .addProperty("fixedBugs", def.get("fixedBugs"))
-//                .addProperty("requiresRoot", def.requiresRoot())
-//                .addProperty("requiresRestart", def.requiresRestart())
-//                .addProperty("acHandling", def.getAccessControlHandling())
-//                .addProperty("providerName", def.get("providerName"))
-//                .addProperty("providerUrl", def.get("providerUrl"))
-//                .addProperty("providerLink", def.get("providerLink"))
-//                .addProperty("replaces", defNode, "replaces")
-//                .addProperty("workspaceFilter", def.getMetaInf().getFilter());
-//        addPackageDependencies(b, def);
-//        return b;
-//    }
-//
-    private void resolveDependencies() {
-        isResolved = true;
-        Dependency[] deps = def.getDependencies();
-        resolvedDependencies = new HashMap<>();
-        for (Dependency d : deps) {
-            try {
-                String pkgId = dependencyResolver.resolve(d);
-                resolvedDependencies.put(d.toString(), pkgId);
-                if (pkgId.isEmpty()) {
-                    isResolved = false;
-                }
-            } catch (RepositoryException e) {
-                log.error("unable to resolve dependencies", e);
-            }
-        }
-    }
-
-//    private void addPackageDependencies(EntityBuilder b, JcrPackageDefinition def) {
-//        if (resolvedDependencies == null) {
-//            resolveDependencies();
-//        }
-//        b.addProperty("dependencies", resolvedDependencies);
-//        b.addProperty("isResolved", isResolved);
-//    }
 }

@@ -35,6 +35,22 @@ public class BaseBuilder<B extends BaseBuilder<B>> {
 
     protected String title;
 
+    public Set<String> getRels() {
+        return rels;
+    }
+
+    public String getHref() {
+        return href;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getName() {
+        return name;
+    }
+
     public B withHref(String href) {
         this.href = href;
         //noinspection unchecked

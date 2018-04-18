@@ -20,7 +20,7 @@ package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.EntitiesExample;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.AnnotationTransformer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

@@ -32,7 +32,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.EntitiesExample
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.PropertyExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.AnnotationTransformer;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 import org.junit.Test;
 

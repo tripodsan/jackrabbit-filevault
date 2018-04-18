@@ -57,6 +57,7 @@ public class Packages extends Base<Packages> {
     private static final Logger log = LoggerFactory.getLogger(Packages.class);
 
     public static final String PARAM_PACKAGE = "package";
+
     public static final String PARAM_REPLACE = "replace";
 
     private JcrPackageManager pkgMgr;

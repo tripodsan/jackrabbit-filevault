@@ -46,6 +46,10 @@ public class ActionBuilder extends BaseBuilder<ActionBuilder> {
         return this;
     }
 
+    public List<Field> getFields() {
+        return fields;
+    }
+
     public Action build() {
         return new ActionImpl();
     }

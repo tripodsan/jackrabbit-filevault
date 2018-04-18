@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.vault.packagemgr.impl.siren.builder;
+package org.apache.jackrabbit.vault.packagemgr.impl.rest.meta;
 
 import java.io.IOException;
 import java.lang.reflect.AnnotatedElement;
@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
@@ -49,6 +48,9 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiRelation;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.LinkBuilder;
 
 public class AnnotationTransformer {
 
@@ -102,7 +104,7 @@ public class AnnotationTransformer {
                 .withType(annotation.type());
     }
 
-    private Action buildAction(ApiAction action, Method method) throws URISyntaxException {
+    public ActionInfo buildAction(ApiAction action, Method method) throws URISyntaxException {
         String name = action.name();
         if (name.isEmpty()) {
             name = action.value();
@@ -116,20 +118,15 @@ public class AnnotationTransformer {
                 .withTitle(action.title())
                 .withHref(resolveHref(selfURI, action.href()))
                 .withType(action.type());
+
         for (ApiField field: action.fields()) {
-            String fieldName = field.name();
-            if (fieldName.isEmpty()) {
-                fieldName = field.value();
-            }
-            builder.addField(new FieldBuilder()
-                    .withName(fieldName)
-                    .withType(field.type().toString())
-                    .withTitle(field.title())
-                    .withValue(field.defaultValue())
-                    .build()
-            );
+            builder.addField(ActionInfoBuilder.createField(field, String.class));
         }
-        return builder.build();
+
+        return new ActionInfoBuilder()
+                .withMethod(method)
+                .withSirenBuilder(builder)
+                .build();
     }
 
 
@@ -146,7 +143,7 @@ public class AnnotationTransformer {
                 if (values != null) {
                     for (String href: values) {
                         LinkBuilder link = buildLink(annotation, href);
-                        if (link.rels.contains(ApiLink.SELF)) {
+                        if (link.getRels().contains(ApiLink.SELF)) {
                             selfLink = link;
                         } else {
                             links.add(link);
@@ -178,17 +175,17 @@ public class AnnotationTransformer {
             }
         } else if (hasHref) {
             // adjust self link with selfURI set by href
-            selfLink = selfLink.withHref(resolveHref(selfURI, selfLink.href));
+            selfLink = selfLink.withHref(resolveHref(selfURI, selfLink.getHref()));
         } else {
             // no href, so define self uri via self ref
-            String newSelfRef = resolveHref(baseURI, selfLink.href);
+            String newSelfRef = resolveHref(baseURI, selfLink.getHref());
             selfURI = new URI(newSelfRef);
             selfLink = selfLink.withHref(newSelfRef);
         }
         List<Link> ret = new ArrayList<>(links.size());
         for (LinkBuilder builder: links) {
             ret.add(builder
-                    .withHref(resolveHref(selfURI, builder.href))
+                    .withHref(resolveHref(selfURI, builder.getHref()))
                     .build()
             );
         }
@@ -281,8 +278,8 @@ public class AnnotationTransformer {
         return ret == null ? Collections.emptyList() : ret;
     }
 
-    public Collection<Action> collectActions() throws URISyntaxException {
-        List<Action> actions = new LinkedList<>();
+    public Collection<ActionInfo> collectActions() throws URISyntaxException {
+        List<ActionInfo> actions = new LinkedList<>();
         for (Method method: model.getClass().getMethods()) {
             ApiAction annotation = method.getAnnotation(ApiAction.class);
             if (annotation != null) {
@@ -320,8 +317,8 @@ public class AnnotationTransformer {
             }
 
             // actions
-            for (Action a: collectActions()) {
-                builder.addAction(a);
+            for (ActionInfo a: collectActions()) {
+                builder.addAction(a.getSirenAction());
             }
 
             // rels

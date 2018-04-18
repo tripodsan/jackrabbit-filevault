@@ -28,9 +28,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiHref;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.AnnotationTransformer;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 
 public abstract class Base<B extends Base<B>> {

@@ -25,11 +25,12 @@ import java.lang.annotation.Target;
 /**
  * Defines a field of an action of an entity.
  */
-@Target(ElementType.ANNOTATION_TYPE)
+@Target({ElementType.ANNOTATION_TYPE, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ApiField {
 
     enum Type {
+        AUTO,
         HIDDEN,
         TEXT,
         SEARCH,
@@ -63,7 +64,7 @@ public @interface ApiField {
 
     String name() default "";
 
-    Type type() default Type.TEXT;
+    Type type() default Type.AUTO;
 
     String title() default "";
 
