@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.net.URI;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.TreeMap;
@@ -32,7 +31,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.fileupload.FileUpload;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
@@ -45,17 +43,7 @@ public class ActionInfoBuilder {
 
     private Method method;
 
-    private Map<String, FieldInfo> fields = new TreeMap<>();
-
-    private int httpRequestIdx = -1;
-
-    private int httpResponseIdx = -1;
-
-    private int inputStreamBodyIdx = -1;
-
-    private int fileUploadIdx = -1;
-
-    private int jsonBodyIdx = -1;
+    private Map<String, ParameterInfo> fields = new TreeMap<>();
 
     public ActionInfoBuilder withMethod(Method method) {
         this.method = method;
@@ -125,7 +113,7 @@ public class ActionInfoBuilder {
             } else if (fld != null) {
                 Field f = createField(fld, type);
                 sirenBuilder.addField(f);
-                fields.put(f.getName(), new FieldInfo(f, type, i));
+                fields.put(f.getName(), new ParameterInfo(f, type, i));
                 if ("file".equals(f.getType())) {
                     sirenBuilder
                             .withType(Action.TYPE_MULTIPART_FORM_DATA)

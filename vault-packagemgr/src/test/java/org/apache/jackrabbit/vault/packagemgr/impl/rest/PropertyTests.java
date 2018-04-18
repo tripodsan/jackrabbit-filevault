@@ -25,7 +25,7 @@ import java.util.TimeZone;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.PropertyExample;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.AnnotationTransformer;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoBuilder;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -63,7 +63,7 @@ public class PropertyTests {
 
     @Test
     public void testProperty() throws Exception {
-        AnnotationTransformer transformer = new AnnotationTransformer()
+        ModelInfoBuilder transformer = new ModelInfoBuilder()
                 .withModel(new PropertyExample());
         transformer.collectClasses(); // need to init the classes
         Map<String, Object> properties = transformer.collectProperties();

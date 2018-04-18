@@ -28,8 +28,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiHref;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfo;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.AnnotationTransformer;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 
 public abstract class Base<B extends Base<B>> {
@@ -77,8 +78,8 @@ public abstract class Base<B extends Base<B>> {
         return relPath;
     }
 
-    public Entity buildEntity() throws IOException {
-        return new AnnotationTransformer()
+    public ModelInfo buildModelInfo() throws IOException {
+        return new ModelInfoBuilder()
                 .withModel(this)
                 .withBaseURI(baseURI)
                 .withSelfURI(selfURI)

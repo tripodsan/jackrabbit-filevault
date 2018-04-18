@@ -17,9 +17,13 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest.meta;
 
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.TreeMap;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 
@@ -29,9 +33,9 @@ public class ActionInfo {
 
     private final Method method;
 
-    private final Map<String, FieldInfo> fields;
+    private final Map<String, ParameterInfo> fields;
 
-    public ActionInfo(Action sirenAction, Method method, Map<String, FieldInfo> fields) {
+    public ActionInfo(Action sirenAction, Method method, Map<String, ParameterInfo> fields) {
         this.sirenAction = sirenAction;
         this.method = method;
         this.fields = fields;
@@ -45,7 +49,21 @@ public class ActionInfo {
         return method;
     }
 
-    public Map<String, FieldInfo> getFields() {
+    public Map<String, ParameterInfo> getFields() {
         return fields;
+    }
+
+    public void execute(Object resource, HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Object[] args = new Object[fields.size()];
+
+        try {
+            method.invoke(resource, args);
+        } catch (IllegalAccessException e) {
+            throw new IOException(e);
+        } catch (InvocationTargetException e) {
+            Throwable t = e.getTargetException();
+            throw new IOException(t);
+        }
+
     }
 }

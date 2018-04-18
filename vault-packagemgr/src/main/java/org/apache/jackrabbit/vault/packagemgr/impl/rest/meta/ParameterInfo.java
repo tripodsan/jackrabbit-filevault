@@ -17,13 +17,16 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest.meta;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 
-public class FieldInfo {
+public class ParameterInfo {
+
+    public static final String TYPE_REQUEST = "<request>";
+    public static final String TYPE_RESPONSE = "<response>";
+    public static final String TYPE_UPLOAD = "<upload>";
+    public static final String TYPE_JSON_BODY = "<json-body>";
+    public static final String TYPE_STREAM_BODY = "<stream-body>";
+
 
     private final Field sirenField;
 
@@ -31,7 +34,7 @@ public class FieldInfo {
 
     private final int parameterIdx;
 
-    public FieldInfo(Field sirenField, Class<?> type, int parameterIdx) {
+    public ParameterInfo(Field sirenField, Class<?> type, int parameterIdx) {
         this.sirenField = sirenField;
         this.type = type;
         this.parameterIdx = parameterIdx;

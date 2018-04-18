@@ -34,6 +34,11 @@ import org.apache.jackrabbit.vault.packagemgr.impl.models.Base;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Filevault;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.PackageModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Packages;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ActionInfo;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfo;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.Packaging;
@@ -125,59 +130,30 @@ public class PackageMgrServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
-            Base model = resolve(request, response);
+            Base model = resolve(req, resp);
             if (model == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                resp.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
-            model.doGet(request, response);
-        } catch (RepositoryException | JsonException | URISyntaxException e) {
+
+            // todo: full entity only needed for GET. other methods only need actions.
+            ModelInfo info = model.buildModelInfo();
+            if ("GET".equals(req.getMethod())) {
+                resp.setContentType("application/json");
+                resp.setCharacterEncoding("utf-8");
+                try (SirenJsonWriter out = new SirenJsonWriter(resp.getWriter())) {
+                    out.write(info.getSirenEntity());
+                }
+
+            } else {
+                info.service(req, resp);
+            }
+        } catch (RepositoryException | JsonException | URISyntaxException | IllegalArgumentException e) {
             throw new IOException(e);
         }
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        try {
-            Base model = resolve(request, response);
-            if (model == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            model.doPost(request, response);
-        } catch (RepositoryException | JsonException | URISyntaxException e) {
-            throw new IOException(e);
-        }
-    }
-
-    @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        try {
-            Base model = resolve(request, response);
-            if (model == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            model.doPut(request, response);
-        } catch (RepositoryException | JsonException | URISyntaxException e) {
-            throw new IOException(e);
-        }
-    }
-
-    @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        try {
-            Base model = resolve(request, response);
-            if (model == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            model.doDelete(request, response);
-        } catch (RepositoryException | JsonException | URISyntaxException e) {
-            throw new IOException(e);
-        }
-    }
 }
 

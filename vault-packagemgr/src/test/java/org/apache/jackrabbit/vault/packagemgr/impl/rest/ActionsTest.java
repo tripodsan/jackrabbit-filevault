@@ -29,7 +29,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ActionInfo;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.AnnotationTransformer;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.FieldBuilder;
 import org.junit.Test;
 
@@ -42,7 +42,7 @@ public class ActionsTest {
     private static final String BASE_HREF = "http://filevault.apache.org/base/api";
 
     private void testAction(Action expected) throws URISyntaxException {
-        Collection<ActionInfo> actions = new AnnotationTransformer()
+        Collection<ActionInfo> actions = new ModelInfoBuilder()
                 .withModel(new ActionExample())
                 .withSelfURI(new URI(BASE_HREF))
                 .collectActions();
@@ -143,7 +143,7 @@ public class ActionsTest {
     @Test
     public void testInvalidActions() throws URISyntaxException {
         ActionExample.InvalidActionExamples model = new ActionExample.InvalidActionExamples();
-        AnnotationTransformer tf = new AnnotationTransformer()
+        ModelInfoBuilder tf = new ModelInfoBuilder()
                 .withModel(model)
                 .withSelfURI(new URI(BASE_HREF));
         for (Method method: model.getClass().getMethods()) {

@@ -29,7 +29,7 @@ import java.util.Set;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExampleWithModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.AnnotationTransformer;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoBuilder;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -67,7 +67,7 @@ public class LinkTests {
 
     @Test
     public void testLinks() throws Exception {
-        AnnotationTransformer transformer = new AnnotationTransformer()
+        ModelInfoBuilder transformer = new ModelInfoBuilder()
                 .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExample());
         Map<String, Set<String>> tests = new HashMap<>(TEST_LINKS);
@@ -80,7 +80,7 @@ public class LinkTests {
 
     @Test
     public void testAutoSelfLink() throws Exception {
-        Collection<Link> links = new AnnotationTransformer()
+        Collection<Link> links = new ModelInfoBuilder()
                 .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.AutoSelfLink())
                 .collectLinks();
@@ -92,7 +92,7 @@ public class LinkTests {
 
     @Test
     public void testNoSelfLink() throws Exception {
-        Collection<Link> links = new AnnotationTransformer()
+        Collection<Link> links = new ModelInfoBuilder()
                 .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.NoSelfLink())
                 .collectLinks();
@@ -101,7 +101,7 @@ public class LinkTests {
 
     @Test
     public void testCustomSelfLink() throws Exception {
-        Collection<Link> links = new AnnotationTransformer()
+        Collection<Link> links = new ModelInfoBuilder()
                 .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.CustomSelfLink())
                 .collectLinks();
@@ -113,7 +113,7 @@ public class LinkTests {
 
     @Test
     public void testAutoSelfLinkWithHref() throws Exception {
-        Collection<Link> links = new AnnotationTransformer()
+        Collection<Link> links = new ModelInfoBuilder()
                 .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.AutoSelfLinkWithHref())
                 .collectLinks();
@@ -125,7 +125,7 @@ public class LinkTests {
 
     @Test
     public void testCustomSelfLinkWithHref() throws Exception {
-        Collection<Link> links = new AnnotationTransformer()
+        Collection<Link> links = new ModelInfoBuilder()
                 .withBaseURI(new URI(BASE_HREF))
                 .withModel(new LinkExampleWithModel.CustomSelfLinkWithHrefURI())
                 .collectLinks();
