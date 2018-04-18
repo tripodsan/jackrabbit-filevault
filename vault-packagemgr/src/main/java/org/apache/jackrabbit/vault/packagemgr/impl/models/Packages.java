@@ -39,6 +39,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiEntities;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -55,15 +56,12 @@ public class Packages extends Base<Packages> {
      */
     private static final Logger log = LoggerFactory.getLogger(Packages.class);
 
-
-    public static final String ACTION_CREATE_PACKAGE = "create-package";
-    public static final String ACTION_UPLOAD_PACKAGE = "upload-package";
     public static final String PARAM_PACKAGE = "package";
     public static final String PARAM_REPLACE = "replace";
 
-
     private JcrPackageManager pkgMgr;
 
+    private List<JcrPackage> packages;
 
     public Packages withPackageManager(JcrPackageManager pkgMgr) {
         this.pkgMgr = pkgMgr;
@@ -93,74 +91,15 @@ public class Packages extends Base<Packages> {
         }
         return entities;
     }
-
-//    @Override
-//    public Entity _buildEntity() throws IOException {
-//        DependencyResolver depResolver = new DependencyResolver(pkgMgr);
-//
-//        List<JcrPackage> packages = listPackages();
-//        EntityBuilder builder = new EntityBuilder()
-//                .addClass(CLASS)
-//                .addProperty("itemCount", packages.size())
-//                .addLink(Rels.SELF, baseHref + "/packages");
-//
-//        for (JcrPackage pkg : packages) {
-//            try {
-//                builder.addEntity(new PackageModel()
-//                        .withPackage(pkg)
-//                        .withDependencyResolver(depResolver)
-//                        .withBrief(true)
-//                        .withBaseURI(baseHref)
-//                        .buildEntity()
-//                );
-//            } catch (RepositoryException e) {
-//                log.error("Error while including package: {}", pkg);
-//            }
-//        }
-//
-//        builder.addAction(new ActionBuilder()
-//                .withName(ACTION_UPLOAD_PACKAGE)
-//                .withTitle("Upload package with multipart formdata.")
-//                .withType(Action.TYPE_MULTIPART_FORM_DATA)
-//                .withMethod(Action.Method.POST)
-//                .withHref(baseHref + "/packages")
-//                .addField(new FieldBuilder()
-//                        .withName(PARAM_PACKAGE)
-//                        .withTitle("Package File")
-//                        .withType(Field.Type.FILE)
-//                        .build())
-//                .addField(new FieldBuilder()
-//                        .withName(PARAM_REPLACE)
-//                        .withType(Field.Type.CHECKBOX)
-//                        .withTitle("Replace existing package")
-//                        .build())
-//                .build()
-//        );
-//
-//        builder.addAction(new ActionBuilder()
-//                .withName(ACTION_UPLOAD_PACKAGE)
-//                .withTitle("Upload package with binary body")
-//                .withType(Action.TYPE_APPLICATION_OCTET_STREAM)
-//                .withMethod(Action.Method.POST)
-//                .withHref(baseHref + "/packages")
-//                .build()
-//        );
-//
-//        builder.addAction(new ActionBuilder()
-//                .withName(ACTION_CREATE_PACKAGE)
-//                .withTitle("Create new package with JSON payload as initial values")
-//                .withType(Action.TYPE_JSON)
-//                .withMethod(Action.Method.POST)
-//                .withHref(baseHref + "/packages/{packageId}")
-//                .build()
-//        );
-//
-//        return builder.build();
-//    }
+    
+    @ApiProperty
+    public long getItemCount() throws IOException {
+        return listPackages().size();
+    }
 
     @ApiAction(
             method = ApiAction.Method.PUT,
-            name = ACTION_CREATE_PACKAGE,
+            name = "create-package",
             title = "Create new package with JSON payload as initial values",
             type = ApiAction.TYPE_JSON,
             href = "/{packageId}"
@@ -217,7 +156,8 @@ public class Packages extends Base<Packages> {
     }
 
     @ApiAction(
-            name = ACTION_UPLOAD_PACKAGE,
+            method = ApiAction.Method.POST,
+            name = "upload-raw-package",
             type = ApiAction.TYPE_APPLICATION_OCTET_STREAM,
             title = "Upload package with binary body"
     )
@@ -227,7 +167,7 @@ public class Packages extends Base<Packages> {
 
     @ApiAction(
             method = ApiAction.Method.POST,
-            name = ACTION_UPLOAD_PACKAGE,
+            name = "upload-package",
             title = "Upload package with multipart formdata.",
             type = ApiAction.TYPE_MULTIPART_FORM_DATA,
             fields = {
@@ -293,7 +233,10 @@ public class Packages extends Base<Packages> {
 
     private List<JcrPackage> listPackages() throws IOException {
         try {
-            return pkgMgr.listPackages();
+            if (packages == null) {
+                packages = pkgMgr.listPackages();
+            }
+            return packages;
         } catch (RepositoryException e) {
             throw new IOException(e);
         }

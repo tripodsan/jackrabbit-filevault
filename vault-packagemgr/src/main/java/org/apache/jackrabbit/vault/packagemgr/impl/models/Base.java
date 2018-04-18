@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiHref;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.AnnotationTransformer;
@@ -68,7 +69,7 @@ public abstract class Base<B extends Base<B>> {
         return baseURI;
     }
 
-    @ApiLink(ApiLink.SELF)
+    @ApiHref
     public URI getSelfURI() {
         return selfURI;
     }

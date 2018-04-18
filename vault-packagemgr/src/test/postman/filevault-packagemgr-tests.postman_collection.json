@@ -86,7 +86,7 @@
 					},
 					"response": [
 						{
-							"id": "5e5aa544-2976-4c31-b68d-fb487610a0b1",
+							"id": "c485cd9a-aa32-4ac7-871d-74751a4d52d0",
 							"name": "Default responst",
 							"originalRequest": {
 								"method": "GET",
@@ -172,7 +172,7 @@
 					},
 					"response": [
 						{
-							"id": "fdfead5f-76c5-4f95-a480-3599ce46f928",
+							"id": "848a9e37-c7bf-4bdc-a953-32b7424b2ac6",
 							"name": "not existent package gives 404",
 							"originalRequest": {
 								"method": "GET",
@@ -234,7 +234,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "3e610ee3-3f8b-43eb-bf6b-ab60d1c18c9f",
+								"id": "a6f701e9-6ae0-4abb-8064-b90389c58181",
 								"type": "text/javascript",
 								"exec": [
 									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
@@ -257,7 +257,7 @@
 									"                },",
 									"                {",
 									"                    \"name\": \"replace\",",
-									"                    \"type\": \"text\",",
+									"                    \"type\": \"checkbox\",",
 									"                    \"title\": \"Replace existing package\"",
 									"                }",
 									"            ]",
@@ -415,7 +415,7 @@
 					},
 					"response": [
 						{
-							"id": "9e06c79e-dcef-45ae-a225-bfc52241eae3",
+							"id": "54277be8-3913-486b-bbfe-22c57042341d",
 							"name": "create action upload",
 							"originalRequest": {
 								"method": "POST",
@@ -563,7 +563,7 @@
 					},
 					"response": [
 						{
-							"id": "142427a2-2217-4946-b44e-f9b87235c573",
+							"id": "e227edfb-5639-4f59-90f0-1fea6f75c847",
 							"name": "create action upload",
 							"originalRequest": {
 								"method": "POST",
@@ -773,7 +773,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "ed8f62a0-5dca-4948-97d6-e53c6e7c5b86",
+								"id": "8c5ce71d-0773-42ed-835d-d737059e3bbb",
 								"type": "text/javascript",
 								"exec": [
 									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
@@ -851,6 +851,12 @@
 									"        },",
 									"        {",
 									"            \"rel\": [",
+									"                \"http://jackrabbit.apache.org/filevault/rels/package-brief\"",
+									"            ],",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0?format=brief\"",
+									"        },",
+									"        {",
+									"            \"rel\": [",
 									"                \"http://jackrabbit.apache.org/filevault/rels/package-download\"",
 									"            ],",
 									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0/fullpackage-1.0.zip\"",
@@ -872,18 +878,13 @@
 									"                \"http://jackrabbit.apache.org/filevault/rels/thumbnail\"",
 									"            ],",
 									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0/thumbnail.png\"",
-									"        },",
-									"        {",
-									"            \"rel\": [",
-									"                \"http://jackrabbit.apache.org/filevault/rels/package-brief\"",
-									"            ],",
-									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0?format=brief\"",
 									"        }",
 									"    ],",
 									"    \"actions\": [",
 									"        {",
 									"            \"name\": \"delete-package\",",
-									"            \"method\": \"DELETE\"",
+									"            \"method\": \"DELETE\",",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0\"",
 									"        }",
 									"    ]",
 									"});",
@@ -919,7 +920,7 @@
 					},
 					"response": [
 						{
-							"id": "0fae16f7-ce2a-4414-9e4e-05512e9ac6b9",
+							"id": "285e38f1-8175-4b74-981f-6d95a10b37bd",
 							"name": "test-package full reponse",
 							"originalRequest": {
 								"method": "GET",
@@ -978,7 +979,7 @@
 						{
 							"listen": "test",
 							"script": {
-								"id": "b3c06729-a861-41ca-b99c-9676d414bec4",
+								"id": "4c71f4dc-c02e-4d29-9919-0489db3d6da0",
 								"type": "text/javascript",
 								"exec": [
 									"const API_BASE_URL = pm.variables.get(\"HOST\") + pm.variables.get(\"API_BASE\");",
@@ -1008,27 +1009,34 @@
 									"    \"links\": [",
 									"        {",
 									"            \"rel\": [",
+									"                \"self\"",
+									"            ],",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0?format=brief\"",
+									"        },",
+									"        {",
+									"            \"rel\": [",
 									"                \"http://jackrabbit.apache.org/filevault/rels/package\"",
 									"            ],",
-									"            \"href\": \"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0\"",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0\"",
 									"        },",
 									"        {",
 									"            \"rel\": [",
 									"                \"http://jackrabbit.apache.org/filevault/rels/package-download\"",
 									"            ],",
-									"            \"href\": \"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0/fullpackage-1.0.zip\"",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0/fullpackage-1.0.zip\"",
 									"        },",
 									"        {",
 									"            \"rel\": [",
-									"                \"self\"",
+									"                \"http://jackrabbit.apache.org/filevault/rels/thumbnail\"",
 									"            ],",
-									"            \"href\": \"http://localhost:8080/system/jackrabbit/filevault/packages/org/apache/jackrabbit/fullpackage/1.0?format=brief\"",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0/thumbnail.png\"",
 									"        }",
 									"    ],",
 									"    \"actions\": [",
 									"        {",
 									"            \"name\": \"delete-package\",",
-									"            \"method\": \"DELETE\"",
+									"            \"method\": \"DELETE\",",
+									"            \"href\": API_BASE_URL + \"/packages/org/apache/jackrabbit/fullpackage/1.0\"",
 									"        }",
 									"    ]",
 									"}",
@@ -1242,7 +1250,7 @@
 					},
 					"response": [
 						{
-							"id": "037b590d-8c7f-4839-ac7c-2cf2de9b6c95",
+							"id": "58097469-5801-4c0f-b5bb-09de4d8a3fec",
 							"name": "create action upload",
 							"originalRequest": {
 								"method": "POST",
@@ -1342,7 +1350,7 @@
 					},
 					"response": [
 						{
-							"id": "d58dad3c-28a9-4af1-99eb-2a28a42209e7",
+							"id": "884bb717-55f0-4b70-bad5-e17efa6c4ec6",
 							"name": "Default responst",
 							"originalRequest": {
 								"method": "GET",
@@ -1453,7 +1461,7 @@
 			},
 			"response": [
 				{
-					"id": "42b9fe35-e6cf-4bff-bdb5-d00b7302609b",
+					"id": "b5659ce3-a6a4-43ad-b584-fa8a7d9b22f1",
 					"name": "Example request",
 					"originalRequest": {
 						"method": "GET",
@@ -1540,28 +1548,28 @@
 	],
 	"variable": [
 		{
-			"id": "02fa6134-0f1f-4de2-b606-97568455af42",
+			"id": "122c7e68-2a75-495c-9b04-db7d353489cf",
 			"key": "API_BASE",
 			"value": "/system/jackrabbit/filevault",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "84ef9922-828c-4925-8df6-c31f75a7d9c2",
+			"id": "bd62d5f6-5596-47c8-8baf-87df9fff1fe7",
 			"key": "REL_PACKAGES",
 			"value": "http://jackrabbit.apache.org/filevault/rels/packages",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "234e87f6-a169-449a-bc95-5276ded63b8f",
+			"id": "de4841b4-9fb7-40b9-83fb-c6d20d16f135",
 			"key": "TEST_PKG1_ID",
 			"value": "org/apache/jackrabbit:test-package:1.0",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "d00e0119-31e6-4e16-a2bf-a46ef9da9a7f",
+			"id": "24556c66-2c1a-4461-9a64-ca5686e1b1fc",
 			"key": "TEST_PKG1_ID_PATH",
 			"value": "/org/apache/jackrabbit/test-package/1.0",
 			"type": "string",

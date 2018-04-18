@@ -17,6 +17,9 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures;
 
+import java.net.URI;
+
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiHref;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 
@@ -36,9 +39,31 @@ public class LinkExampleWithModel {
     @ApiModel
     public static class CustomSelfLink {
 
-        @ApiLink("self")
-        public static final String SELF = "?format=full";
+        @ApiLink(ApiLink.SELF)
+        public String linkSelf() {
+            return "?format=full";
+        }
 
     }
+
+    @ApiModel
+    public static class AutoSelfLinkWithHref {
+
+        @ApiHref
+        public static String apiBaseRelative = "/filevault";
+
+    }
+
+    @ApiModel(relPath = "modelRelPathHasNoImpactHere")
+    public static class CustomSelfLinkWithHrefURI {
+
+        @ApiHref
+        public static URI absoluteURI = URI.create("http://jackrabbit.apache.org/filevault/api/system");
+
+        @ApiLink(ApiLink.SELF)
+        public static String SELF = "?format=full";
+
+    }
+
 
 }

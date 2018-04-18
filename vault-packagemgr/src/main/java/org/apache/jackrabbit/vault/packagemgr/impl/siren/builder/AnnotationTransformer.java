@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiEntities;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiHref;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
@@ -53,6 +55,10 @@ public class AnnotationTransformer {
     private URI baseURI;
 
     private URI selfURI;
+
+    private Set<String> classes = new HashSet<>();
+
+    private String pseudoClass;
 
     private Object model;
 
@@ -117,7 +123,7 @@ public class AnnotationTransformer {
             }
             builder.addField(new FieldBuilder()
                     .withName(fieldName)
-                    .withType(field.type().name())
+                    .withType(field.type().toString())
                     .withTitle(field.title())
                     .withValue(field.defaultValue())
                     .build()
@@ -132,6 +138,7 @@ public class AnnotationTransformer {
         Member[] members = ReflectionUtils.getFieldsAndMethods(model.getClass());
         List<LinkBuilder> links = new ArrayList<>(members.length);
         LinkBuilder selfLink = null;
+        boolean hasHref = false;
         for (Member member: ReflectionUtils.getFieldsAndMethods(model.getClass())) {
             ApiLink annotation = ((AnnotatedElement) member).getAnnotation(ApiLink.class);
             if (annotation != null) {
@@ -147,20 +154,36 @@ public class AnnotationTransformer {
                     }
                 }
             }
+            ApiHref hrefAnnotation = ((AnnotatedElement) member).getAnnotation(ApiHref.class);
+            if (hrefAnnotation != null) {
+                final Object ret = ReflectionUtils.getValue(model, member);
+                if (ret instanceof URI) {
+                    hasHref = true;
+                    selfURI = (URI) ret;
+                } else if (ret != null) {
+                    hasHref = true;
+                    selfURI = new URI(resolveHref(baseURI, ret.toString()));
+                }
+            }
         }
-        if (selfLink != null) {
+        if (selfLink == null) {
+            ApiModel annotation = model.getClass().getAnnotation(ApiModel.class);
+            if (annotation != null && annotation.selfLink()) {
+                if (!hasHref) {
+                    selfURI = new URI(resolveHref(baseURI, annotation.relPath()));
+                }
+                selfLink = new LinkBuilder()
+                        .addRel(ApiLink.SELF)
+                        .withHref(selfURI.toString());
+            }
+        } else if (hasHref) {
+            // adjust self link with selfURI set by href
+            selfLink = selfLink.withHref(resolveHref(selfURI, selfLink.href));
+        } else {
+            // no href, so define self uri via self ref
             String newSelfRef = resolveHref(baseURI, selfLink.href);
             selfURI = new URI(newSelfRef);
             selfLink = selfLink.withHref(newSelfRef);
-        } else {
-            ApiModel annotation = model.getClass().getAnnotation(ApiModel.class);
-            if (annotation != null &&annotation.selfLink()) {
-                String newSelfRef = resolveHref(baseURI, annotation.relPath());
-                selfURI = new URI(newSelfRef);
-                selfLink = new LinkBuilder()
-                        .addRel(ApiLink.SELF)
-                        .withHref(newSelfRef);
-            }
         }
         List<Link> ret = new ArrayList<>(links.size());
         for (LinkBuilder builder: links) {
@@ -176,7 +199,6 @@ public class AnnotationTransformer {
     }
 
     public Set<String> collectClasses() {
-        Set<String> classes = new HashSet<>();
         for (Member member: ReflectionUtils.getFieldsAndMethods(model.getClass())) {
             ApiClass annotation = ((AnnotatedElement) member).getAnnotation(ApiClass.class);
             if (annotation != null) {
@@ -187,7 +209,7 @@ public class AnnotationTransformer {
         if (annotation != null) {
             classes.addAll(Arrays.asList(annotation.classes()));
         }
-
+        pseudoClass = parentModel == null ? ApiProperty.CONTEXT_ENTITY : ApiProperty.CONTEXT_SUB_ENTITY;
         return classes;
     }
 
@@ -207,12 +229,19 @@ public class AnnotationTransformer {
         for (Member member: ReflectionUtils.getFieldsAndMethods(model.getClass())) {
             ApiProperty annotation = ((AnnotatedElement) member).getAnnotation(ApiProperty.class);
             if (annotation != null) {
-                if (parentModel == null && annotation.context() == ApiProperty.Context.INLINE) {
-                    continue;
+                if (annotation.context().length > 0 && !classes.isEmpty()) {
+                    boolean include = false;
+                    for (String ctx: annotation.context()) {
+                        if (classes.contains(ctx) || ctx.equals(pseudoClass)) {
+                            include = true;
+                            break;
+                        }
+                    }
+                    if (!include) {
+                        continue;
+                    }
                 }
-                if (parentModel != null && annotation.context() == ApiProperty.Context.ENTITY) {
-                    continue;
-                }
+
                 Object value = ReflectionUtils.getValue(model, member);
                 if (value == null) {
                     continue;

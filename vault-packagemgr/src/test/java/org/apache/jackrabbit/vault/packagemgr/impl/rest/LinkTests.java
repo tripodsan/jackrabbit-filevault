@@ -111,4 +111,28 @@ public class LinkTests {
         assertEquals("rels", REL_SELF, link.getRels());
     }
 
+    @Test
+    public void testAutoSelfLinkWithHref() throws Exception {
+        Collection<Link> links = new AnnotationTransformer()
+                .withBaseURI(new URI(BASE_HREF))
+                .withModel(new LinkExampleWithModel.AutoSelfLinkWithHref())
+                .collectLinks();
+        assertEquals("number of links", 1, links.size());
+        Link link = links.iterator().next();
+        assertEquals("href", BASE_HREF + "/filevault", link.getHref());
+        assertEquals("rels", REL_SELF, link.getRels());
+    }
+
+    @Test
+    public void testCustomSelfLinkWithHref() throws Exception {
+        Collection<Link> links = new AnnotationTransformer()
+                .withBaseURI(new URI(BASE_HREF))
+                .withModel(new LinkExampleWithModel.CustomSelfLinkWithHrefURI())
+                .collectLinks();
+        assertEquals("number of links", 1, links.size());
+        Link link = links.iterator().next();
+        assertEquals("href", "http://jackrabbit.apache.org/filevault/api/system?format=full", link.getHref());
+        assertEquals("rels", REL_SELF, link.getRels());
+    }
+
 }

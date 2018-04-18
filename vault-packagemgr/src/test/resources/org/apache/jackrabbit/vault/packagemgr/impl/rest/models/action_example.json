@@ -9,47 +9,47 @@
     ],
     "actions": [
         {
+            "method": "GET",
             "name": "create-stuff",
-            "method": "GET",
             "href": "http://localhost:8080/system"
         },
         {
+            "method": "GET",
             "name": "default-action",
-            "method": "GET",
             "href": "http://localhost:8080/system"
         },
         {
+            "method": "PUT",
             "name": "put-action",
             "type": "application/json",
             "title": "create new stuff",
-            "method": "PUT",
             "href": "http://localhost:8080/system/stuff/{id}",
             "fields": [
                 {
                     "name": "title",
-                    "type": "TEXT"
+                    "type": "text"
                 },
                 {
                     "name": "flag",
-                    "type": "CHECKBOX",
+                    "type": "checkbox",
                     "value": "false"
                 }
             ]
         },
         {
+            "method": "POST",
             "name": "upload-thumbnail",
             "type": "multipart/form-data",
             "title": "Upload thumbnail",
-            "method": "POST",
             "href": "http://localhost:8080/system/thumbnail",
             "fields": [
                 {
                     "name": "title",
-                    "type": "TEXT"
+                    "type": "text"
                 },
                 {
                     "name": "file",
-                    "type": "FILE",
+                    "type": "file",
                     "title": "File to upload"
                 }
             ]

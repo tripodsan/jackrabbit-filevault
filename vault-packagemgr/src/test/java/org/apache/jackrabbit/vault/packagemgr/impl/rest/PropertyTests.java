@@ -55,6 +55,7 @@ public class PropertyTests {
         TEST_PROPERTIES.put("mapProperty", TEST_SUB_MAP);
         TEST_PROPERTIES.put("foo", "Hello");
         TEST_PROPERTIES.put("bar", "world");
+        TEST_PROPERTIES.put("onlyInFoo", "foo");
         Calendar date = GregorianCalendar.getInstance(TimeZone.getTimeZone("UTC"));
         date.setTimeInMillis(0);
         TEST_PROPERTIES.put("dateProperty", date);
@@ -64,6 +65,7 @@ public class PropertyTests {
     public void testProperty() throws Exception {
         AnnotationTransformer transformer = new AnnotationTransformer()
                 .withModel(new PropertyExample());
+        transformer.collectClasses(); // need to init the classes
         Map<String, Object> properties = transformer.collectProperties();
         for (Map.Entry<String, Object> e: TEST_PROPERTIES.entrySet()) {
             Object v = properties.remove(e.getKey());

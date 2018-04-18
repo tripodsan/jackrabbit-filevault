@@ -66,12 +66,12 @@ public class EntitiesExample {
             return title;
         }
 
-        @ApiProperty(context = ApiProperty.Context.INLINE)
+        @ApiProperty(context = ApiProperty.CONTEXT_SUB_ENTITY)
         public String getInlineTitle() {
             return "inline: " + title;
         }
 
-        @ApiProperty(context = ApiProperty.Context.ENTITY)
+        @ApiProperty(context = ApiProperty.CONTEXT_ENTITY)
         public String getEntityTitle() {
             return "entity: " + title;
         }

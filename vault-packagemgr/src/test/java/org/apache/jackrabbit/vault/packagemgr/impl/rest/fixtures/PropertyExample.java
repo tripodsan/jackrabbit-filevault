@@ -23,10 +23,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
 
-@ApiModel
+@ApiModel(classes = "foo")
 public class PropertyExample {
 
     @ApiProperty(name = "string-property")
@@ -95,4 +96,9 @@ public class PropertyExample {
         return ret;
     }
 
+    @ApiProperty(context = "foo")
+    public String onlyInFoo = "foo";
+
+    @ApiProperty(context = "bar")
+    public String onlyInBar = "bar";
 }

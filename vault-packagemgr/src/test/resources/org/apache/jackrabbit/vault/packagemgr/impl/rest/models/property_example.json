@@ -1,4 +1,7 @@
 {
+    "class": [
+        "foo"
+    ],
     "properties": {
         "bar": "world",
         "booleanProperty": true,
@@ -22,6 +25,7 @@
         },
         "methodBooleanProperty": true,
         "methodStringProperty": "Hello, world.",
+        "onlyInFoo": "foo",
         "string-property": "Hello, world.",
         "string-property-1": "Hello, world.",
         "stringArray": [

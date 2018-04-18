@@ -30,21 +30,39 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ApiProperty {
 
+    /**
+     * Pseudo class that is active for context calculation if the entity is serialized as sub entity.
+     */
+    String CONTEXT_SUB_ENTITY = "context-subentity";
+
+    /**
+     * Pseudo class that is active for context calculation if the entity is serialized top level.
+     */
+    String CONTEXT_ENTITY = "context-entity";
+
+    /**
+     * Name of the property. If both, {@link #name()} and value are give, the result is undefined.
+     * @return the name
+     */
     String value() default "";
 
+    /**
+     * Name of the property.
+     * @return the name
+     */
     String name() default "";
 
-    Context context() default Context.BOTH;
+    /**
+     * Defines the context where a property should be included. If none of the values matches the classes of the
+     * containing entity, then the property should not be serialized. The empty set matches any class.
+     * @return the set of classes where this property is active.
+     */
+    String[] context() default {};
 
+    /**
+     * Applies only to map properties such as for each element of the map a property should be serialized. if {@code false},
+     * then the map itself should be serialized as 1 property (eg. JSON Object).
+     * @return {@code true} to flatten a map property
+     */
     boolean flatten() default false;
-
-    enum Context {
-
-        ENTITY,
-
-        INLINE,
-
-        BOTH;
-
-    }
 }

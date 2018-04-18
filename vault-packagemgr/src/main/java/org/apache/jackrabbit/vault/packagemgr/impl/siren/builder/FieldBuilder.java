@@ -35,7 +35,7 @@ public class FieldBuilder extends BaseBuilder<FieldBuilder> {
     }
 
     public FieldBuilder withType(Field.Type type) {
-        return this.withType(type.name());
+        return this.withType(type.toString());
     }
 
     public FieldBuilder withValue(String value) {

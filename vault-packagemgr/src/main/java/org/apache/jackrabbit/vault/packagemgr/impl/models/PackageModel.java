@@ -54,12 +54,20 @@ import org.slf4j.LoggerFactory;
 @ApiModel
 public class PackageModel extends Base<PackageModel> {
 
+    @ApiRelation
+    public static final String REL_VLT_PACKAGE = Filevault.VLT_BASE_URI + "/package";
+
     public static final String REL_VLT_THUMBNAIL = Filevault.VLT_BASE_URI + "/thumbnail";
 
     public static final String REL_VLT_SCREENSHOT = Filevault.VLT_BASE_URI + "/screenshot";
 
-    @ApiRelation
-    public static final String REL_VLT_PACKAGE = Filevault.VLT_BASE_URI + "/package";
+    public static final String REL_VLT_PACKAGE_DOWNLOAD = Filevault.VLT_BASE_URI + "/package-download";
+
+    public static final String REL_VLT_PACKAGE_BRIEF = Filevault.VLT_BASE_URI + "/package-brief";
+
+    public static final String CLASS_PACKAGE = "package";
+
+    public static final String CLASS_PACKAGE_BRIEF = "package-brief";
 
     /**
      * default logger
@@ -121,10 +129,6 @@ public class PackageModel extends Base<PackageModel> {
             .withTitle("JSON array of package dependencies")
             .build();
 
-    public static String CLASS = "package";
-
-    public static String CLASS_BRIEF = "package-brief";
-
     private boolean brief;
 
     private PackageRoute route;
@@ -153,16 +157,24 @@ public class PackageModel extends Base<PackageModel> {
         return this;
     }
 
+    public PackageModel withId(PackageId id) {
+        this.id = id;
+        withRelPath(PackageRoute.getPackageRelPath(id));
+        return this;
+    }
+
     public PackageModel withPackage(JcrPackage pkg) throws RepositoryException {
         this.pkg = pkg;
-        this.def = pkg.getDefinition();
-        this.id = def.getId();
-        withRelPath(PackageRoute.getPackageRelPath(id));
+        if (pkg != null) {
+            this.def = pkg.getDefinition();
+            withId(this.def.getId());
+        }
         return this;
     }
 
     public PackageModel withRoute(PackageRoute route) {
         this.route = route;
+        withId(route.getPackageId());
         return this;
     }
 
@@ -170,15 +182,6 @@ public class PackageModel extends Base<PackageModel> {
         this.dependencyResolver = dependencyResolver;
         return this;
     }
-
-//    //    @Override
-//    public Entity _buildEntity() throws IOException {
-//        try {
-//            return getPackageEntity();
-//        } catch (RepositoryException e) {
-//            throw new IOException(e);
-//        }
-//    }
 
     private boolean handleCommand(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
@@ -306,7 +309,7 @@ public class PackageModel extends Base<PackageModel> {
 
     @ApiClass
     public String clazz() {
-        return brief ? CLASS_BRIEF : CLASS;
+        return brief ? CLASS_PACKAGE_BRIEF : CLASS_PACKAGE;
     }
 
     @ApiLink(REL_VLT_THUMBNAIL)
@@ -334,6 +337,26 @@ public class PackageModel extends Base<PackageModel> {
         }
     }
 
+    @ApiLink(ApiLink.SELF)
+    public String linkSelf() {
+        return brief ? "?format=brief" : "";
+    }
+
+    @ApiLink(REL_VLT_PACKAGE_DOWNLOAD)
+    public String linkDownload() {
+        return "/" + id.getDownloadName();
+    }
+
+    @ApiLink(REL_VLT_PACKAGE_BRIEF)
+    public String linkPackageBrief() {
+        return brief ? null : "?format=brief";
+    }
+
+    @ApiLink(REL_VLT_PACKAGE)
+    public String linkPackageFull() {
+        return brief ? "" : null;
+    }
+
     @ApiProperty
     public String getPid() {
         return id.toString();
@@ -342,6 +365,11 @@ public class PackageModel extends Base<PackageModel> {
     @ApiProperty
     public String getGroup() {
         return id.getGroup();
+    }
+
+    @ApiProperty
+    public String getName() {
+        return id.getName();
     }
 
     @ApiProperty
@@ -373,47 +401,47 @@ public class PackageModel extends Base<PackageModel> {
         return def.isModified();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getDescription() {
         return def.getDescription();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public long getBuildCount() {
         return def.getBuildCount();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public Calendar getLastModified() {
         return def.getLastModified();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getLastModifiedBy() {
         return def.getLastModifiedBy();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public Calendar getLastUnpacked() {
         return def.getLastUnpacked();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getLastUnpackedBy() {
         return def.getLastUnpackedBy();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public Calendar getCreated() {
         return def.getCreated();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getCreatedBy() {
         return def.getCreatedBy();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public boolean getHasSnapshot() {
         try {
             return pkg.getSnapshot() != null;
@@ -422,52 +450,52 @@ public class PackageModel extends Base<PackageModel> {
         }
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getBuiltWith() {
         return def.get("builtWith");
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getTestedWith() {
         return def.get("testedWith");
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getFixedBugs() {
         return def.get("fixedBugs");
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public boolean getRequiresRoot() {
         return def.requiresRoot();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public boolean getRequiresRestart() {
         return def.requiresRestart();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public AccessControlHandling getAcHandling() {
         return def.getAccessControlHandling();
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getProviderName() {
         return def.get("providerName");
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getProviderUrl() {
         return def.get("providerUrl");
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public String getProviderLink() {
         return def.get("providerLink");
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public Object getReplaces() {
         try {
             return ReflectionUtils.jcrPropertyToObject(def.getNode(), "replaces");
@@ -476,7 +504,7 @@ public class PackageModel extends Base<PackageModel> {
         }
     };
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public Map<String, String> getDependencies() {
         if (resolvedDependencies == null) {
             resolveDependencies();
@@ -484,7 +512,7 @@ public class PackageModel extends Base<PackageModel> {
         return resolvedDependencies;
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public boolean getIsResolved() {
         if (resolvedDependencies == null) {
             resolveDependencies();
@@ -492,7 +520,7 @@ public class PackageModel extends Base<PackageModel> {
         return isResolved;
     }
 
-    @ApiProperty(context = ApiProperty.Context.ENTITY)
+    @ApiProperty(context = CLASS_PACKAGE)
     public WorkspaceFilter getWorkspaceFilter() {
         try {
             return def.getMetaInf().getFilter();
