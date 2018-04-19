@@ -25,7 +25,7 @@ import java.util.TimeZone;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.PropertyExample;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -63,7 +63,7 @@ public class PropertyTests {
 
     @Test
     public void testProperty() throws Exception {
-        ModelInfoBuilder transformer = new ModelInfoBuilder()
+        ModelInfoLoader transformer = new ModelInfoLoader()
                 .withModel(new PropertyExample());
         transformer.collectClasses(); // need to init the classes
         Map<String, Object> properties = transformer.collectProperties();

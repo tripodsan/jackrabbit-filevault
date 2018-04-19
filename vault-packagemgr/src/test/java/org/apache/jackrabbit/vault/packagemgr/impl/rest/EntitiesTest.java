@@ -20,7 +20,7 @@ package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.EntitiesExample;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -30,7 +30,7 @@ public class EntitiesTest {
 
     @Test
     public void testEntitiesExample() throws Exception {
-        ModelInfoBuilder transformer = new ModelInfoBuilder()
+        ModelInfoLoader transformer = new ModelInfoLoader()
                 .withModel(new EntitiesExample());
         Iterable entities = transformer.collectEntities();
         Iterator<EntitiesExample.SimpleEntity> iter = (Iterator<EntitiesExample.SimpleEntity>) entities.iterator();

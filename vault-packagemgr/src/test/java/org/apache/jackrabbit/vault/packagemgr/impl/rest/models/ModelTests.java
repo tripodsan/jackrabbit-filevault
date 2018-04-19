@@ -32,7 +32,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.EntitiesExample
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.PropertyExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 import org.junit.Test;
 
@@ -41,7 +41,7 @@ import static junit.framework.TestCase.assertEquals;
 public class ModelTests {
 
     private void testModelJson(Object model, String filename) throws IOException, URISyntaxException {
-        ModelInfoBuilder tx = new ModelInfoBuilder();
+        ModelInfoLoader tx = new ModelInfoLoader();
         Entity entity = tx
                 .withBaseURI(new URI("http://localhost:8080/system"))
                 .withModel(model)

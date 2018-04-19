@@ -24,7 +24,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ClassExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ClassExampleWithModel;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -37,7 +37,7 @@ public class ClassTests {
 
     @Test
     public void testMemberClasses() throws Exception {
-        ModelInfoBuilder transformer = new ModelInfoBuilder()
+        ModelInfoLoader transformer = new ModelInfoLoader()
                 .withModel(new ClassExample());
         Set<String> classes = transformer.collectClasses();
         assertEquals("Classes", TEST1_CLASSES, classes);
@@ -45,7 +45,7 @@ public class ClassTests {
 
     @Test
     public void testModelClasses() throws Exception {
-        ModelInfoBuilder transformer = new ModelInfoBuilder()
+        ModelInfoLoader transformer = new ModelInfoLoader()
                 .withModel(new ClassExampleWithModel());
         Set<String> classes = transformer.collectClasses();
         assertEquals("Classes", TEST2_CLASSES, classes);

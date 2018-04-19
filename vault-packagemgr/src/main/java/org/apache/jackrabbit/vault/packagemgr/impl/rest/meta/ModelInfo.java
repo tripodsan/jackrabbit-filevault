@@ -19,12 +19,17 @@ package org.apache.jackrabbit.vault.packagemgr.impl.rest.meta;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,34 +40,76 @@ public class ModelInfo {
      */
     private static final Logger log = LoggerFactory.getLogger(ModelInfo.class);
 
-    private final Object resource;
+    private Class<?> modelClass;
 
-    private final Collection<ActionInfo> actions;
+    private Set<String> globalClasses = Collections.emptySet();
 
-    private final Entity sirenEntity;
+    private String relPath;
 
-    public ModelInfo(Object resource, Collection<ActionInfo> actions, Entity sirenEntity) {
-        this.resource = resource;
-        this.actions = actions;
-        this.sirenEntity = sirenEntity;
+    private boolean selfLink;
+
+    private EntitiesInfo entities;
+
+    private TreeMap<String, ActionInfo> actions = new TreeMap<>();
+
+    private List<ClassesInfo> classes = new LinkedList<>();
+
+    private List<RelationInfo> relations = new LinkedList<>();
+
+    private TreeMap<String, PropertyInfo> properties = new TreeMap<>();
+
+    private HrefInfo href;
+
+    private List<LinkInfo> links = new LinkedList<>();
+
+    public Class<?> getModelClass() {
+        return modelClass;
     }
 
-    public Object getResource() {
-        return resource;
+    public Set<String> getGlobalClasses() {
+        return globalClasses;
     }
 
-    public Collection<ActionInfo> getActions() {
+    public String getRelPath() {
+        return relPath;
+    }
+
+    public boolean isSelfLink() {
+        return selfLink;
+    }
+
+    public EntitiesInfo getEntities() {
+        return entities;
+    }
+
+    public TreeMap<String, ActionInfo> getActions() {
         return actions;
     }
 
-    public Entity getSirenEntity() {
-        return sirenEntity;
+    public List<ClassesInfo> getClasses() {
+        return classes;
     }
 
+    public List<RelationInfo> getRelations() {
+        return relations;
+    }
+
+    public TreeMap<String, PropertyInfo> getProperties() {
+        return properties;
+    }
+
+    public HrefInfo getHref() {
+        return href;
+    }
+
+    public List<LinkInfo> getLinks() {
+        return links;
+    }
+
+
     public ActionInfo getAction(Action.Method method, String contentType) {
-        for (ActionInfo ai: actions) {
-            Action a = ai.getSirenAction();
-            if (method == a.getMethod() && contentType.equals(a.getType())) {
+        for (ActionInfo ai: actions.values()) {
+            if (method == ai.getHttpMethod() && contentType.equals(ai.getContentType())) {
                 return ai;
             }
         }
@@ -77,7 +124,91 @@ public class ModelInfo {
             resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             return;
         }
-
         action.execute(resource, req, resp);
+    }
+
+    public static class Builder {
+
+        private ModelInfo info;
+
+        public Builder() {
+            this.info = new ModelInfo();
+        }
+
+        public Builder withModelClass(Class<?> modelClass) {
+            info.modelClass = modelClass;
+            return this;
+        }
+
+        public Builder withClasses(Collection<String> classes) {
+            info.globalClasses = Collections.unmodifiableSet(new HashSet<>(classes));
+            return this;
+        }
+
+        public Builder withRelPath(String relPath) {
+            info.relPath = relPath;
+            return this;
+        }
+
+        public Builder withSelfLink(boolean selfLink) {
+            info.selfLink = selfLink;
+            return this;
+        }
+
+        public Builder withEntities(EntitiesInfo entities) {
+            if (info.entities != null) {
+                throw new IllegalArgumentException("Model defines multiple entities annotations: " + info.modelClass);
+            }
+            info.entities = entities;
+            return this;
+        }
+
+        public Builder addAction(ActionInfo action) {
+            if (info.actions.containsKey(action.getName())) {
+                throw new IllegalArgumentException("Action names must be unique " + action.getName() + " in " + info.modelClass);
+            }
+            info.actions.put(action.getName(), action);
+            return this;
+        }
+
+        public Builder addClass(ClassesInfo clazz) {
+            info.classes.add(clazz);
+            return this;
+        }
+
+        public Builder addRelation(RelationInfo rel) {
+            info.relations.add(rel);
+            return this;
+        }
+
+        public Builder addProperty(PropertyInfo property) {
+            if (info.properties.containsKey(property.getName())) {
+                throw new IllegalArgumentException("Property names must be unique " + property.getName() + " in " + info.modelClass);
+            }
+            info.properties.put(property.getName(), property);
+            return this;
+        }
+
+        public Builder withHref(HrefInfo href) {
+            if (info.href != null) {
+                throw new IllegalArgumentException("Model defines multiple href annotations: " + info.modelClass);
+            }
+            info.href = href;
+            return this;
+        }
+
+        public Builder addLink(LinkInfo link) {
+            info.links.add(link);
+            return this;
+        }
+        public ModelInfo build() {
+            try {
+                return info;
+            } finally {
+                info = null;
+            }
+        }
+
+
     }
 }

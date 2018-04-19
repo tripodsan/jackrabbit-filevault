@@ -35,6 +35,7 @@ import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.packagemgr.impl.DependencyResolver;
 import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.RestUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
@@ -206,13 +207,13 @@ public class PackageModel extends Base<PackageModel> {
                 JcrPackageDefinition def = pkg.getDefinition();
                 if (def.getNode().hasNode("thumbnail.png")) {
                     Node node = def.getNode().getNode("thumbnail.png");
-                    sendFile(request, response, node);
+                    RestUtils.sendFile(request, response, node);
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 }
             } else if ("download".equals(route.getCommand())) {
                 Node node = pkg.getNode();
-                sendFile(request, response, node);
+                RestUtils.sendFile(request, response, node);
             } else if ("screenshot".equals(route.getCommand())) {
                 JcrPackageDefinition def = pkg.getDefinition();
                 Node node = def.getNode();
@@ -221,9 +222,9 @@ public class PackageModel extends Base<PackageModel> {
                 } else {
                     node = node.getNode("screenshots/" + route.getFile());
                     if (node.hasProperty("jcr:content/jcr:data")) {
-                        sendFile(request, response, node);
+                        RestUtils.sendFile(request, response, node);
                     } else if (node.hasNode("file")) {
-                        sendFile(request, response, node.getNode("file"));
+                        RestUtils.sendFile(request, response, node.getNode("file"));
                     } else {
                         response.sendError(HttpServletResponse.SC_NOT_FOUND);
                     }
@@ -237,23 +238,11 @@ public class PackageModel extends Base<PackageModel> {
         }
     }
 
-    @Override
-    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        if (pkg == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-        if (!handleCommand(request, response)) {
-            super.doGet(request, response);
-        }
-    }
-
     @ApiAction(
             method = ApiAction.Method.DELETE,
             name = "delete-package"
     )
-    @Override
-    public void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void deletePackage(HttpServletResponse response) throws IOException {
         if (pkg == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -266,7 +255,7 @@ public class PackageModel extends Base<PackageModel> {
         }
     }
 
-    @Override
+
     public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
         if (pkg != null) {
             response.sendError(HttpServletResponse.SC_CONFLICT);

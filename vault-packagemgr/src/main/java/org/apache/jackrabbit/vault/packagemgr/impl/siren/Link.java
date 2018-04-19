@@ -26,6 +26,8 @@ import javax.annotation.Nullable;
  */
 public interface Link extends Comparable<Link> {
 
+    String SELF = "self";
+
     /**
      * Defines the relationship of the link to its entity, per<a href="https://tools.ietf.org/html/rfc5988">Web Linking (RFC5988)</a>
      * and <a href="http://www.iana.org/assignments/link-relations/link-relations.xhtml">Link Relations</a>.

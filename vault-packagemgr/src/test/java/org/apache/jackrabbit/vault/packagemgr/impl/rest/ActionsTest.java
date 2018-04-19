@@ -25,11 +25,11 @@ import java.util.Collection;
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ActionExample;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ActionInfo;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ActionInfoContext;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.FieldBuilder;
 import org.junit.Test;
 
@@ -42,12 +42,12 @@ public class ActionsTest {
     private static final String BASE_HREF = "http://filevault.apache.org/base/api";
 
     private void testAction(Action expected) throws URISyntaxException {
-        Collection<ActionInfo> actions = new ModelInfoBuilder()
+        Collection<ActionInfoContext> actions = new ModelInfoLoader()
                 .withModel(new ActionExample())
                 .withSelfURI(new URI(BASE_HREF))
                 .collectActions();
         String name = expected.getName();
-        for (ActionInfo ai: actions) {
+        for (ActionInfoContext ai: actions) {
             Action a = ai.getSirenAction();
             if (name.equals(a.getName())) {
                 assertTrue("action: " + name, expected.equals(a));
@@ -143,7 +143,7 @@ public class ActionsTest {
     @Test
     public void testInvalidActions() throws URISyntaxException {
         ActionExample.InvalidActionExamples model = new ActionExample.InvalidActionExamples();
-        ModelInfoBuilder tf = new ModelInfoBuilder()
+        ModelInfoLoader tf = new ModelInfoLoader()
                 .withModel(model)
                 .withSelfURI(new URI(BASE_HREF));
         for (Method method: model.getClass().getMethods()) {

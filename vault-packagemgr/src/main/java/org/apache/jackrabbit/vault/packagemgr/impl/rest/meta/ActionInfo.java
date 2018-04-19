@@ -17,53 +17,245 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest.meta;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
+import java.io.File;
+import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.net.URI;
+import java.util.Calendar;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
+import javax.annotation.Nonnull;
+import javax.json.JsonObject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.fileupload.FileUpload;
+import org.apache.jackrabbit.vault.packagemgr.impl.RestUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.FieldBuilder;
 
 public class ActionInfo {
 
-    private final Action sirenAction;
+    private String name;
 
-    private final Method method;
+    private Action.Method httpMethod;
 
-    private final Map<String, ParameterInfo> fields;
+    private String title;
 
-    public ActionInfo(Action sirenAction, Method method, Map<String, ParameterInfo> fields) {
-        this.sirenAction = sirenAction;
-        this.method = method;
-        this.fields = fields;
+    private String href;
+
+    private String contentType;
+
+    private Method method;
+
+    private List<Field> sirenFields = new LinkedList<>();
+
+    private Map<String, ParameterInfo> fields = new TreeMap<>();
+
+    private ActionInfo() {
     }
 
-    public Action getSirenAction() {
-        return sirenAction;
+    public String getName() {
+        return name;
     }
 
-    public Method getMethod() {
-        return method;
+    public Action.Method getHttpMethod() {
+        return httpMethod;
     }
 
-    public Map<String, ParameterInfo> getFields() {
-        return fields;
+    public String getContentType() {
+        return contentType;
     }
 
-    public void execute(Object resource, HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        Object[] args = new Object[fields.size()];
+    public Action createSirenAction(URI selfURI) {
+        return new ActionBuilder()
+                .withName(name)
+                .withMethod(Action.Method.valueOf(httpMethod.name()))
+                .withTitle(title)
+                .withHref(RestUtils.resolveHref(selfURI, href))
+                .withType(contentType)
+                .withFields(sirenFields)
+                .build();
+    }
 
-        try {
-            method.invoke(resource, args);
-        } catch (IllegalAccessException e) {
-            throw new IOException(e);
-        } catch (InvocationTargetException e) {
-            Throwable t = e.getTargetException();
-            throw new IOException(t);
+    public static class Builder {
+
+        private ActionInfo info;
+
+        public Builder() {
+            info = new ActionInfo();
         }
 
+        public Builder withMethod(Method method) {
+            info.method = method;
+            return this;
+        }
+
+        public Builder withName(String name) {
+            info.name = name;
+            return this;
+        }
+
+        public Builder withHttpMethod(Action.Method httpMethod) {
+            info.httpMethod = httpMethod;
+            return this;
+        }
+
+        public Builder withTitle(String title) {
+            info.title = title;
+            return this;
+        }
+
+        public Builder withHref(String href) {
+            info.href = href;
+            return this;
+        }
+
+        public Builder withContentType(String type) {
+            info.contentType = type;
+            return this;
+        }
+
+        public Builder addField(Field field) {
+            info.sirenFields.add(field);
+            return this;
+        }
+
+        private void addField(String name, int idx) {
+            info.fields.put(name, new ParameterInfo(name, idx));
+        }
+
+        public ActionInfo build() {
+            Class<?>[] params = info.method.getParameterTypes();
+            Annotation[][] annotations = info.method.getParameterAnnotations();
+            boolean canHandleBody = false;
+
+            for (int i = 0; i < params.length; i++) {
+                Class<?> type = params[i];
+                ApiField fld = null;
+                for (Annotation a : annotations[i]) {
+                    if (a instanceof ApiField) {
+                        if (fld != null) {
+                            throw new IllegalArgumentException(i + ". parameter has multiple ApiField annotations: " + info.method);
+                        }
+                        fld = (ApiField) a;
+                    }
+                }
+                if (type.isAssignableFrom(HttpServletRequest.class)) {
+                    if (info.fields.containsKey(ParameterInfo.TYPE_REQUEST)) {
+                        throw new IllegalArgumentException("only 1 HttpServletRequest possible for method " + info.method);
+                    }
+                    addField(ParameterInfo.TYPE_REQUEST, i);
+                    canHandleBody = true;
+
+                } else if (type.isAssignableFrom(HttpServletResponse.class)) {
+                    if (info.fields.containsKey(ParameterInfo.TYPE_RESPONSE)) {
+                        throw new IllegalArgumentException("only 1 HttpServletResponse possible for method " + info.method);
+                    }
+                    addField(ParameterInfo.TYPE_RESPONSE, i);
+
+                } else if (type.isAssignableFrom(FileUpload.class)) {
+                    if (info.fields.containsKey(ParameterInfo.TYPE_UPLOAD)) {
+                        throw new IllegalArgumentException("only 1 FileUpload possible for method " + info.method);
+                    }
+                    addField(ParameterInfo.TYPE_UPLOAD, i);
+                    info.contentType = Action.TYPE_MULTIPART_FORM_DATA;
+                    info.httpMethod = Action.Method.POST;
+                    canHandleBody = true;
+
+                } else if (type.isAssignableFrom(JsonObject.class)) {
+                    if (info.fields.containsKey(ParameterInfo.TYPE_JSON_BODY)) {
+                        throw new IllegalArgumentException("only 1 JsonObject possible for method " + info.method);
+                    }
+                    addField(ParameterInfo.TYPE_JSON_BODY, i);
+                    info.contentType = Action.TYPE_JSON;
+                    canHandleBody = true;
+
+                } else if (type.isAssignableFrom(InputStream.class) && fld == null) {
+                    if (info.fields.containsKey(ParameterInfo.TYPE_STREAM_BODY)) {
+                        throw new IllegalArgumentException("only 1 InputStream body possible for method " + info.method);
+                    }
+                    if (info.fields.containsKey(ParameterInfo.TYPE_UPLOAD) || info.fields.containsKey(ParameterInfo.TYPE_JSON_BODY)) {
+                        throw new IllegalArgumentException("only 1 body consuming parameter possible for method " + info.method);
+                    }
+                    addField(ParameterInfo.TYPE_STREAM_BODY, i);
+                    info.contentType = Action.TYPE_APPLICATION_OCTET_STREAM;
+                    canHandleBody = true;
+
+                } else if (fld != null) {
+                    Field f = createField(fld, type);
+                    addField(f);
+                    info.fields.put(f.getName(), new ParameterInfo(f, type, i));
+                    if ("file".equals(f.getType())) {
+                        info.contentType = Action.TYPE_MULTIPART_FORM_DATA;
+                        info.httpMethod = Action.Method.POST;
+                    }
+                }
+            }
+            if (!info.sirenFields.isEmpty() && info.fields.isEmpty() && !canHandleBody) {
+                throw new IllegalArgumentException("action fields defined but no parameter can handle them " + info.method);
+            }
+
+            try {
+                return info;
+            } finally {
+                info = null;
+            }
+        }
     }
+
+
+    @Nonnull
+    static Field createField(@Nonnull ApiField field, @Nonnull Class<?> type) {
+        String fieldName = field.name();
+        if (fieldName.isEmpty()) {
+            fieldName = field.value();
+        }
+        ApiField.Type fieldType = field.type();
+        if (fieldType == ApiField.Type.AUTO) {
+            if (type.isArray()) {
+                type = type.getComponentType();
+            }
+
+            if (type.isAssignableFrom(String.class)) {
+                fieldType = ApiField.Type.TEXT;
+            } else if (type.isAssignableFrom(boolean.class)) {
+                fieldType = ApiField.Type.CHECKBOX;
+            } else if (type.isAssignableFrom(Boolean.class)) {
+                fieldType = ApiField.Type.CHECKBOX;
+            } else if (type.isAssignableFrom(Number.class)) {
+                fieldType = ApiField.Type.NUMBER;
+            } else if (type.isAssignableFrom(int.class)) {
+                fieldType = ApiField.Type.NUMBER;
+            } else if (type.isAssignableFrom(long.class)) {
+                fieldType = ApiField.Type.NUMBER;
+            } else if (type.isAssignableFrom(float.class)) {
+                fieldType = ApiField.Type.NUMBER;
+            } else if (type.isAssignableFrom(double.class)) {
+                fieldType = ApiField.Type.NUMBER;
+            } else if (type.isAssignableFrom(InputStream.class)) {
+                fieldType = ApiField.Type.FILE;
+            } else if (type.isAssignableFrom(File.class)) {
+                fieldType = ApiField.Type.FILE;
+            } else if (type.isAssignableFrom(Calendar.class)) {
+                fieldType = ApiField.Type.DATETIME;
+            } else {
+                fieldType = ApiField.Type.TEXT;
+            }
+        }
+        return new FieldBuilder()
+                .withName(fieldName)
+                .withType(fieldType.toString())
+                .withTitle(field.title())
+                .withValue(field.defaultValue())
+                .build();
+    }
+
 }

@@ -34,10 +34,9 @@ import org.apache.jackrabbit.vault.packagemgr.impl.models.Base;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Filevault;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.PackageModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Packages;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ActionInfo;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfo;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ResourceContext;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
@@ -85,6 +84,8 @@ public class PackageMgrServlet extends HttpServlet {
 
     @Reference
     private Packaging packaging;
+
+    private final ModelInfoLoader loader = new ModelInfoLoader();
 
     private Base resolve(HttpServletRequest request, HttpServletResponse response)
             throws IOException, RepositoryException, URISyntaxException {
@@ -138,13 +139,12 @@ public class PackageMgrServlet extends HttpServlet {
                 return;
             }
 
-            // todo: full entity only needed for GET. other methods only need actions.
-            ModelInfo info = model.buildModelInfo();
+            ModelInfo info = loader.load(model.getClass());
             if ("GET".equals(req.getMethod())) {
                 resp.setContentType("application/json");
                 resp.setCharacterEncoding("utf-8");
                 try (SirenJsonWriter out = new SirenJsonWriter(resp.getWriter())) {
-                    out.write(info.getSirenEntity());
+                    out.write(model.buildEntity(info));
                 }
 
             } else {

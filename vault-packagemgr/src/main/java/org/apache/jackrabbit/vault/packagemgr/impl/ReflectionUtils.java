@@ -26,14 +26,11 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
 
 public class ReflectionUtils {
 
@@ -61,8 +58,10 @@ public class ReflectionUtils {
                 return ((Method) member).invoke(obj);
             }
             return null;
-        } catch (IllegalAccessException | InvocationTargetException e) {
+        } catch (IllegalAccessException e) {
             throw new IllegalArgumentException(e);
+        } catch (InvocationTargetException e) {
+            throw new IllegalArgumentException(e.getTargetException());
         }
     }
 

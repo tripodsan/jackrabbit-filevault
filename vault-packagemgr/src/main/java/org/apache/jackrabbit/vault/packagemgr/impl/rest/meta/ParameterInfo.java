@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest.meta;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 
 public class ParameterInfo {
@@ -27,6 +29,7 @@ public class ParameterInfo {
     public static final String TYPE_JSON_BODY = "<json-body>";
     public static final String TYPE_STREAM_BODY = "<stream-body>";
 
+    private final String name;
 
     private final Field sirenField;
 
@@ -34,9 +37,33 @@ public class ParameterInfo {
 
     private final int parameterIdx;
 
-    public ParameterInfo(Field sirenField, Class<?> type, int parameterIdx) {
+    public ParameterInfo(@Nonnull Field sirenField, @Nonnull Class<?> type, int parameterIdx) {
+        this.name = sirenField.getName();
         this.sirenField = sirenField;
         this.type = type;
         this.parameterIdx = parameterIdx;
+    }
+
+    public ParameterInfo(@Nonnull String name, int parameterIdx) {
+        this.name = name;
+        this.sirenField = null;
+        this.type = null;
+        this.parameterIdx = parameterIdx;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Field getSirenField() {
+        return sirenField;
+    }
+
+    public Class<?> getType() {
+        return type;
+    }
+
+    public int getIdx() {
+        return parameterIdx;
     }
 }

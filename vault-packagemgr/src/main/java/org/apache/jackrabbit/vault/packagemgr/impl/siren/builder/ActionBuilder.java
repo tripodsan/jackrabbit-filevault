@@ -46,6 +46,11 @@ public class ActionBuilder extends BaseBuilder<ActionBuilder> {
         return this;
     }
 
+    public ActionBuilder withFields(List<Field> fields) {
+        this.fields = fields;
+        return this;
+    }
+
     public List<Field> getFields() {
         return fields;
     }
@@ -68,7 +73,7 @@ public class ActionBuilder extends BaseBuilder<ActionBuilder> {
 
         @Override
         public String getType() {
-            if (type == null || type.isEmpty() && fields.size() > 0) {
+            if ((type == null || type.isEmpty()) && fields.size() > 0) {
                 return Action.TYPE_X_WWW_FORM_URLENCODED;
             }
             return type;

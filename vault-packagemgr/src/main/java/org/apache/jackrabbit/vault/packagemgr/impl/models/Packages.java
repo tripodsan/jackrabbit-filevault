@@ -98,17 +98,16 @@ public class Packages extends Base<Packages> {
         return listPackages().size();
     }
 
-    @ApiAction(
-            method = ApiAction.Method.PUT,
-            name = "create-package",
-            title = "Create new package with JSON payload as initial values",
-            type = ApiAction.TYPE_JSON,
-            href = "/{packageId}"
-    )
-    @Override
-    public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        // todo
-    }
+//    @ApiAction(
+//            method = ApiAction.Method.PUT,
+//            name = "create-package",
+//            title = "Create new package with JSON payload as initial values",
+//            type = ApiAction.TYPE_JSON,
+//            href = "/{packageId}"
+//    )
+//    public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
+//        // todo
+//    }
 
     private static class Uploader {
 
@@ -156,15 +155,15 @@ public class Packages extends Base<Packages> {
         }
     }
 
-    @ApiAction(
-            method = ApiAction.Method.POST,
-            name = "upload-raw-package",
-            type = ApiAction.TYPE_APPLICATION_OCTET_STREAM,
-            title = "Upload package with binary body"
-    )
-    public void doPost2() {
-
-    }
+//    @ApiAction(
+//            method = ApiAction.Method.POST,
+//            name = "upload-raw-package",
+//            type = ApiAction.TYPE_APPLICATION_OCTET_STREAM,
+//            title = "Upload package with binary body"
+//    )
+//    public void doPost2() {
+//
+//    }
 
     @ApiAction(
             method = ApiAction.Method.POST,
@@ -176,7 +175,6 @@ public class Packages extends Base<Packages> {
                     @ApiField(name = PARAM_REPLACE, type = ApiField.Type.CHECKBOX, title = "Replace existing package")
             }
     )
-    @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         // support "raw" binary upload
         Uploader uploader = new Uploader();
