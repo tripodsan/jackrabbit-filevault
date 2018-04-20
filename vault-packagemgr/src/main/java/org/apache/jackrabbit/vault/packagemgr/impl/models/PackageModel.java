@@ -273,7 +273,8 @@ public class PackageModel extends Base<PackageModel> {
             name = "create-package",
             title = "Create new package with JSON payload as initial values",
             type = ApiAction.TYPE_JSON,
-            href = "/{packageId}"
+            href = "/{packageId}",
+            context = "packages"
     )
     public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
         if (pkg != null) {

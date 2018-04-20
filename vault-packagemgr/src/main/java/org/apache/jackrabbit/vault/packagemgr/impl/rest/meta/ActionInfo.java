@@ -26,6 +26,7 @@ import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import javax.annotation.Nonnull;
@@ -55,6 +56,8 @@ public class ActionInfo {
     private String contentType = "";
 
     private Method method;
+
+    private String[] context;
 
     private List<Field> sirenFields = new LinkedList<>();
 
@@ -93,6 +96,22 @@ public class ActionInfo {
 
     public String getContentType() {
         return contentType;
+    }
+
+    public String[] getContext() {
+        return context;
+    }
+
+    public boolean isActive(Set<String> classes, String pseudoClass) {
+        if (context.length == 0 || classes.isEmpty()) {
+            return true;
+        }
+        for (String ctx: context) {
+            if (classes.contains(ctx) || ctx.equals(pseudoClass)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Action createSirenAction(URI selfURI) {
@@ -151,6 +170,11 @@ public class ActionInfo {
 
         public Builder withFields(List<Field> fields) {
             info.sirenFields = fields;
+            return this;
+        }
+
+        public Builder withContext(String[] context) {
+            info.context = context;
             return this;
         }
 

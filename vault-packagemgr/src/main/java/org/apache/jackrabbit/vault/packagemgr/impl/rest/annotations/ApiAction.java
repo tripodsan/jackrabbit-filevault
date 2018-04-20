@@ -29,6 +29,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ApiAction {
 
+    String CONTEXT_HIDDEN = ":context-hidden";
+
     enum Method {
         GET,
         POST,
@@ -57,5 +59,13 @@ public @interface ApiAction {
 
     Method method() default Method.POST;
 
+    /**
+     * Defines the context where a action should be included. If none of the values matches the classes of the
+     * containing entity, then the action should not be serialized. The empty set matches any class.
+     * @return the set of classes where this action is active.
+     */
+    String[] context() default {};
+
     ApiField[] fields() default {};
+
 }

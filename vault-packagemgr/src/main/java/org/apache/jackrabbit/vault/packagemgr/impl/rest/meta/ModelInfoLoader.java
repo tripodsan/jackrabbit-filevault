@@ -69,7 +69,8 @@ public class ModelInfoLoader {
                 .withTitle(action.title())
                 .withHref(action.href())
                 .withContentType(action.type())
-                .withMethod(method);
+                .withMethod(method)
+                .withContext(action.context());
 
         for (ApiField field : action.fields()) {
             builder.addField(ActionInfo.createField(field, String.class));
@@ -196,6 +197,7 @@ public class ModelInfoLoader {
                     .withName(action.getName())
                     .withTitle(action.getTitle())
                     .withFields(action.getSirenFields())
+                    .withContext(action.getContext())
                     .build()
             );
         }

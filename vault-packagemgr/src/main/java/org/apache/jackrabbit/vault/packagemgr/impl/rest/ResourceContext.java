@@ -202,6 +202,9 @@ public class ResourceContext {
             if ("default".equals(action.getName())) {
                 continue;
             }
+            if (!action.isActive(classes, pseudoClass)) {
+                continue;
+            }
             actions.add(action.createSirenAction(selfURI));
         }
         return actions;

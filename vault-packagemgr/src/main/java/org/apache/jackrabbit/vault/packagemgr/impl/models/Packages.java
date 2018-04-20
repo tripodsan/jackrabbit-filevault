@@ -147,19 +147,18 @@ public class Packages extends Base<Packages> {
         }
     }
 
-//    @ApiAction(
-//            method = ApiAction.Method.POST,
-//            name = "upload-raw-package",
-//            type = ApiAction.TYPE_APPLICATION_OCTET_STREAM,
-//            title = "Upload package with binary body"
-//    )
-//    public void doPost2() {
-//
-//    }
+    @ApiAction(
+            method = ApiAction.Method.POST,
+            type = ApiAction.TYPE_APPLICATION_OCTET_STREAM,
+            title = "Upload package with binary body"
+    )
+    public void uploadRawPackage(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        uploadPackage(request, response);
+
+    }
 
     @ApiAction(
             method = ApiAction.Method.POST,
-            name = "upload-package",
             title = "Upload package with multipart formdata.",
             type = ApiAction.TYPE_MULTIPART_FORM_DATA,
             fields = {
@@ -167,7 +166,7 @@ public class Packages extends Base<Packages> {
                     @ApiField(name = PARAM_REPLACE, type = ApiField.Type.CHECKBOX, title = "Replace existing package")
             }
     )
-    public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void uploadPackage(HttpServletRequest request, HttpServletResponse response) throws IOException {
         // support "raw" binary upload
         Uploader uploader = new Uploader();
         String contentType = request.getContentType();

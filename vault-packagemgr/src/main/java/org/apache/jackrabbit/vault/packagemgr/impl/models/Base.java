@@ -75,7 +75,8 @@ public abstract class Base<B extends Base<B>> {
         return relPath;
     }
 
-    @ApiAction(name="default", method = ApiAction.Method.GET)
+    
+    @ApiAction(method = ApiAction.Method.GET, context = ApiAction.CONTEXT_HIDDEN)
     public void doGet(ResourceContext ctx, HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("utf-8");

@@ -33,12 +33,12 @@ public @interface ApiProperty {
     /**
      * Pseudo class that is active for context calculation if the entity is serialized as sub entity.
      */
-    String CONTEXT_SUB_ENTITY = "context-subentity";
+    String CONTEXT_SUB_ENTITY = ":context-subentity";
 
     /**
      * Pseudo class that is active for context calculation if the entity is serialized top level.
      */
-    String CONTEXT_ENTITY = "context-entity";
+    String CONTEXT_ENTITY = ":context-entity";
 
     /**
      * Name of the property. If both, {@link #name()} and value are give, the result is undefined.
