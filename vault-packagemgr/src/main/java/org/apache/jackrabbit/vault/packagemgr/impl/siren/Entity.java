@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -38,7 +39,7 @@ public interface Entity extends Link {
      * Possible values are implementation-dependent and should be documented. Optional.
      * @return the classes
      */
-    @Nullable
+    @Nonnull
     @Override
     Set<String> getClasses();
 
@@ -46,7 +47,7 @@ public interface Entity extends Link {
      * A set of key-value pairs that describe the state of an entity. Optional.
      * @return the properties
      */
-    @Nullable
+    @Nonnull
     Map<String, Object> getProperties();
 
     /**
@@ -56,7 +57,7 @@ public interface Entity extends Link {
      * contain a rel attribute to describe its relationship to the parent entity. Optional.
      * @return the sub entities
      */
-    @Nullable
+    @Nonnull
     Iterable<Entity> getEntities();
 
     /**
@@ -65,16 +66,15 @@ public interface Entity extends Link {
      * Entities should include a link rel to self. Optional.
      * @return the links
      */
-    @Nullable
+    @Nonnull
     Collection<Link> getLinks();
 
     /**
      * A collection of action objects. Optional.
      * @return the actions
      */
-    @Nullable
+    @Nonnull
     Collection<Action> getActions();
-
 
     /**
      * Descriptive text about the entity. Optional.

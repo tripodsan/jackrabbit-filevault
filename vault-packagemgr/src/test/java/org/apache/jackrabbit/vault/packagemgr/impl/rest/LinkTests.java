@@ -26,15 +26,18 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExampleWithModel;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class LinkTests {
+
+    private static final ModelInfoLoader loader = new ModelInfoLoader();
 
     private static final String BASE_HREF = "http://filevault.apache.org/base/api";
 
@@ -67,11 +70,14 @@ public class LinkTests {
 
     @Test
     public void testLinks() throws Exception {
-        ModelInfoLoader transformer = new ModelInfoLoader()
+        Collection<Link> links = new ResourceContext()
+                .withModel(new LinkExample())
+                .withInfo(loader.load(LinkExample.class))
                 .withBaseURI(new URI(BASE_HREF))
-                .withModel(new LinkExample());
+                .buildEntity()
+                .getLinks();
         Map<String, Set<String>> tests = new HashMap<>(TEST_LINKS);
-        for (Link link: transformer.collectLinks()) {
+        for (Link link: links) {
             Set<String> rels = tests.remove(link.getHref());
             assertEquals("Link: " + link.getHref(), rels, link.getRels());
         }
@@ -80,10 +86,13 @@ public class LinkTests {
 
     @Test
     public void testAutoSelfLink() throws Exception {
-        Collection<Link> links = new ModelInfoLoader()
-                .withBaseURI(new URI(BASE_HREF))
+        Collection<Link> links = new ResourceContext()
                 .withModel(new LinkExampleWithModel.AutoSelfLink())
-                .collectLinks();
+                .withInfo(loader.load(LinkExampleWithModel.AutoSelfLink.class))
+                .withBaseURI(new URI(BASE_HREF))
+                .buildEntity()
+                .getLinks();
+
         assertEquals("number of links", 1, links.size());
         Link link = links.iterator().next();
         assertEquals("href", BASE_HREF + "/foo", link.getHref());
@@ -92,19 +101,25 @@ public class LinkTests {
 
     @Test
     public void testNoSelfLink() throws Exception {
-        Collection<Link> links = new ModelInfoLoader()
-                .withBaseURI(new URI(BASE_HREF))
+        Collection<Link> links = new ResourceContext()
                 .withModel(new LinkExampleWithModel.NoSelfLink())
-                .collectLinks();
+                .withInfo(loader.load(LinkExampleWithModel.NoSelfLink.class))
+                .withBaseURI(new URI(BASE_HREF))
+                .buildEntity()
+                .getLinks();
+
         assertEquals("number of links", 0, links.size());
     }
 
     @Test
     public void testCustomSelfLink() throws Exception {
-        Collection<Link> links = new ModelInfoLoader()
-                .withBaseURI(new URI(BASE_HREF))
+        Collection<Link> links = new ResourceContext()
                 .withModel(new LinkExampleWithModel.CustomSelfLink())
-                .collectLinks();
+                .withInfo(loader.load(LinkExampleWithModel.CustomSelfLink.class))
+                .withBaseURI(new URI(BASE_HREF))
+                .buildEntity()
+                .getLinks();
+
         assertEquals("number of links", 1, links.size());
         Link link = links.iterator().next();
         assertEquals("href", BASE_HREF + "?format=full", link.getHref());
@@ -113,10 +128,13 @@ public class LinkTests {
 
     @Test
     public void testAutoSelfLinkWithHref() throws Exception {
-        Collection<Link> links = new ModelInfoLoader()
-                .withBaseURI(new URI(BASE_HREF))
+        Collection<Link> links = new ResourceContext()
                 .withModel(new LinkExampleWithModel.AutoSelfLinkWithHref())
-                .collectLinks();
+                .withInfo(loader.load(LinkExampleWithModel.AutoSelfLinkWithHref.class))
+                .withBaseURI(new URI(BASE_HREF))
+                .buildEntity()
+                .getLinks();
+
         assertEquals("number of links", 1, links.size());
         Link link = links.iterator().next();
         assertEquals("href", BASE_HREF + "/filevault", link.getHref());
@@ -125,10 +143,13 @@ public class LinkTests {
 
     @Test
     public void testCustomSelfLinkWithHref() throws Exception {
-        Collection<Link> links = new ModelInfoLoader()
-                .withBaseURI(new URI(BASE_HREF))
+        Collection<Link> links = new ResourceContext()
                 .withModel(new LinkExampleWithModel.CustomSelfLinkWithHrefURI())
-                .collectLinks();
+                .withInfo(loader.load(LinkExampleWithModel.CustomSelfLinkWithHrefURI.class))
+                .withBaseURI(new URI(BASE_HREF))
+                .buildEntity()
+                .getLinks();
+
         assertEquals("number of links", 1, links.size());
         Link link = links.iterator().next();
         assertEquals("href", "http://jackrabbit.apache.org/filevault/api/system?format=full", link.getHref());

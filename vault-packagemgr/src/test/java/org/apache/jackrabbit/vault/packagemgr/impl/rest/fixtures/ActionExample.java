@@ -22,12 +22,12 @@ import java.io.InputStream;
 import java.util.Calendar;
 
 import javax.json.JsonObject;
-import javax.json.JsonStructure;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.fileupload.FileUpload;
+import org.apache.commons.fileupload.FileItem;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiActionReference;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiModel;
 
@@ -69,7 +69,7 @@ public class ActionExample {
                 @ApiField(name = "file", type= ApiField.Type.FILE, title = "File to upload"),
             }
     )
-    public void doUpload(FileUpload upload) {
+    public void doUpload(FileItem[] upload) {
 
     }
 
@@ -96,11 +96,10 @@ public class ActionExample {
                     @ApiField("title"),
                     @ApiField(name = "file", type =  ApiField.Type.FILE),
             })
-    public void uploadWithFileUpload(FileUpload upload) {
+    public void uploadWithFileUpload(FileItem[] upload) {
 
     }
 
-    @ApiModel
     public static class InvalidActionExamples {
 
         @ApiAction(name = "upload-file",
@@ -126,7 +125,7 @@ public class ActionExample {
         public void onlyOneResponse(HttpServletResponse req0, HttpServletResponse req1) {
         };
         @ApiAction("only-one-fileupload")
-        public void onlyOneFileUpload(FileUpload req0, FileUpload req1) {
+        public void onlyOneFileUpload(FileItem[] req0, FileItem[] req1) {
         };
         @ApiAction("only-one-jsonobject")
         public void onlyOneJsonObject(JsonObject req0, JsonObject req1) {
@@ -136,4 +135,36 @@ public class ActionExample {
         };
     }
 
+    @ApiModel(actions = {
+            @ApiActionReference(model = ActionExample.class, name = "put-action")
+    })
+    public static class ActionReferenceExample {
+
+        @ApiAction("create-stuff")
+        public void actionWithNameAsValue() {
+        }
+
+    }
+
+    @ApiModel(actions = {
+            @ApiActionReference(model = ActionExample.ActionCycle2.class, name = "action2")
+    })
+    public static class ActionCycle1 {
+
+        @ApiAction
+        public void action1() {
+
+        }
+    }
+
+    @ApiModel(actions = {
+            @ApiActionReference(model = ActionExample.ActionCycle1.class, name = "action1")
+    })
+    public static class ActionCycle2 {
+
+        @ApiAction
+        public void action2() {
+
+        }
+    }
 }

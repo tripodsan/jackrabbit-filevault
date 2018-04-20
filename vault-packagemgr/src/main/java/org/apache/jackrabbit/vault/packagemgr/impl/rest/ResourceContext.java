@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.vault.packagemgr.impl.rest.meta;
+package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,9 +30,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.RestUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiProperty;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ActionInfo;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ClassesInfo;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.LinkInfo;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfo;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.PropertyInfo;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.RelationInfo;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Link;
@@ -40,6 +50,8 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.EntityBuilder;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.LinkBuilder;
 
 public class ResourceContext {
+
+    private ModelInfoLoader infoLoader;
 
     private URI baseURI;
 
@@ -54,6 +66,11 @@ public class ResourceContext {
     private Object model;
 
     private Object parentModel;
+
+    public ResourceContext withInfoLoader(ModelInfoLoader infoLoader) {
+        this.infoLoader = infoLoader;
+        return this;
+    }
 
     public ResourceContext withInfo(ModelInfo info) {
         this.info = info;
@@ -137,7 +154,7 @@ public class ResourceContext {
         return ret;
     }
 
-    private Set<String> collectClasses() {
+    Set<String> collectClasses() {
         for (ClassesInfo classesInfo: info.getClasses()) {
             ReflectionUtils.addStrings(classes, classesInfo.getValue(model));
         }
@@ -154,7 +171,7 @@ public class ResourceContext {
         return rels;
     }
 
-    private Map<String,Object> collectProperties() {
+    Map<String,Object> collectProperties() {
         Map<String, Object> properties = new HashMap<>();
         for (PropertyInfo prop: info.getProperties().values()) {
             if (!prop.isActive(classes, pseudoClass)) {
@@ -170,7 +187,7 @@ public class ResourceContext {
         return properties;
     }
 
-    private Iterable<?> collectEntities() {
+    Iterable<?> collectEntities() {
         Collection<?> ret = null;
         if (info.getEntities() != null) {
             ret = info.getEntities().getValues(model);
@@ -181,10 +198,33 @@ public class ResourceContext {
     private Collection<Action> collectActions() {
         List<Action> actions = new ArrayList<>(info.getActions().size());
         for (ActionInfo action: info.getActions().values()) {
+            // skip default action
+            if ("default".equals(action.getName())) {
+                continue;
+            }
             actions.add(action.createSirenAction(selfURI));
         }
         return actions;
     }
+
+    public void service(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        final Action.Method method = Action.Method.valueOf(req.getMethod());
+        ActionInfo action = info.findAction(method, req.getContentType());
+        if (action == null) {
+            resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            return;
+        }
+
+        new ActionContext()
+                .withContext(this)
+                .withActionInfo(action)
+                .withModelInfo(info)
+                .withResource(model)
+                .withRequest(req)
+                .withResponse(resp)
+                .execute();
+    }
+
 
     public Entity buildEntity() throws IOException {
         try {
@@ -207,6 +247,8 @@ public class ResourceContext {
             for (Object entity: collectEntities()) {
                 Entity e = new ResourceContext()
                         .withModel(entity)
+                        .withInfo(infoLoader.load(entity.getClass()))
+                        .withInfoLoader(infoLoader)
                         .withParentModel(model)
                         .withBaseURI(baseURI)
                         .buildEntity();

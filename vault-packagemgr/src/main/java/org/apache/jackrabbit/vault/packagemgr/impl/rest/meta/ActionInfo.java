@@ -33,8 +33,9 @@ import javax.json.JsonObject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.fileupload.FileUpload;
+import org.apache.commons.fileupload.FileItem;
 import org.apache.jackrabbit.vault.packagemgr.impl.RestUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
@@ -51,7 +52,7 @@ public class ActionInfo {
 
     private String href;
 
-    private String contentType;
+    private String contentType = "";
 
     private Method method;
 
@@ -64,6 +65,26 @@ public class ActionInfo {
 
     public String getName() {
         return name;
+    }
+
+    public Method getMethod() {
+        return method;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getHref() {
+        return href;
+    }
+
+    public List<Field> getSirenFields() {
+        return sirenFields;
+    }
+
+    public Map<String, ParameterInfo> getFields() {
+        return fields;
     }
 
     public Action.Method getHttpMethod() {
@@ -119,7 +140,7 @@ public class ActionInfo {
         }
 
         public Builder withContentType(String type) {
-            info.contentType = type;
+            info.contentType = type == null ? "" : type;
             return this;
         }
 
@@ -128,11 +149,16 @@ public class ActionInfo {
             return this;
         }
 
+        public Builder withFields(List<Field> fields) {
+            info.sirenFields = fields;
+            return this;
+        }
+
         private void addField(String name, int idx) {
             info.fields.put(name, new ParameterInfo(name, idx));
         }
 
-        public ActionInfo build() {
+        private void createMethodParameterFields() {
             Class<?>[] params = info.method.getParameterTypes();
             Annotation[][] annotations = info.method.getParameterAnnotations();
             boolean canHandleBody = false;
@@ -155,17 +181,24 @@ public class ActionInfo {
                     addField(ParameterInfo.TYPE_REQUEST, i);
                     canHandleBody = true;
 
+                } else if (type.isAssignableFrom(ResourceContext.class)) {
+                    if (info.fields.containsKey(ParameterInfo.TYPE_CONTEXT)) {
+                        throw new IllegalArgumentException("only 1 ResourceContext possible for method " + info.method);
+                    }
+                    addField(ParameterInfo.TYPE_CONTEXT, i);
+                    canHandleBody = true;
+
                 } else if (type.isAssignableFrom(HttpServletResponse.class)) {
                     if (info.fields.containsKey(ParameterInfo.TYPE_RESPONSE)) {
                         throw new IllegalArgumentException("only 1 HttpServletResponse possible for method " + info.method);
                     }
                     addField(ParameterInfo.TYPE_RESPONSE, i);
 
-                } else if (type.isAssignableFrom(FileUpload.class)) {
-                    if (info.fields.containsKey(ParameterInfo.TYPE_UPLOAD)) {
-                        throw new IllegalArgumentException("only 1 FileUpload possible for method " + info.method);
+                } else if (type.isAssignableFrom(FileItem[].class)) {
+                    if (info.fields.containsKey(ParameterInfo.TYPE_FORM)) {
+                        throw new IllegalArgumentException("only 1 FileItem[] possible for method " + info.method);
                     }
-                    addField(ParameterInfo.TYPE_UPLOAD, i);
+                    addField(ParameterInfo.TYPE_FORM, i);
                     info.contentType = Action.TYPE_MULTIPART_FORM_DATA;
                     info.httpMethod = Action.Method.POST;
                     canHandleBody = true;
@@ -182,7 +215,7 @@ public class ActionInfo {
                     if (info.fields.containsKey(ParameterInfo.TYPE_STREAM_BODY)) {
                         throw new IllegalArgumentException("only 1 InputStream body possible for method " + info.method);
                     }
-                    if (info.fields.containsKey(ParameterInfo.TYPE_UPLOAD) || info.fields.containsKey(ParameterInfo.TYPE_JSON_BODY)) {
+                    if (info.fields.containsKey(ParameterInfo.TYPE_FORM) || info.fields.containsKey(ParameterInfo.TYPE_JSON_BODY)) {
                         throw new IllegalArgumentException("only 1 body consuming parameter possible for method " + info.method);
                     }
                     addField(ParameterInfo.TYPE_STREAM_BODY, i);
@@ -201,6 +234,12 @@ public class ActionInfo {
             }
             if (!info.sirenFields.isEmpty() && info.fields.isEmpty() && !canHandleBody) {
                 throw new IllegalArgumentException("action fields defined but no parameter can handle them " + info.method);
+            }
+        }
+
+        public ActionInfo build() {
+            if (info.method != null) {
+                createMethodParameterFields();
             }
 
             try {

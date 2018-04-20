@@ -36,8 +36,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.models.PackageModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.models.Packages;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfo;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ResourceContext;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.Packaging;
@@ -63,19 +62,6 @@ import org.slf4j.LoggerFactory;
 public class PackageMgrServlet extends HttpServlet {
 
     private static final long serialVersionUID = -4571680968447024900L;
-    public static final String PARAM_SRC = "src";
-    public static final String PARAM_DST = "dst";
-    public static final String PARAM_ID = "id";
-    public static final String PARAM_BATCHSIZE = "batchsize";
-    public static final String PARAM_CMD = "cmd";
-    public static final String PARAM_RECURSIVE = "recursive";
-    public static final String PARAM_STATE = "state";
-    public static final String PARAM_UPDATE = "update";
-    public static final String PARAM_NO_ORDERING = "noOrdering";
-    public static final String PARAM_ONLY_NEWER = "onlyNewer";
-    public static final String PARAM_THROTTLE = "throttle";
-    public static final String PARAM_EXCLUDES = "excludes";
-    public static final String PARAM_RESUME_FROM = "resumeFrom";
 
     /**
      * default logger
@@ -140,16 +126,14 @@ public class PackageMgrServlet extends HttpServlet {
             }
 
             ModelInfo info = loader.load(model.getClass());
-            if ("GET".equals(req.getMethod())) {
-                resp.setContentType("application/json");
-                resp.setCharacterEncoding("utf-8");
-                try (SirenJsonWriter out = new SirenJsonWriter(resp.getWriter())) {
-                    out.write(model.buildEntity(info));
-                }
+            ResourceContext ctx = new ResourceContext()
+                    .withInfoLoader(loader)
+                    .withInfo(info)
+                    .withBaseURI(model.getBaseURI())
+                    .withSelfURI(model.getSelfURI())
+                    .withModel(model);
 
-            } else {
-                info.service(req, resp);
-            }
+            ctx.service(req, resp);
         } catch (RepositoryException | JsonException | URISyntaxException | IllegalArgumentException e) {
             throw new IOException(e);
         }

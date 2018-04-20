@@ -36,6 +36,7 @@ import org.apache.jackrabbit.vault.packagemgr.impl.DependencyResolver;
 import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.RestUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiLink;
@@ -238,6 +239,18 @@ public class PackageModel extends Base<PackageModel> {
         }
     }
 
+    @ApiAction(name = "default", method = ApiAction.Method.GET)
+    @Override
+    public void doGet(ResourceContext ctx, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (pkg == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        if (!handleCommand(request, response)) {
+            super.doGet(ctx, request, response);
+        }
+    }
+
     @ApiAction(
             method = ApiAction.Method.DELETE,
             name = "delete-package"
@@ -255,7 +268,13 @@ public class PackageModel extends Base<PackageModel> {
         }
     }
 
-
+    @ApiAction(
+            method = ApiAction.Method.PUT,
+            name = "create-package",
+            title = "Create new package with JSON payload as initial values",
+            type = ApiAction.TYPE_JSON,
+            href = "/{packageId}"
+    )
     public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
         if (pkg != null) {
             response.sendError(HttpServletResponse.SC_CONFLICT);

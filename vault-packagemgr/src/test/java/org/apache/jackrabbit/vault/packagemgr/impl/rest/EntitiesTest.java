@@ -19,6 +19,7 @@ package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
 import java.util.Iterator;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.EntitiesExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
 import org.junit.Test;
@@ -28,11 +29,16 @@ import static org.junit.Assert.assertFalse;
 
 public class EntitiesTest {
 
+    private static final ModelInfoLoader loader = new ModelInfoLoader();
+
     @Test
     public void testEntitiesExample() throws Exception {
-        ModelInfoLoader transformer = new ModelInfoLoader()
-                .withModel(new EntitiesExample());
-        Iterable entities = transformer.collectEntities();
+        Iterable entities = new ResourceContext()
+                .withModel(new EntitiesExample())
+                .withInfo(loader.load(EntitiesExample.class))
+                .collectEntities();
+
+        @SuppressWarnings("unchecked")
         Iterator<EntitiesExample.SimpleEntity> iter = (Iterator<EntitiesExample.SimpleEntity>) entities.iterator();
         assertEquals("Entity0", "Hello, world.", iter.next().getTitle());
         assertEquals("Entity1", "Jackrabbit is cool.", iter.next().getTitle());

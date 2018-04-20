@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiActionReference;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiEntities;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
@@ -40,25 +41,9 @@ import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 
 public class ModelInfoLoader {
 
+    private static final ModelInfo CYCLE_GUARD = new ModelInfo.Builder().build();
+
     private Map<Class<?>, ModelInfo> cache = new ConcurrentHashMap<>();
-
-//    private String resolveHref(URI base, String href) throws URISyntaxException {
-//        if (href.isEmpty()) {
-//            return base.toString();
-//        } else if (href.startsWith("/") || href.startsWith("?") ) {
-//            return base.toString() + href;
-//        }
-//        return href;
-//    }
-
-//    private LinkBuilder buildLink(ApiLink annotation, String href) throws URISyntaxException {
-//        return new LinkBuilder()
-//                .withHref(href)
-//                .withRels(annotation.value())
-//                .withClasses(annotation.classes())
-//                .withTitle(annotation.title())
-//                .withType(annotation.type());
-//    }
 
     private LinkInfo buildLink(ApiLink annotation, Member member) {
         return new LinkInfo.Builder()
@@ -86,143 +71,12 @@ public class ModelInfoLoader {
                 .withContentType(action.type())
                 .withMethod(method);
 
-        for (ApiField field: action.fields()) {
+        for (ApiField field : action.fields()) {
             builder.addField(ActionInfo.createField(field, String.class));
         }
 
         return builder.build();
     }
-
-//
-//    public Collection<Link> collectLinks() throws URISyntaxException {
-//        // first get all links w/o any href resolution
-//        Member[] members = ReflectionUtils.getFieldsAndMethods(model.getClass());
-//        List<LinkBuilder> links = new ArrayList<>(members.length);
-//        LinkBuilder selfLink = null;
-//        boolean hasHref = false;
-//        for (Member member: ReflectionUtils.getFieldsAndMethods(model.getClass())) {
-//            ApiLink annotation = ((AnnotatedElement) member).getAnnotation(ApiLink.class);
-//            if (annotation != null) {
-//                String[] values = ReflectionUtils.getStringValues(model, member);
-//                if (values != null) {
-//                    for (String href: values) {
-//                        LinkBuilder link = buildLink(annotation, href);
-//                        if (link.getRels().contains(ApiLink.SELF)) {
-//                            selfLink = link;
-//                        } else {
-//                            links.add(link);
-//                        }
-//                    }
-//                }
-//            }
-//            ApiHref hrefAnnotation = ((AnnotatedElement) member).getAnnotation(ApiHref.class);
-//            if (hrefAnnotation != null) {
-//                final Object ret = ReflectionUtils.getValue(model, member);
-//                if (ret instanceof URI) {
-//                    hasHref = true;
-//                    selfURI = (URI) ret;
-//                } else if (ret != null) {
-//                    hasHref = true;
-//                    selfURI = new URI(resolveHref(baseURI, ret.toString()));
-//                }
-//            }
-//        }
-//        if (selfLink == null) {
-//            ApiModel annotation = model.getClass().getAnnotation(ApiModel.class);
-//            if (annotation != null && annotation.selfLink()) {
-//                if (!hasHref) {
-//                    selfURI = new URI(resolveHref(baseURI, annotation.relPath()));
-//                }
-//                selfLink = new LinkBuilder()
-//                        .addRel(ApiLink.SELF)
-//                        .withHref(selfURI.toString());
-//            }
-//        } else if (hasHref) {
-//            // adjust self link with selfURI set by href
-//            selfLink = selfLink.withHref(resolveHref(selfURI, selfLink.getHref()));
-//        } else {
-//            // no href, so define self uri via self ref
-//            String newSelfRef = resolveHref(baseURI, selfLink.getHref());
-//            selfURI = new URI(newSelfRef);
-//            selfLink = selfLink.withHref(newSelfRef);
-//        }
-//        List<Link> ret = new ArrayList<>(links.size());
-//        for (LinkBuilder builder: links) {
-//            ret.add(builder
-//                    .withHref(resolveHref(selfURI, builder.getHref()))
-//                    .build()
-//            );
-//        }
-//        if (selfLink != null) {
-//            ret.add(selfLink.build());
-//        }
-//        return ret;
-//    }
-//
-//    public Set<String> collectClasses() {
-//        for (Member member: ReflectionUtils.getFieldsAndMethods(model.getClass())) {
-//            ApiClass annotation = ((AnnotatedElement) member).getAnnotation(ApiClass.class);
-//            if (annotation != null) {
-//                ReflectionUtils.addStrings(classes, ReflectionUtils.getValue(model, member));
-//            }
-//        }
-//        ApiModel annotation = model.getClass().getAnnotation(ApiModel.class);
-//        if (annotation != null) {
-//            classes.addAll(Arrays.asList(annotation.classes()));
-//        }
-//        pseudoClass = parentModel == null ? ApiProperty.CONTEXT_ENTITY : ApiProperty.CONTEXT_SUB_ENTITY;
-//        return classes;
-//    }
-
-//    private Set<String> collectRels() {
-//        Set<String> rels = new HashSet<>();
-//        for (Member member: ReflectionUtils.getFieldsAndMethods(model.getClass())) {
-//            ApiRelation annotation = ((AnnotatedElement) member).getAnnotation(ApiRelation.class);
-//            if (annotation != null) {
-//                ReflectionUtils.addStrings(rels, ReflectionUtils.getValue(model, member));
-//            }
-//        }
-//        return rels;
-//    }
-//
-//    public Map<String,Object> collectProperties() {
-//        Map<String, Object> properties = new HashMap<>();
-//        for (Member member: ReflectionUtils.getFieldsAndMethods(model.getClass())) {
-//            ApiProperty annotation = ((AnnotatedElement) member).getAnnotation(ApiProperty.class);
-//            if (annotation != null) {
-//                if (annotation.context().length > 0 && !classes.isEmpty()) {
-//                    boolean include = false;
-//                    for (String ctx: annotation.context()) {
-//                        if (classes.contains(ctx) || ctx.equals(pseudoClass)) {
-//                            include = true;
-//                            break;
-//                        }
-//                    }
-//                    if (!include) {
-//                        continue;
-//                    }
-//                }
-//
-//                Object value = ReflectionUtils.getValue(model, member);
-//                if (value == null) {
-//                    continue;
-//                }
-//                String name = annotation.name();
-//                if (name.isEmpty()) {
-//                    name = annotation.value();
-//                }
-//                if (name.isEmpty()) {
-//                    if (member instanceof Method) {
-//                        name = ReflectionUtils.methodToPropertyName(member.getName());
-//                    } else {
-//                        name = member.getName();
-//                    }
-//                }
-//                ReflectionUtils.addProperty(properties, name, annotation.flatten(), value);
-//            }
-//        }
-//        return properties;
-//    }
 
     private PropertyInfo buildPropertyInfo(ApiProperty annotation, Member member) {
         String name = annotation.name();
@@ -239,42 +93,15 @@ public class ModelInfoLoader {
         return new PropertyInfo(name, member, annotation.flatten(), annotation.value(), annotation.context());
     }
 
-//    public Iterable<?> collectEntities() {
-//        Collection<?> ret = null;
-//        for (Method method: model.getClass().getMethods()) {
-//            ApiEntities annotation = method.getAnnotation(ApiEntities.class);
-//            if (annotation != null) {
-//                if (ret != null) {
-//                    throw new IllegalArgumentException("Model defines multiple entities annotations");
-//                }
-//                try {
-//                    ret = (Collection<?>) method.invoke(model);
-//                } catch (IllegalAccessException | InvocationTargetException e) {
-//                    throw new IllegalArgumentException(e);
-//                }
-//            }
-//        }
-//        return ret == null ? Collections.emptyList() : ret;
-//    }
-
-//    public Collection<ActionInfoContext> collectActions() throws URISyntaxException {
-//        List<ActionInfoContext> actions = new LinkedList<>();
-//        for (Method method: model.getClass().getMethods()) {
-//            ApiAction annotation = method.getAnnotation(ApiAction.class);
-//            if (annotation != null) {
-//                actions.add(buildAction(annotation, method));
-//            }
-//        }
-//        return actions;
-//    }
-//
-
     @Nonnull
     public ModelInfo load(@Nonnull Class<?> modelClass) {
         ModelInfo info = cache.get(modelClass);
         if (info == null) {
+            cache.put(modelClass, CYCLE_GUARD);
             info = buildInfo(modelClass);
             cache.put(modelClass, info);
+        } else if (info == CYCLE_GUARD) {
+            throw new IllegalArgumentException("cyclic reference: " + modelClass);
         }
         return info;
     }
@@ -291,7 +118,7 @@ public class ModelInfoLoader {
                 .withRelPath(model.relPath())
                 .withSelfLink(model.selfLink());
 
-        for (Method method: modelClass.getMethods()) {
+        for (Method method : modelClass.getMethods()) {
             ApiEntities apiEntities = method.getAnnotation(ApiEntities.class);
             if (apiEntities != null) {
                 builder.withEntities(new EntitiesInfo(method));
@@ -329,7 +156,7 @@ public class ModelInfoLoader {
 
         }
 
-        for (Field field: modelClass.getFields()) {
+        for (Field field : modelClass.getFields()) {
             ApiClass apiClass = field.getAnnotation(ApiClass.class);
             if (apiClass != null) {
                 builder.addClass(new ClassesInfo(field));
@@ -356,6 +183,22 @@ public class ModelInfoLoader {
             }
         }
 
+        for (ApiActionReference ref : model.actions()) {
+            ModelInfo refInfo = load(ref.model());
+            ActionInfo action = refInfo.getActions().get(ref.name());
+            if (action == null) {
+                throw new IllegalArgumentException(String.format("referenced action in %s with %s does not exist. %s", ref.name(), ref.model(), modelClass));
+            }
+            builder.addAction(new ActionInfo.Builder()
+                    .withContentType(action.getContentType())
+                    .withHref(action.getHref())
+                    .withHttpMethod(action.getHttpMethod())
+                    .withName(action.getName())
+                    .withTitle(action.getTitle())
+                    .withFields(action.getSirenFields())
+                    .build()
+            );
+        }
         return builder.build();
     }
 

@@ -86,7 +86,7 @@
 					},
 					"response": [
 						{
-							"id": "c485cd9a-aa32-4ac7-871d-74751a4d52d0",
+							"id": "fda2ffb2-614b-44b4-aa11-109c56ace1cd",
 							"name": "Default responst",
 							"originalRequest": {
 								"method": "GET",
@@ -172,7 +172,7 @@
 					},
 					"response": [
 						{
-							"id": "848a9e37-c7bf-4bdc-a953-32b7424b2ac6",
+							"id": "ef6c3278-c986-4b16-83c2-af6ab5e0b6aa",
 							"name": "not existent package gives 404",
 							"originalRequest": {
 								"method": "GET",
@@ -415,7 +415,7 @@
 					},
 					"response": [
 						{
-							"id": "54277be8-3913-486b-bbfe-22c57042341d",
+							"id": "f091522e-8e54-4906-9db5-470441acd270",
 							"name": "create action upload",
 							"originalRequest": {
 								"method": "POST",
@@ -563,7 +563,7 @@
 					},
 					"response": [
 						{
-							"id": "e227edfb-5639-4f59-90f0-1fea6f75c847",
+							"id": "9dad8d2b-b70e-4048-a495-847ad54f722d",
 							"name": "create action upload",
 							"originalRequest": {
 								"method": "POST",
@@ -920,7 +920,7 @@
 					},
 					"response": [
 						{
-							"id": "285e38f1-8175-4b74-981f-6d95a10b37bd",
+							"id": "102f9312-a378-43f0-a4a5-be14451ea1d1",
 							"name": "test-package full reponse",
 							"originalRequest": {
 								"method": "GET",
@@ -1250,7 +1250,7 @@
 					},
 					"response": [
 						{
-							"id": "58097469-5801-4c0f-b5bb-09de4d8a3fec",
+							"id": "1f1664bc-a68d-40ec-972b-33b85fad2ba8",
 							"name": "create action upload",
 							"originalRequest": {
 								"method": "POST",
@@ -1350,7 +1350,7 @@
 					},
 					"response": [
 						{
-							"id": "884bb717-55f0-4b70-bad5-e17efa6c4ec6",
+							"id": "6007efe2-cfd3-4bbc-b120-d67238d56a6a",
 							"name": "Default responst",
 							"originalRequest": {
 								"method": "GET",
@@ -1461,7 +1461,7 @@
 			},
 			"response": [
 				{
-					"id": "b5659ce3-a6a4-43ad-b584-fa8a7d9b22f1",
+					"id": "78bdda81-cf40-4f3f-9ade-9af3eae767c8",
 					"name": "Example request",
 					"originalRequest": {
 						"method": "GET",
@@ -1548,28 +1548,28 @@
 	],
 	"variable": [
 		{
-			"id": "122c7e68-2a75-495c-9b04-db7d353489cf",
+			"id": "64031fa0-63ae-48a5-a5ab-71b01461f5d9",
 			"key": "API_BASE",
 			"value": "/system/jackrabbit/filevault",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "bd62d5f6-5596-47c8-8baf-87df9fff1fe7",
+			"id": "62e507c3-5176-4b33-bc1d-4e78ccdf9c62",
 			"key": "REL_PACKAGES",
 			"value": "http://jackrabbit.apache.org/filevault/rels/packages",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "de4841b4-9fb7-40b9-83fb-c6d20d16f135",
+			"id": "edae4055-2850-4a66-aa75-b87828e9f1ee",
 			"key": "TEST_PKG1_ID",
 			"value": "org/apache/jackrabbit:test-package:1.0",
 			"type": "string",
 			"description": ""
 		},
 		{
-			"id": "24556c66-2c1a-4461-9a64-ca5686e1b1fc",
+			"id": "8bb311d9-1b3c-423f-9507-863a8ef67f05",
 			"key": "TEST_PKG1_ID_PATH",
 			"value": "/org/apache/jackrabbit/test-package/1.0",
 			"type": "string",

@@ -17,19 +17,17 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest;
 
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ActionExample;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ActionInfoContext;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Field;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.ActionBuilder;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.builder.FieldBuilder;
 import org.junit.Test;
 
@@ -39,16 +37,20 @@ import static org.junit.Assert.fail;
 
 public class ActionsTest {
 
+    private static final ModelInfoLoader loader = new ModelInfoLoader();
+
     private static final String BASE_HREF = "http://filevault.apache.org/base/api";
 
-    private void testAction(Action expected) throws URISyntaxException {
-        Collection<ActionInfoContext> actions = new ModelInfoLoader()
+    private void testAction(Action expected) throws Exception {
+        Collection<Action> actions = new ResourceContext()
                 .withModel(new ActionExample())
-                .withSelfURI(new URI(BASE_HREF))
-                .collectActions();
+                .withInfo(loader.load(ActionExample.class))
+                .withBaseURI(new URI(BASE_HREF))
+                .buildEntity()
+                .getActions();
+
         String name = expected.getName();
-        for (ActionInfoContext ai: actions) {
-            Action a = ai.getSirenAction();
+        for (Action a: actions) {
             if (name.equals(a.getName())) {
                 assertTrue("action: " + name, expected.equals(a));
                 return;
@@ -142,20 +144,21 @@ public class ActionsTest {
 
     @Test
     public void testInvalidActions() throws URISyntaxException {
-        ActionExample.InvalidActionExamples model = new ActionExample.InvalidActionExamples();
-        ModelInfoLoader tf = new ModelInfoLoader()
-                .withModel(model)
-                .withSelfURI(new URI(BASE_HREF));
-        for (Method method: model.getClass().getMethods()) {
-            ApiAction annotation = method.getAnnotation(ApiAction.class);
-            if (annotation != null) {
-                try {
-                    tf.buildAction(annotation, method);
-                    fail("expected " + method + " to fail");
-                } catch (Exception e) {
-                    // ok
-                }
-            }
+        try {
+            loader.load(ActionExample.InvalidActionExamples.class);
+            fail("expected to fail invalid actions");
+        } catch (Exception e) {
+            // ok
+        }
+    }
+
+    @Test
+    public void testCyclicActionReference() throws URISyntaxException {
+        try {
+            loader.load(ActionExample.ActionCycle1.class);
+            fail("expected to fail invalid actions");
+        } catch (Exception e) {
+            // ok
         }
     }
 }

@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.vault.packagemgr.impl.rest.meta;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -25,9 +24,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Action;
 import org.slf4j.Logger;
@@ -107,24 +103,33 @@ public class ModelInfo {
     }
 
 
-    public ActionInfo getAction(Action.Method method, String contentType) {
-        for (ActionInfo ai: actions.values()) {
-            if (method == ai.getHttpMethod() && contentType.equals(ai.getContentType())) {
-                return ai;
+    public ActionInfo findAction(Action.Method method, String contentType) {
+        if (contentType == null) {
+            contentType = "";
+        }
+        int idx = contentType.indexOf(';');
+        if (idx > 0) {
+            contentType = contentType.substring(0, idx);
+        }
+        ActionInfo methodMatch = null;
+        for (ActionInfo a: actions.values()) {
+            if (a.getMethod() == null) {
+                // skip synthetic actions
+                continue;
+            }
+            if (method == a.getHttpMethod()) {
+                methodMatch = a;
+                if (contentType.equals(a.getContentType())) {
+                    return a;
+                }
             }
         }
-        log.warn("no action found for {} with type {}", method, contentType);
-        return null;
-    }
-
-    public void service(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        final Action.Method method = Action.Method.valueOf(req.getMethod());
-        ActionInfo action = getAction(method, req.getContentType());
-        if (action == null) {
-            resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-            return;
+        if (methodMatch == null) {
+            log.warn("no action found for {} with type {}", method, contentType);
+        } else {
+            log.warn("no action only matched method {} but not content type {}", method, contentType);
         }
-        action.execute(resource, req, resp);
+        return methodMatch;
     }
 
     public static class Builder {

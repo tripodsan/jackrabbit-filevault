@@ -20,10 +20,15 @@ package org.apache.jackrabbit.vault.packagemgr.impl.models;
 import java.io.IOException;
 import java.net.URI;
 
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiHref;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfo;
-import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ResourceContext;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 
 public abstract class Base<B extends Base<B>> {
 
@@ -70,13 +75,14 @@ public abstract class Base<B extends Base<B>> {
         return relPath;
     }
 
-    public Entity buildEntity(ModelInfo info) throws IOException {
-        return new ResourceContext()
-                .withModel(this)
-                .withInfo(info)
-                .withBaseURI(baseURI)
-                .withSelfURI(selfURI)
-                .buildEntity();
+    @ApiAction(name="default", method = ApiAction.Method.GET)
+    public void doGet(ResourceContext ctx, HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("utf-8");
+        // build entity before opening the stream for better error handling
+        final Entity entity = ctx.buildEntity();
+        try (SirenJsonWriter out = new SirenJsonWriter(resp.getWriter())) {
+            out.write(entity);
+        }
     }
-
 }

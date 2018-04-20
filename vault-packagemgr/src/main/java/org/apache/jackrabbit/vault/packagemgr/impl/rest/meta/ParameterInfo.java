@@ -25,9 +25,10 @@ public class ParameterInfo {
 
     public static final String TYPE_REQUEST = "<request>";
     public static final String TYPE_RESPONSE = "<response>";
-    public static final String TYPE_UPLOAD = "<upload>";
+    public static final String TYPE_FORM = "<form>";
     public static final String TYPE_JSON_BODY = "<json-body>";
     public static final String TYPE_STREAM_BODY = "<stream-body>";
+    public static final String TYPE_CONTEXT = "<context>";
 
     private final String name;
 

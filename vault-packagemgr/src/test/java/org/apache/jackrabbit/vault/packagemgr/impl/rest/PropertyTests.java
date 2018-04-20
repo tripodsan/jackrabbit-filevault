@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.jackrabbit.vault.packagemgr.impl.ReflectionUtils;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.PropertyExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
 import org.junit.Test;
@@ -33,6 +34,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class PropertyTests {
+
+    private static final ModelInfoLoader loader = new ModelInfoLoader();
 
     private static final Map<String, Object> TEST_PROPERTIES = new HashMap<>();
     private static final Map<String, Object> TEST_SUB_MAP = new HashMap<>();
@@ -63,10 +66,12 @@ public class PropertyTests {
 
     @Test
     public void testProperty() throws Exception {
-        ModelInfoLoader transformer = new ModelInfoLoader()
-                .withModel(new PropertyExample());
-        transformer.collectClasses(); // need to init the classes
-        Map<String, Object> properties = transformer.collectProperties();
+        ResourceContext ctx = new ResourceContext()
+                .withModel(new PropertyExample())
+                .withInfo(loader.load(PropertyExample.class));
+
+        ctx.collectClasses();
+        Map<String, Object> properties = ctx.collectProperties();
         for (Map.Entry<String, Object> e: TEST_PROPERTIES.entrySet()) {
             Object v = properties.remove(e.getKey());
             assertNotNull("Property:" + e.getKey(), v);

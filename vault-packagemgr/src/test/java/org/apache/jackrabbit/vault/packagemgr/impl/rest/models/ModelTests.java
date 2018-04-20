@@ -31,8 +31,9 @@ import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ActionExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.EntitiesExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.LinkExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.PropertyExample;
-import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
+import org.apache.jackrabbit.vault.packagemgr.impl.siren.Entity;
 import org.apache.jackrabbit.vault.packagemgr.impl.siren.json.SirenJsonWriter;
 import org.junit.Test;
 
@@ -40,12 +41,18 @@ import static junit.framework.TestCase.assertEquals;
 
 public class ModelTests {
 
+    private static final ModelInfoLoader loader = new ModelInfoLoader();
+
+    private static final URI BASE_HREF = URI.create("http://localhost:8080/system");
+
     private void testModelJson(Object model, String filename) throws IOException, URISyntaxException {
-        ModelInfoLoader tx = new ModelInfoLoader();
-        Entity entity = tx
-                .withBaseURI(new URI("http://localhost:8080/system"))
+        Entity entity = new ResourceContext()
                 .withModel(model)
-                .build().getSirenEntity();
+                .withInfo(loader.load(model.getClass()))
+                .withInfoLoader(loader)
+                .withBaseURI(BASE_HREF)
+                .buildEntity();
+
         StringWriter out = new StringWriter();
         SirenJsonWriter w = new SirenJsonWriter(out, true);
         w.write(entity);
@@ -84,5 +91,10 @@ public class ModelTests {
     @Test
     public void testActionExample() throws Exception {
         testModelJson(new ActionExample(), "action_example.json");
+    }
+
+    @Test
+    public void testActionReferenceExample() throws Exception {
+        testModelJson(new ActionExample.ActionReferenceExample(), "action_reference_example.json");
     }
 }

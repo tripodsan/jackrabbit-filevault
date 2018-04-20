@@ -35,6 +35,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.jackrabbit.vault.packagemgr.impl.DependencyResolver;
 import org.apache.jackrabbit.vault.packagemgr.impl.PackageRoute;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiAction;
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiActionReference;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiClass;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiEntities;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.annotations.ApiField;
@@ -48,7 +49,9 @@ import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@ApiModel
+@ApiModel(actions = {
+        @ApiActionReference(model = PackageModel.class, name = "create-package")
+})
 public class Packages extends Base<Packages> {
 
     /**
@@ -97,17 +100,6 @@ public class Packages extends Base<Packages> {
     public long getItemCount() throws IOException {
         return listPackages().size();
     }
-
-//    @ApiAction(
-//            method = ApiAction.Method.PUT,
-//            name = "create-package",
-//            title = "Create new package with JSON payload as initial values",
-//            type = ApiAction.TYPE_JSON,
-//            href = "/{packageId}"
-//    )
-//    public void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
-//        // todo
-//    }
 
     private static class Uploader {
 

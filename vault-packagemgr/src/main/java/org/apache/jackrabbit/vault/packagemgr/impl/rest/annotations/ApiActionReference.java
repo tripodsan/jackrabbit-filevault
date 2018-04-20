@@ -23,33 +23,21 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Defines the model of an API.
+ * Allows to include action descriptors that are defined in other classes.
  */
-@Target(ElementType.TYPE)
+@Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ApiModel {
+public @interface ApiActionReference {
 
     /**
-     * The {@code "classes"} of an entity.
-     * @return classes or empty array.
+     * Model class of the action reference
+     * @return the class
      */
-    String[] classes() default {};
+    Class<?> model();
 
     /**
-     * Relative path to the API root.
-     * @return relative path
+     * Action name for the reference
+     * @return the name
      */
-    String relPath() default "";
-
-    /**
-     * Automatically generate <em>self</em> link.
-     * @return {@code false} to disable auto link generation.
-     */
-    boolean selfLink() default true;
-
-    /**
-     * List of action references to include in this entities response.
-     * @return the action references
-     */
-    ApiActionReference[] actions() default {};
+    String name();
 }

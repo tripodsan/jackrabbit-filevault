@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.jackrabbit.vault.packagemgr.impl.rest.ResourceContext;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ClassExample;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.fixtures.ClassExampleWithModel;
 import org.apache.jackrabbit.vault.packagemgr.impl.rest.meta.ModelInfoLoader;
@@ -31,23 +32,28 @@ import static org.junit.Assert.assertEquals;
 
 public class ClassTests {
 
+    private static final ModelInfoLoader loader = new ModelInfoLoader();
+
     private static final Set<String> TEST1_CLASSES = new HashSet<>(Arrays.asList("test1", "test2a", "test2b", "test3", "test4", "test5a", "test5b"));
 
     private static final Set<String> TEST2_CLASSES = new HashSet<>(Collections.singletonList("main"));
 
     @Test
     public void testMemberClasses() throws Exception {
-        ModelInfoLoader transformer = new ModelInfoLoader()
-                .withModel(new ClassExample());
-        Set<String> classes = transformer.collectClasses();
+        Set<String> classes = new ResourceContext()
+                .withModel(new ClassExample())
+                .withInfo(loader.load(ClassExample.class))
+                .collectClasses();
+
         assertEquals("Classes", TEST1_CLASSES, classes);
     }
 
     @Test
     public void testModelClasses() throws Exception {
-        ModelInfoLoader transformer = new ModelInfoLoader()
-                .withModel(new ClassExampleWithModel());
-        Set<String> classes = transformer.collectClasses();
+        Set<String> classes = new ResourceContext()
+                .withModel(new ClassExampleWithModel())
+                .withInfo(loader.load(ClassExampleWithModel.class))
+                .collectClasses();
         assertEquals("Classes", TEST2_CLASSES, classes);
     }
 

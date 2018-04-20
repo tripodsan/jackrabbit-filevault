@@ -1,0 +1,35 @@
+{
+    "links": [
+        {
+            "rel": [
+                "self"
+            ],
+            "href": "http://localhost:8080/system"
+        }
+    ],
+    "actions": [
+        {
+            "method": "POST",
+            "name": "create-stuff",
+            "href": "http://localhost:8080/system"
+        },
+        {
+            "method": "PUT",
+            "name": "put-action",
+            "type": "application/json",
+            "title": "create new stuff",
+            "href": "http://localhost:8080/system/stuff/{id}",
+            "fields": [
+                {
+                    "name": "title",
+                    "type": "text"
+                },
+                {
+                    "name": "flag",
+                    "type": "checkbox",
+                    "value": "false"
+                }
+            ]
+        }
+    ]
+}
